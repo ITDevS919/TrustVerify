@@ -1,0 +1,7 @@
+**/dist
+
+# Ignore environment files
+**/.env
+
+# Ignore node_modules everywhere
+**/node_modules/

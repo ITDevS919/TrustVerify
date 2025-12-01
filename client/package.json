@@ -1,0 +1,53 @@
+{
+  "version": "1.0.0",
+  "source": "./index.html",
+  "type": "module",
+  "name": "trustverify-upgrade",
+  "description": "TrustVerify platform with upgraded UI/UX design",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-accordion": "^1.2.12",
+    "@radix-ui/react-avatar": "^1.1.1",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-scroll-area": "^1.2.0",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-toast": "^1.2.7",
+    "@radix-ui/react-tooltip": "^1.2.0",
+    "@tanstack/react-query": "^5.90.11",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "2.1.1",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.453.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.55.0",
+    "react-router-dom": "^6.8.1",
+    "tailwind-merge": "2.5.4",
+    "tailwindcss-animate": "1.0.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.0",
+    "@types/react-dom": "18.2.0",
+    "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "0.24.0",
+    "globals": "15.12.0",
+    "tailwindcss": "3.4.16",
+    "vite": "6.0.4"
+  },
+  "alias": {
+    "@/*": "./src/components/ui/$1"
+  }
+}

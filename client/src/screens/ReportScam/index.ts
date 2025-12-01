@@ -1,0 +1,1 @@
+export { ReportScam } from "./ReportScam";
