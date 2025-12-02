@@ -7,11 +7,10 @@ import {
   insertMessageSchema, 
   insertScamReportSchema, 
   insertDisputeSchema,
-  insertKycSchema,
   insertDeveloperAccountSchema
 } from "./shared/schema.ts";
 import crypto from 'crypto';
-import { validateBody, validateQuery, paginationSchema, idParamSchema } from "./middleware/validation";
+import { validateQuery, paginationSchema } from "./middleware/validation";
 import developerRoutes from "./routes/developer";
 import { validateApiKey, logApiUsage } from "./middleware/apiAuth";
 import multer from "multer";
@@ -31,7 +30,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -46,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   
   // Serve uploaded files
-  app.use('/api/uploads', (req, res, next) => {
+  app.use('/api/uploads', (req, res, _next) => {
     const filename = req.path.split('/').pop();
     if (!filename) {
       return res.status(404).json({ message: 'File not found' });
@@ -182,6 +181,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     { name: 'selfieImage', maxCount: 1 }
   ]), async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const { 
         firstName, 
         lastName, 
@@ -251,10 +254,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/kyc/status", requireAuth, async (req, res) => {
     try {
-      const kyc = await storage.getKycByUserId(req.user.id);
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const user = req.user; // Type narrowing
+      const kyc = await storage.getKycByUserId(user.id);
       const { kycStorage } = await import("./services/kyc-storage");
       const submission = (await kycStorage.getAllSubmissions())
-        .find(s => s.userId === req.user.id);
+        .find(s => s.userId === user.id);
       
       res.json({
         ...kyc,
@@ -375,6 +383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = schema.parse(req.body);
       const { kycStorage } = await import("./services/kyc-storage");
       
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const submission = await kycStorage.updateSubmissionReview(
         req.params.submissionId,
         {
@@ -426,9 +438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/kyc/export", requireAuth, requireAdminAccess, async (req, res) => {
+  app.get("/api/admin/kyc/export", requireAuth, requireAdminAccess, async (_req, res) => {
     try {
-
       const { kycStorage } = await import("./services/kyc-storage");
       const csv = await kycStorage.exportToCSV();
       
@@ -443,6 +454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GDPR Data Subject Request (DSAR) endpoint
   app.post("/api/gdpr/requests", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const schema = z.object({
         type: z.enum(["access", "rectification", "erasure", "portability", "restriction"]),
         targetUserId: z.number().optional()
@@ -465,10 +480,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Transaction Routes
   app.post("/api/transactions", requireAuth, async (req, res) => {
+    // Invalidate transaction cache on create
+    const { readCache } = await import('./services/read-cache');
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       // Security enhancement: log transaction creation
       if (securityModules?.AuditService) {
-        securityModules.AuditService.logUserAction('TRANSACTION_CREATED', req.user, req, {
+        securityModules.AuditService.logUserAction('TRANSACTION_CREATE' as any, req.user, req, {
           resourceType: 'transaction',
           metadata: { amount: req.body.amount, title: req.body.title }
         });
@@ -487,6 +508,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         buyerId: req.user.id,
       });
 
+      // Run fraud detection v2 analysis
+      const { fraudDetectionEngineV2 } = await import('./services/fraud-detection-v2');
+      const fraudResult = await fraudDetectionEngineV2.analyzeTransaction(
+        transaction.id,
+        req.user.id,
+        req.ip || 'unknown',
+        req.get('User-Agent'),
+        req.body.deviceFingerprint
+      );
+
+      // Update transaction with fraud risk score if high risk
+      if (fraudResult.riskLevel === 'high' || fraudResult.riskLevel === 'critical') {
+        // Note: updateTransaction may need to be implemented in storage
+        // For now, we'll log the fraud result
+        console.warn('High-risk transaction detected', {
+          transactionId: transaction.id,
+          fraudScore: fraudResult.overallScore,
+          riskLevel: fraudResult.riskLevel,
+        });
+      }
+
+      // Invalidate transaction cache on create
+      await readCache.invalidateTransaction(transaction.id);
+      await readCache.invalidate(`transactions:user:${req.user.id}:*`);
+
       res.status(201).json(transaction);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -495,19 +541,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/transactions", requireAuth, validateQuery(paginationSchema), async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       // Security enhancement: log data access
       if (securityModules?.AuditService) {
-        securityModules.AuditService.logUserAction('DATA_EXPORT', req.user, req, {
+        securityModules.AuditService.logUserAction('DATA_ACCESS' as any, req.user, req, {
           resourceType: 'transactions',
           metadata: { page: req.query.page, limit: req.query.limit }
         });
       }
       
-      const { page, limit } = req.query;
-      const offset = (page! - 1) * limit!;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const offset = (page - 1) * limit;
       
-      const transactions = await storage.getTransactionsByUser(req.user!.id, limit, offset);
-      const total = await storage.getTransactionCountByUser(req.user!.id);
+      const transactions = await storage.getTransactionsByUser(req.user.id, limit, offset);
+      const total = await storage.getTransactionCountByUser(req.user.id);
+      
+      // Record data access for exfiltration monitoring
+      const { securityAlerts } = await import('./services/security-alerts');
+      securityAlerts.recordExfiltrationSignal(
+        req.user.id,
+        '/api/transactions',
+        transactions.length,
+        req.ip
+      );
       
       res.json({
         transactions,
@@ -515,9 +575,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit!),
-          hasNext: page! * limit! < total,
-          hasPrev: page! > 1,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
         },
       });
     } catch (error: any) {
@@ -527,15 +587,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/transactions/:id", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const user = req.user; // Type narrowing
       const transaction = await storage.getTransaction(parseInt(req.params.id));
       if (!transaction) {
         return res.status(404).json({ message: "Transaction not found" });
       }
 
       // Check if user is involved in the transaction
-      if (transaction.buyerId !== req.user.id && transaction.sellerId !== req.user.id) {
+      if (transaction.buyerId !== user.id && transaction.sellerId !== user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
+
+      // Invalidate cache
+      const { readCache } = await import('./services/read-cache');
+      await readCache.invalidateTransaction(transaction.id);
 
       res.json(transaction);
     } catch (error: any) {
@@ -545,6 +614,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/transactions/:id/status", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const { status } = req.body;
       const transaction = await storage.getTransaction(parseInt(req.params.id));
       
@@ -558,6 +631,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedTransaction = await storage.updateTransactionStatus(transaction.id, status);
+      
+      // Invalidate cache
+      const { readCache } = await import('./services/read-cache');
+      await readCache.invalidateTransaction(transaction.id);
+      await readCache.invalidate(`transactions:user:${req.user.id}:*`);
+      
       res.json(updatedTransaction);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -567,6 +646,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Message Routes
   app.post("/api/messages", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const validatedData = insertMessageSchema.parse(req.body);
       
       // Check if user is involved in the transaction
@@ -589,6 +672,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/messages/:transactionId", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const transactionId = parseInt(req.params.transactionId);
       const transaction = await storage.getTransaction(transactionId);
       
@@ -619,8 +706,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Scam Report Routes
   app.post("/api/scam-reports", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const validatedData = insertScamReportSchema.parse(req.body);
-      
+
       const report = await storage.createScamReport({
         ...validatedData,
         reporterId: req.user.id,
@@ -652,6 +743,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dispute Routes
   app.post("/api/disputes", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const validatedData = insertDisputeSchema.parse(req.body);
       
       // Check if user is involved in the transaction
@@ -677,6 +772,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/disputes/:transactionId", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const transactionId = parseInt(req.params.transactionId);
       const transaction = await storage.getTransaction(transactionId);
       
@@ -693,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin Routes
-  app.get("/api/admin/kyc-pending", requireAdmin, async (req, res) => {
+  app.get("/api/admin/kyc-pending", requireAdmin, async (_req, res) => {
     try {
       const pendingKyc = await storage.getPendingKycVerifications();
       res.json(pendingKyc);
@@ -704,6 +803,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/kyc/:id", requireAdmin, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const { status, notes } = req.body;
       const kyc = await storage.updateKycStatus(
         parseInt(req.params.id), 
@@ -722,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/disputes-pending", requireAdmin, async (req, res) => {
+  app.get("/api/admin/disputes-pending", requireAdmin, async (_req, res) => {
     try {
       const pendingDisputes = await storage.getPendingDisputes();
       res.json(pendingDisputes);
@@ -733,6 +836,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/disputes/:id", requireAdmin, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const { status, resolution } = req.body;
       const dispute = await storage.updateDisputeStatus(
         parseInt(req.params.id), 
@@ -753,6 +860,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/admin/scam-reports/:id", requireAdmin, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const { status } = req.body;
       const report = await storage.updateScamReportStatus(
         parseInt(req.params.id), 
@@ -773,6 +884,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User search for transaction creation
   app.get("/api/users/search", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const { q } = req.query;
       if (!q || typeof q !== 'string') {
         return res.status(400).json({ message: "Search query required" });
@@ -807,7 +922,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public API endpoints
   app.get("/api/v1/transactions", async (req, res) => {
     try {
-      const transactions = await storage.getTransactionsByUser(req.developer!.userId);
+      const authReq = req as any;
+      if (!authReq.developer) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      const transactions = await storage.getTransactionsByUser(authReq.developer.userId);
       res.json(transactions);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -837,10 +956,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Developer Account Management
   app.post("/api/developer/account", requireAuth, async (req, res) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const validatedData = insertDeveloperAccountSchema.parse(req.body);
       const account = await storage.createDeveloperAccount({
         ...validatedData,
-        userId: req.user!.id,
+        userId: req.user.id,
       });
       res.status(201).json(account);
     } catch (error: any) {
@@ -924,7 +1047,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/developer/api-keys/:id", requireAuth, async (req, res) => {
     try {
-      const userId = req.user!.id;
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userId = req.user.id;
       const keyId = parseInt(req.params.id);
 
       if (isNaN(keyId)) {

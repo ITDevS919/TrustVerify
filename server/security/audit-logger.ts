@@ -164,6 +164,17 @@ export class AuditService {
     if (event.riskLevel === 'critical') {
       this.logCriticalSecurityEvent(auditData);
     }
+
+    // Write to WORM storage for immutable audit trail
+    if (process.env.WORM_STORAGE_ENABLED !== 'false') {
+      import('../services/worm-storage').then(({ wormStorage }) => {
+        wormStorage.writeRecord(event, auditData).catch((err: any) => {
+          auditLogger.warn({ err }, 'Failed to write to WORM storage');
+        });
+      }).catch(() => {
+        // WORM storage not available, continue without it
+      });
+    }
   }
   
   static logUserAction(

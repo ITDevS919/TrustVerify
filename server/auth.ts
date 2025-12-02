@@ -2,18 +2,20 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import { randomBytes } from "crypto";
 import { storage } from "./storage";
 import { User as SelectUser } from "./shared/schema.ts";
 import sgMail from "@sendgrid/mail";
 import { config } from "./config";
 import { authRateLimit } from "./security/security-middleware";
-import AuditService, { AuditEventType } from "./security/audit-logger";
+import AuditService, { AuditEventType, type AuditEvent } from "./security/audit-logger";
+import { securityAlerts } from "./services/security-alerts";
+import { wormStorage } from "./services/worm-storage";
 import { setupGoogleAuth } from "./google-auth";
 import { setupFacebookAuth } from "./facebook-auth";
 import { setupGitHubAuth } from "./github-auth";
 import { setupAppleAuth } from "./apple-auth";
+import pino from "pino";
 
 declare global {
   namespace Express {
@@ -21,9 +23,12 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
-
 import argon2 from "argon2";
+
+const logger = pino({
+  name: 'auth',
+  level: config.LOG_LEVEL || 'info'
+});
 
 async function hashPassword(password: string) {
   // Validate password strength
@@ -57,16 +62,28 @@ export function setupAuth(app: Express) {
     sgMail.setApiKey(config.SENDGRID_API_KEY);
   }
 
+  // Session hardening: short timeouts, SameSite=Strict, secure cookies
+  const sessionTimeoutMs = (config.SESSION_TIMEOUT_MINUTES || 30) * 60 * 1000;
+  
   const sessionSettings: session.SessionOptions = {
     secret: config.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    name: 'trustverify.sid', // Don't use default 'connect.sid'
+    rolling: config.SESSION_EXTEND_ON_ACTIVITY, // Extend session on activity
     cookie: {
-      secure: config.NODE_ENV === 'production',
-      sameSite: 'lax',
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: config.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: 'strict', // CSRF protection - strict mode
+      httpOnly: true, // Prevent XSS attacks
+      maxAge: sessionTimeoutMs, // Short timeout (default 30 minutes)
+      domain: config.NODE_ENV === 'production' ? undefined : undefined, // Set domain in production if needed
+      path: '/',
+    },
+    // Additional security settings
+    genid: () => {
+      // Use cryptographically secure random ID
+      return randomBytes(32).toString('hex');
     },
   };
 
@@ -82,10 +99,25 @@ export function setupAuth(app: Express) {
   setupAppleAuth(app);
   
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({ passReqToCallback: true }, async (req, username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
         if (!user || !user.password || !(await comparePasswords(password, user.password))) {
+          // Record auth failure
+          securityAlerts.recordAuthFailure(
+            user?.id,
+            req.ip || 'unknown',
+            req.get('User-Agent'),
+            req.path
+          );
+          
+          // Log to audit
+          AuditService.logFailedAttempt(
+            AuditEventType.LOGIN_FAILURE,
+            req,
+            user ? 'Invalid password' : 'User not found'
+          );
+          
           return done(null, false);
         } else {
           return done(null, user);
@@ -96,8 +128,8 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id: number, done) => {
+  passport.serializeUser((user: any, done: (err: any, id?: number) => void) => done(null, user.id));
+  passport.deserializeUser(async (id: number, done: (err: any, user?: any) => void) => {
     const user = await storage.getUser(id);
     done(null, user);
   });
@@ -136,7 +168,20 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", authRateLimit, passport.authenticate("local"), (req, res) => {
-    AuditService.logUserAction(AuditEventType.LOGIN_SUCCESS, req.user!, req);
+      AuditService.logUserAction(AuditEventType.LOGIN_SUCCESS, req.user!, req);
+      
+      // Write to WORM storage
+      const auditEvent: AuditEvent = {
+        eventType: AuditEventType.LOGIN_SUCCESS,
+        userId: req.user!.id,
+        userEmail: req.user!.email,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        success: true,
+      };
+      wormStorage.writeRecord(auditEvent).catch(err => {
+        logger.error({ err }, 'Failed to write to WORM storage');
+      });
     res.status(200).json(req.user);
   });
 

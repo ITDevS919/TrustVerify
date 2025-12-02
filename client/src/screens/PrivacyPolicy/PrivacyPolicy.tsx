@@ -1,7 +1,7 @@
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
 import { Card, CardContent } from "../../components/ui/card";
-import React from "react";
+import React, { useState } from "react";
 
 const metaData = [
   { label: "Effective Date:", value: "Janurary 1, 2025" },
@@ -170,29 +170,43 @@ const policyChangesNotifications = [
 ];
 
 const tableOfContents = [
-  { title: "1. Data Protection & Privacy Notice", indent: false },
-  { title: "2. Information We Collect", indent: false },
-  { title: "2.1 Personal Information", indent: true },
-  { title: "2.2 Automatically Collected Data", indent: true },
-  { title: "3. Legal Basis For Processing", indent: false },
-  { title: "4. How We Use Your Information", indent: false },
-  { title: "4.1 Primary Users", indent: true },
-  { title: "4.2 Secondary Users", indent: true },
-  { title: "5. Data Sharing And Third Parties", indent: false },
-  { title: "6. International Data Transfers", indent: false },
-  { title: "7. Data Retention", indent: false },
-  { title: "8. Your Rights", indent: false },
-  { title: "9. Security Measures", indent: false },
-  { title: "9.1 Technical Safeguards", indent: true },
-  { title: "9.2 Organization Measures", indent: true },
-  { title: "10. Ccpa Rights", indent: false },
-  { title: "11. Contact Information", indent: false },
-  { title: "12. Changes To The Policy", indent: false },
+  { title: "1. Data Protection & Privacy Notice", indent: false, id: "section-1" },
+  { title: "2. Information We Collect", indent: false, id: "section-2" },
+  { title: "2.1 Personal Information", indent: true, id: "section-2-1" },
+  { title: "2.2 Automatically Collected Data", indent: true, id: "section-2-2" },
+  { title: "3. Legal Basis for Processing", indent: false, id: "section-3" },
+  { title: "4. How We Use Your Information", indent: false, id: "section-4" },
+  { title: "4.1 Primary Uses", indent: true, id: "section-4-1" },
+  { title: "4.2 Secondary Uses", indent: true, id: "section-4-2" },
+  { title: "5. Data Sharing and Third Parties", indent: false, id: "section-5" },
+  { title: "6. International Data Transfers", indent: false, id: "section-6" },
+  { title: "7. Data Retention", indent: false, id: "section-7" },
+  { title: "8. Your Rights", indent: false, id: "section-8" },
+  { title: "9. Security Measures", indent: false, id: "section-9" },
+  { title: "9.1 Technical Safeguards", indent: true, id: "section-9-1" },
+  { title: "9.2 Organizational Measures", indent: true, id: "section-9-2" },
+  { title: "10. CCPA Rights", indent: false, id: "section-10" },
+  { title: "11. Contact Information", indent: false, id: "section-11" },
+  { title: "12. Changes to This Policy", indent: false, id: "section-12" },
 ];
 
 
 
 export const PrivacyPolicy = (): JSX.Element => {
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+
+  const handleTocClick = (itemId: string) => {
+    setSelectedItem(itemId);
+    setTimeout(() => {
+      const element = document.getElementById(itemId);
+      if (element) {
+        const yOffset = -80; // Offset for fixed header if any
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }, 10);
+  };
+
   return (
     <main className="bg-white overflow-hidden w-full relative">
       <Header 
@@ -218,27 +232,42 @@ export const PrivacyPolicy = (): JSX.Element => {
             </div>
 
             <div className="flex flex-col items-start gap-4 px-[30px] pb-[31px]">
-              {tableOfContents.map((item, index) => (
-                <div
-                  key={index}
-                  className={`[font-family:'DM_Sans_18pt-Regular',Helvetica] text-base tracking-[0] ${
-                    item.indent ? "leading-8 text-[#808080]" : "leading-[27.2px]"
-                  } ${
-                    index === 0
-                      ? "[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b]"
-                      : "font-normal text-[#808080]"
-                  }`}
-                >
-                  {item.indent && "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                  {item.title}
-                </div>
-              ))}
+              {tableOfContents.map((item, index) => {
+                const isSelected = selectedItem === item.id;
+                const shouldHighlight = isSelected || (index === 0 && selectedItem === null);
+                return (
+                  <a
+                    key={index}
+                    href={`#${item.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleTocClick(item.id);
+                    }}
+                    className={`[font-family:'DM_Sans_18pt-Regular',Helvetica] text-base tracking-[0] cursor-pointer hover:text-[#003d2b] transition-colors no-underline ${
+                      item.indent ? "leading-8 [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium" : "leading-[27.2px]"
+                    } ${
+                      shouldHighlight 
+                        ? "text-[#003d2b]" 
+                        : "text-[#808080]"
+                    } ${
+                      index === 0 && shouldHighlight
+                        ? "[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium"
+                        : ""
+                    }`}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    {item.indent && "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
+                    {item.title}
+                  </a>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
 
         <div className="w-full flex flex-col items-start gap-[59px]">
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-1" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               1. Data Protection &amp; Privacy Notice
             </p>
@@ -290,13 +319,13 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
           
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-2" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               2. Information We Collect
             </p>
 
             <div className="flex flex-col items-start gap-[34px] w-full">
-              <div className="flex flex-col items-start gap-5 w-full">
+              <div id="section-2-1" className="flex flex-col items-start gap-5 w-full scroll-mt-20">
                 <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
                   2.1 Personal Information
                 </p>
@@ -311,7 +340,7 @@ export const PrivacyPolicy = (): JSX.Element => {
                 </div>
               </div>
 
-              <div className="flex flex-col items-start gap-5 w-full">
+              <div id="section-2-2" className="flex flex-col items-start gap-5 w-full scroll-mt-20">
                 <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
                   2.2 Automatically Collected Data
                 </p>
@@ -330,7 +359,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-3" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               3. Legal Basis for Processing
             </p>
@@ -367,13 +396,13 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-4" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               4. How We Use Your Information
             </p>
 
             <div className="flex flex-col items-start gap-[34px] w-full">
-              <div className="flex flex-col items-start gap-5 w-full">
+              <div id="section-4-1" className="flex flex-col items-start gap-5 w-full scroll-mt-20">
                 <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
                   4.1 Primary Uses
                 </p>
@@ -388,7 +417,7 @@ export const PrivacyPolicy = (): JSX.Element => {
                 </div>
               </div>
 
-              <div className="flex flex-col items-start gap-5 w-full">
+              <div id="section-4-2" className="flex flex-col items-start gap-5 w-full scroll-mt-20">
                 <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
                   4.2 Secondary Uses
                 </p>
@@ -407,7 +436,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-5" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               5. Data Sharing and Third Parties
             </p>
@@ -451,7 +480,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-6" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               6. International Data Transfers
             </p>
@@ -475,7 +504,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-7" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               7. Data Retention
             </p>
@@ -519,11 +548,12 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-            8. Your Rights (UK GDPR)
-          </p>
+          <div id="section-8" className="flex flex-col items-start gap-6 w-full scroll-mt-20">
+            <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+              8. Your Rights (UK GDPR)
+            </p>
 
-          <div className="flex flex-col items-start gap-6 w-full">
+            <div className="flex flex-col items-start gap-6 w-full">
             <div className="flex flex-col items-start gap-5 w-full">
             <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
             Individual Rights
@@ -562,17 +592,18 @@ export const PrivacyPolicy = (): JSX.Element => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-9" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               9. Security Measures
             </p>
 
             <div className="flex flex-col items-start gap-[34px] w-full">
-              <div className="flex flex-col items-start gap-5 w-full">
+              <div id="section-9-1" className="flex flex-col items-start gap-5 w-full scroll-mt-20">
                 <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
                   9.1 Technical Safeguards
                 </p>
@@ -587,7 +618,7 @@ export const PrivacyPolicy = (): JSX.Element => {
                 </div>
               </div>
 
-              <div className="flex flex-col items-start gap-5 w-full">
+              <div id="section-9-2" className="flex flex-col items-start gap-5 w-full scroll-mt-20">
                 <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
                   9.2 Organizational Measures
                 </p>
@@ -606,7 +637,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-10" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               10. CCPA Rights (California Residents)
             </p>
@@ -645,7 +676,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-11" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               11. Contact Information
             </p>
@@ -716,7 +747,7 @@ export const PrivacyPolicy = (): JSX.Element => {
 
           <div className="w-full h-px bg-[#e4e4e4]"></div>
 
-          <div className="flex flex-col items-start gap-[30px] w-full">
+          <div id="section-12" className="flex flex-col items-start gap-[30px] w-full scroll-mt-20">
             <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
               12. Changes to This Policy
             </p>
@@ -753,21 +784,36 @@ export const PrivacyPolicy = (): JSX.Element => {
             </div>
 
             <div className="flex flex-col items-start gap-4 px-[30px] pb-[31px]">
-              {tableOfContents.map((item, index) => (
-                <div
-                  key={index}
-                  className={`[font-family:'DM_Sans_18pt-Regular',Helvetica] text-base tracking-[0] ${
-                    item.indent ? "leading-8 text-[#808080]" : "leading-[27.2px]"
-                  } ${
-                    index === 0
-                      ? "[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b]"
-                      : "font-normal text-[#808080]"
-                  }`}
-                >
-                  {item.indent && "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
-                  {item.title}
-                </div>
-              ))}
+              {tableOfContents.map((item, index) => {
+                const isSelected = selectedItem === item.id;
+                const shouldHighlight = isSelected || (index === 0 && selectedItem === null);
+                return (
+                  <a
+                    key={index}
+                    href={`#${item.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleTocClick(item.id);
+                    }}
+                    className={`[font-family:'DM_Sans_18pt-Regular',Helvetica] text-base tracking-[0] cursor-pointer hover:text-[#003d2b] transition-colors no-underline ${
+                      item.indent ? "leading-8 [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium" : "leading-[27.2px]"
+                    } ${
+                      shouldHighlight 
+                        ? "text-[#003d2b]" 
+                        : "text-[#808080]"
+                    } ${
+                      index === 0 && shouldHighlight
+                        ? "[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium"
+                        : ""
+                    }`}
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    {item.indent && "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"}
+                    {item.title}
+                  </a>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
