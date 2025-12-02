@@ -24,19 +24,15 @@ import {
   type DeveloperAccount,
   type InsertDeveloperAccount,
   type ApiKey,
-  type InsertApiKey,
   type ApiUsageLog,
   type InsertApiUsageLog,
-  type PasswordReset,
-  type InsertPasswordReset
+  type PasswordReset
 } from "./shared/schema";
 import { db } from "./db.ts";
-import { eq, and, or, ilike, gte, lte, desc, count, sum, avg, lt, sql } from "drizzle-orm";
+import { eq, and, or, ilike, gte, lte, desc, count, avg, sql } from "drizzle-orm";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
 import createMemoryStore from "memorystore";
 
-const PostgresSessionStore = connectPg(session);
 const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
@@ -151,12 +147,26 @@ export class MemStorage implements IStorage {
         id: 1,
         username: "ui_designer",
         email: "designer@trustverify.demo",
-        fullName: "UI/UX Designer",
-        passwordHash: hashedPassword,
+        password: hashedPassword,
+        firstName: "UI/UX",
+        lastName: "Designer",
+        profileImage: null,
+        authProvider: "local",
+        googleId: null,
         isVerified: true,
         trustScore: "95.5",
         verificationLevel: "full",
         isAdmin: false,
+        sellerTier: "gold",
+        completedTransactions: 10,
+        successfulTransactions: 10,
+        disputesAgainst: 0,
+        validDisputes: 0,
+        sanctionLevel: 0,
+        sanctionReason: null,
+        sanctionedUntil: null,
+        fastReleaseEligible: true,
+        requiresExtendedBuffer: false,
         createdAt: new Date(),
       };
 
@@ -177,18 +187,27 @@ export class MemStorage implements IStorage {
 
   private createSampleData() {
     // Create sample transactions
-    const sampleTransactions = [
+    const sampleTransactions: Transaction[] = [
       {
         id: 1,
         title: "Website Design Project",
         description: "Custom e-commerce website design with modern UI/UX",
-        amount: 2500.00,
+        amount: "2500.00",
         currency: "USD",
         buyerId: 1,
         sellerId: 2,
-        sellerEmail: "developer@example.com",
         status: "completed",
         stripePaymentIntentId: null,
+        milestones: null,
+        bufferPeriodHours: 72,
+        bufferStartTime: null,
+        bufferEndTime: null,
+        disputeWindowHours: 72,
+        disputeDeadline: null,
+        riskScore: "10.00",
+        fraudFlags: null,
+        autoSanctioned: false,
+        escalationLevel: 0,
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
         updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
         completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
@@ -197,13 +216,22 @@ export class MemStorage implements IStorage {
         id: 2,
         title: "Mobile App UI Design",
         description: "iOS and Android app interface design with prototyping",
-        amount: 1800.00,
+        amount: "1800.00",
         currency: "USD",
         buyerId: 1,
         sellerId: 3,
-        sellerEmail: "uidesigner@example.com",
-        status: "in_progress",
+        status: "active",
         stripePaymentIntentId: null,
+        milestones: null,
+        bufferPeriodHours: 72,
+        bufferStartTime: null,
+        bufferEndTime: null,
+        disputeWindowHours: 72,
+        disputeDeadline: null,
+        riskScore: "15.00",
+        fraudFlags: null,
+        autoSanctioned: false,
+        escalationLevel: 0,
         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
         updatedAt: new Date(),
         completedAt: null,
@@ -212,13 +240,22 @@ export class MemStorage implements IStorage {
         id: 3,
         title: "Logo Design Package",
         description: "Complete brand identity including logo variations",
-        amount: 750.00,
+        amount: "750.00",
         currency: "USD",
         buyerId: 1,
         sellerId: 4,
-        sellerEmail: "graphicdesigner@example.com",
         status: "pending",
         stripePaymentIntentId: null,
+        milestones: null,
+        bufferPeriodHours: 72,
+        bufferStartTime: null,
+        bufferEndTime: null,
+        disputeWindowHours: 72,
+        disputeDeadline: null,
+        riskScore: "5.00",
+        fraudFlags: null,
+        autoSanctioned: false,
+        escalationLevel: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
         completedAt: null,
@@ -226,7 +263,7 @@ export class MemStorage implements IStorage {
     ];
 
     sampleTransactions.forEach(transaction => {
-      this.transactions.set(transaction.id, transaction as Transaction);
+      this.transactions.set(transaction.id, transaction);
     });
 
     // Update current ID
@@ -251,14 +288,125 @@ export class MemStorage implements IStorage {
     const user: User = {
       ...insertUser,
       id,
+      username: insertUser.username || null,
+      password: insertUser.password || null,
+      firstName: insertUser.firstName || null,
+      lastName: insertUser.lastName || null,
+      profileImage: insertUser.profileImage || null,
+      authProvider: insertUser.authProvider || "local",
+      googleId: insertUser.googleId || null,
       isVerified: false,
       trustScore: "0.00",
       verificationLevel: "none",
       isAdmin: false,
+      sellerTier: "new",
+      completedTransactions: 0,
+      successfulTransactions: 0,
+      disputesAgainst: 0,
+      validDisputes: 0,
+      sanctionLevel: 0,
+      sanctionReason: null,
+      sanctionedUntil: null,
+      fastReleaseEligible: false,
+      requiresExtendedBuffer: false,
       createdAt: new Date(),
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      this.users.set(id, updatedUser);
+      return updatedUser;
+    }
+    return undefined;
+  }
+
+  async updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (user) {
+      const updatedUser = { ...user, password: hashedPassword };
+      this.users.set(id, updatedUser);
+      return updatedUser;
+    }
+    return undefined;
+  }
+
+  async createPasswordReset(_userId: number, _token: string, _expiresAt: Date): Promise<PasswordReset> {
+    // MemStorage doesn't implement password resets - this is a no-op for in-memory storage
+    throw new Error("Password reset not supported in MemStorage");
+  }
+
+  async getPasswordReset(_token: string): Promise<PasswordReset | undefined> {
+    // MemStorage doesn't implement password resets
+    return undefined;
+  }
+
+  async deletePasswordReset(_token: string): Promise<void> {
+    // MemStorage doesn't implement password resets
+  }
+
+  // Developer Account methods
+  async createDeveloperAccount(_account: InsertDeveloperAccount & { userId: number }): Promise<DeveloperAccount> {
+    throw new Error("Developer accounts not supported in MemStorage");
+  }
+
+  async getDeveloperAccountByUserId(_userId: number): Promise<DeveloperAccount | undefined> {
+    return undefined;
+  }
+
+  async getDeveloperAccount(_id: number): Promise<DeveloperAccount | undefined> {
+    return undefined;
+  }
+
+  async updateDeveloperAccountStatus(_id: number, _status: string, _approvedBy?: number): Promise<DeveloperAccount | undefined> {
+    return undefined;
+  }
+
+  async updateDeveloperUsage(_id: number, _usage: number): Promise<DeveloperAccount | undefined> {
+    return undefined;
+  }
+
+  // API Key methods
+  async createApiKey(_apiKey: { developerId: number; name: string; keyHash: string; keyPrefix: string; permissions?: string[]; expiresAt?: Date }): Promise<ApiKey> {
+    throw new Error("API keys not supported in MemStorage");
+  }
+
+  async getApiKeysByDeveloperId(_developerId: number): Promise<ApiKey[]> {
+    return [];
+  }
+
+  async getApiKeyByHash(_keyHash: string): Promise<ApiKey | undefined> {
+    return undefined;
+  }
+
+  async revokeApiKey(_id: number): Promise<ApiKey | undefined> {
+    return undefined;
+  }
+
+  async updateApiKeyLastUsed(_id: number): Promise<ApiKey | undefined> {
+    return undefined;
+  }
+
+  // API Usage Log methods
+  async createApiUsageLog(_log: InsertApiUsageLog & { apiKeyId: number; developerId: number }): Promise<ApiUsageLog> {
+    throw new Error("API usage logs not supported in MemStorage");
+  }
+
+  async getApiUsageByDeveloper(_developerId: number, _startDate?: Date, _endDate?: Date): Promise<ApiUsageLog[]> {
+    return [];
+  }
+
+  async getApiUsageStats(_developerId: number, _period: 'day' | 'week' | 'month'): Promise<any> {
+    return {
+      totalRequests: 0,
+      successfulRequests: 0,
+      errorRequests: 0,
+      avgResponseTime: 0
+    };
   }
 
   async updateUserTrustScore(id: number, score: string): Promise<User | undefined> {
@@ -287,6 +435,7 @@ export class MemStorage implements IStorage {
     const kycVerification: KycVerification = {
       ...kyc,
       id,
+      documentNumber: kyc.documentNumber || null,
       status: "pending",
       notes: null,
       submittedAt: new Date(),
@@ -333,9 +482,20 @@ export class MemStorage implements IStorage {
     const newTransaction: Transaction = {
       ...transaction,
       id,
+      description: transaction.description || null,
       currency: "USD",
       status: "pending",
       stripePaymentIntentId: null,
+      milestones: transaction.milestones || null,
+      bufferPeriodHours: 72,
+      bufferStartTime: null,
+      bufferEndTime: null,
+      disputeWindowHours: 72,
+      disputeDeadline: null,
+      riskScore: "0.00",
+      fraudFlags: null,
+      autoSanctioned: false,
+      escalationLevel: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
       completedAt: null,
@@ -382,12 +542,12 @@ export class MemStorage implements IStorage {
         const buyer = await this.getUser(transaction.buyerId);
         const seller = await this.getUser(transaction.sellerId);
 
-        if (buyer) {
+        if (buyer && buyer.trustScore) {
           const newScore = (parseFloat(buyer.trustScore) + 1.0).toFixed(2);
           await this.updateUserTrustScore(buyer.id, newScore);
         }
 
-        if (seller) {
+        if (seller && seller.trustScore) {
           const newScore = (parseFloat(seller.trustScore) + 1.0).toFixed(2);
           await this.updateUserTrustScore(seller.id, newScore);
         }
@@ -446,6 +606,7 @@ export class MemStorage implements IStorage {
       id,
       status: "pending",
       isPublic: true,
+      evidence: report.evidence || null,
       createdAt: new Date(),
       reviewedAt: null,
       reviewedBy: null,
@@ -491,12 +652,23 @@ export class MemStorage implements IStorage {
   // Dispute methods
   async createDispute(dispute: InsertDispute & { raisedBy: number }): Promise<Dispute> {
     const id = this.currentId++;
+    const disputeData: any = dispute;
     const newDispute: Dispute = {
       ...dispute,
       id,
       status: "open",
+      disputeType: disputeData.disputeType || "other",
       resolution: null,
       resolvedBy: null,
+      aiConfidenceScore: disputeData.aiConfidenceScore || null,
+      fraudIndicators: disputeData.fraudIndicators || null,
+      priorityLevel: disputeData.priorityLevel || "medium",
+      autoFlagged: false,
+      escalatedToHuman: false,
+      queuePosition: null,
+      assignedAgent: disputeData.assignedAgent || null,
+      slaDeadline: disputeData.slaDeadline || null,
+      evidenceSubmitted: disputeData.evidenceSubmitted || null,
       createdAt: new Date(),
       resolvedAt: null,
     };
@@ -680,11 +852,11 @@ export class DatabaseStorage implements IStorage {
       or(eq(transactions.buyerId, userId), eq(transactions.sellerId, userId))
     );
 
-    if (limit) {
-      query = query.limit(limit);
+    if (limit !== undefined && limit > 0) {
+      query = query.limit(limit) as any;
     }
-    if (offset) {
-      query = query.offset(offset);
+    if (offset !== undefined && offset >= 0) {
+      query = query.offset(offset) as any;
     }
 
     return await query;
@@ -774,9 +946,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDispute(dispute: InsertDispute & { raisedBy: number }): Promise<Dispute> {
+    const disputeData: any = dispute;
+    const insertData = {
+      ...dispute,
+      disputeType: disputeData.disputeType || "other",
+      aiConfidenceScore: disputeData.aiConfidenceScore || null,
+      fraudIndicators: disputeData.fraudIndicators || null,
+      priorityLevel: disputeData.priorityLevel || "medium",
+      autoFlagged: false,
+      escalatedToHuman: false,
+      queuePosition: null,
+      assignedAgent: disputeData.assignedAgent || null,
+      slaDeadline: disputeData.slaDeadline || null,
+      evidenceSubmitted: disputeData.evidenceSubmitted || null,
+    };
     const [newDispute] = await db
       .insert(disputes)
-      .values(dispute)
+      .values(insertData)
       .returning();
     return newDispute;
   }
@@ -896,18 +1082,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getApiUsageByDeveloper(developerId: number, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]> {
-    let query = db.select().from(apiUsageLogs).where(eq(apiUsageLogs.developerId, developerId));
+    let conditions = [eq(apiUsageLogs.developerId, developerId)];
 
     if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(apiUsageLogs.createdAt, startDate),
-          lte(apiUsageLogs.createdAt, endDate)
-        )
+      conditions.push(
+        gte(apiUsageLogs.createdAt, startDate),
+        lte(apiUsageLogs.createdAt, endDate)
       );
     }
 
-    return await query.orderBy(desc(apiUsageLogs.createdAt));
+    return await db.select()
+      .from(apiUsageLogs)
+      .where(and(...conditions))
+      .orderBy(desc(apiUsageLogs.createdAt));
   }
 
   async getApiUsageStats(developerId: number, period: 'day' | 'week' | 'month'): Promise<any> {
@@ -949,96 +1136,6 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getApiKeysByDeveloperId(developerId: number): Promise<ApiKey[]> {
-    return await db.select().from(apiKeys).where(eq(apiKeys.developerId, developerId));
-  }
-
-  async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
-    const [key] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash));
-    return key || undefined;
-  }
-
-  async revokeApiKey(id: number): Promise<ApiKey | undefined> {
-    const [key] = await db
-      .update(apiKeys)
-      .set({ 
-        isActive: false,
-        revokedAt: new Date()
-      })
-      .where(eq(apiKeys.id, id))
-      .returning();
-    return key || undefined;
-  }
-
-  async updateApiKeyLastUsed(id: number): Promise<ApiKey | undefined> {
-    const [key] = await db
-      .update(apiKeys)
-      .set({ lastUsed: new Date() })
-      .where(eq(apiKeys.id, id))
-      .returning();
-    return key || undefined;
-  }
-
-  // API Usage Log methods
-  async createApiUsageLog(log: InsertApiUsageLog & { apiKeyId: number; developerId: number }): Promise<ApiUsageLog> {
-    const [usageLog] = await db
-      .insert(apiUsageLogs)
-      .values(log)
-      .returning();
-    return usageLog;
-  }  async getApiUsageByDeveloper(developerId: number, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]> {
-    let query = db.select().from(apiUsageLogs).where(eq(apiUsageLogs.developerId, developerId));
-
-    if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(apiUsageLogs.createdAt, startDate),
-          lte(apiUsageLogs.createdAt, endDate)
-        )
-      );
-    }
-
-    return await query.orderBy(desc(apiUsageLogs.createdAt));
-  }
-
-  async getApiUsageStats(developerId: number, period: 'day' | 'week' | 'month'): Promise<any> {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (period) {
-      case 'day':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case 'week':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-    }
-
-    const stats = await db
-      .select({
-        totalRequests: count(),
-        successfulRequests: sql<number>`SUM(CASE WHEN ${apiUsageLogs.statusCode} < 400 THEN 1 ELSE 0 END)`,
-        errorRequests: sql<number>`SUM(CASE WHEN ${apiUsageLogs.statusCode} >= 400 THEN 1 ELSE 0 END)`,
-        avgResponseTime: avg(apiUsageLogs.responseTime)
-      })
-      .from(apiUsageLogs)
-      .where(
-        and(
-          eq(apiUsageLogs.developerId, developerId),
-          gte(apiUsageLogs.createdAt, startDate)
-        )
-      );
-
-    return stats[0] || {
-      totalRequests: 0,
-      successfulRequests: 0,
-      errorRequests: 0,
-      avgResponseTime: 0
-    };
-  }
 }
 
 export const storage = new DatabaseStorage();
