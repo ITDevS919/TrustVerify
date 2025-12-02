@@ -98,10 +98,24 @@ jobs:
         working-directory: ./server
         run: npm ci
       
+      - name: Create .env file for CI
+        working-directory: ./server
+        run: |
+          cat > .env << EOF
+          NODE_ENV=test
+          PORT=5000
+          DATABASE_URL=postgresql://test:test@localhost:5432/trustverify_test
+          SESSION_SECRET=test-session-secret-minimum-32-characters-long-for-ci
+          JWT_SECRET=test-jwt-secret-minimum-32-characters-long-for-ci
+          ENCRYPTION_KEY=test-encryption-key-minimum-32-characters-long
+          API_VERSION=v1
+          GDPR_ENABLED=false
+          WAF_ENABLED=false
+          LOG_LEVEL=error
+          EOF
+      
       - name: Setup test database
         working-directory: ./server
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/trustverify_test
         run: |
           npm run db:push || echo "Database setup skipped"
       
@@ -131,6 +145,22 @@ jobs:
           npm ci
           cd server && npm ci
       
+      - name: Create .env file for CI
+        working-directory: ./server
+        run: |
+          cat > .env << EOF
+          NODE_ENV=test
+          PORT=5000
+          DATABASE_URL=postgresql://test:test@localhost:5432/trustverify_test
+          SESSION_SECRET=test-session-secret-minimum-32-characters-long-for-ci
+          JWT_SECRET=test-jwt-secret-minimum-32-characters-long-for-ci
+          ENCRYPTION_KEY=test-encryption-key-minimum-32-characters-long
+          API_VERSION=v1
+          GDPR_ENABLED=false
+          WAF_ENABLED=false
+          LOG_LEVEL=error
+          EOF
+      
       - name: Install Playwright
         run: npx playwright install --with-deps
       
@@ -138,8 +168,8 @@ jobs:
         run: npm run build
       
       - name: Start server
+        working-directory: ./server
         run: |
-          cd server
           npm run dev &
           sleep 10
       
@@ -159,6 +189,21 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: trustverify_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
       - uses: actions/checkout@v4
       
@@ -175,10 +220,29 @@ jobs:
           sudo apt-get update
           sudo apt-get install k6
       
-      - name: Start server
+      - name: Install dependencies
+        working-directory: ./server
+        run: npm ci
+      
+      - name: Create .env file for CI
+        working-directory: ./server
         run: |
-          cd server
-          npm install
+          cat > .env << EOF
+          NODE_ENV=test
+          PORT=5000
+          DATABASE_URL=postgresql://test:test@localhost:5432/trustverify_test
+          SESSION_SECRET=test-session-secret-minimum-32-characters-long-for-ci
+          JWT_SECRET=test-jwt-secret-minimum-32-characters-long-for-ci
+          ENCRYPTION_KEY=test-encryption-key-minimum-32-characters-long
+          API_VERSION=v1
+          GDPR_ENABLED=false
+          WAF_ENABLED=false
+          LOG_LEVEL=error
+          EOF
+      
+      - name: Start server
+        working-directory: ./server
+        run: |
           npm run dev &
           sleep 15
       
@@ -239,6 +303,22 @@ jobs:
           npm ci
           cd server && npm ci
       
+      - name: Create .env file for CI
+        working-directory: ./server
+        run: |
+          cat > .env << EOF
+          NODE_ENV=production
+          PORT=5000
+          DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+          SESSION_SECRET=build-session-secret-minimum-32-characters-long-for-ci
+          JWT_SECRET=build-jwt-secret-minimum-32-characters-long-for-ci
+          ENCRYPTION_KEY=build-encryption-key-minimum-32-characters-long
+          API_VERSION=v1
+          GDPR_ENABLED=false
+          WAF_ENABLED=false
+          LOG_LEVEL=error
+          EOF
+      
       - name: Build application
         run: |
           npm run build
@@ -267,6 +347,29 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: build-artifacts
+      
+      - name: Create production .env from secrets
+        working-directory: ./server
+        run: |
+          cat > .env << EOF
+          NODE_ENV=production
+          PORT=${{ secrets.PORT || '5000' }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
+          API_VERSION=${{ secrets.API_VERSION || 'v1' }}
+          GDPR_ENABLED=${{ secrets.GDPR_ENABLED || 'true' }}
+          WAF_ENABLED=${{ secrets.WAF_ENABLED || 'false' }}
+          LOG_LEVEL=${{ secrets.LOG_LEVEL || 'info' }}
+          # Email Service (at least one required in production)
+          SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+          # Cloud Storage (at least one required in production)
+          AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
+          AWS_S3_ACCESS_KEY_ID=${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+          AWS_S3_SECRET_ACCESS_KEY=${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          AWS_S3_REGION=${{ secrets.AWS_S3_REGION || 'us-east-1' }}
+          EOF
       
       - name: Deploy to production
         run: |
