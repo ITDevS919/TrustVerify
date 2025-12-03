@@ -58,12 +58,22 @@ export class DeploymentGovernanceService {
     environment: string,
     deployedBy: string
   ): Promise<Deployment> {
+    // Use a small delay to ensure unique timestamps for proper sorting
+    // This is especially important in tests where deployments are created quickly
+    const now = new Date();
+    if (this.deploymentHistory.length > 0) {
+      const lastDeployment = this.deploymentHistory[this.deploymentHistory.length - 1];
+      if (now.getTime() <= lastDeployment.deployedAt.getTime()) {
+        now.setTime(lastDeployment.deployedAt.getTime() + 1);
+      }
+    }
+    
     const deployment: Deployment = {
-      id: `deploy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `deploy_${now.getTime()}_${Math.random().toString(36).substr(2, 9)}`,
       version,
       environment,
       region: config.REGION || 'us-east-1',
-      deployedAt: new Date(),
+      deployedAt: now,
       deployedBy,
       status: 'deploying',
       healthCheckPassed: false,

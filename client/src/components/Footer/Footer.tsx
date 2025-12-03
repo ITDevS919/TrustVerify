@@ -25,6 +25,7 @@ const legalLinks = [
   { label: "Privacy Policies", path: "/policies" },
   { label: "Legal Disclaimer", path: "/legal" },
   { label: "Terms of Service", path: "/terms" },
+  { label: "Cookie Policy", path: "/cookie-policy" },
   { label: "Regulatory Compliances", path: "/compliances" },
 ];
 

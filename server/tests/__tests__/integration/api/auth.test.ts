@@ -30,9 +30,12 @@ describe('Authentication API Integration Tests', () => {
 
   describe('POST /api/register', () => {
     it('should register a new user', async () => {
+      // Use shorter username to ensure it fits validation (3-30 chars)
+      // Date.now() is 13 digits, so we need to keep username part short
+      const timestamp = Date.now().toString().slice(-8); // Last 8 digits
       const userData = {
-        username: `testuser_${Date.now()}`,
-        email: `test_${Date.now()}@example.com`,
+        username: `tu${timestamp}`, // "tu" + 8 digits = 10 chars, well within 3-30 limit
+        email: `test_${timestamp}@example.com`,
         password: 'TestPassword123!',
         firstName: 'Test',
         lastName: 'User',
@@ -40,9 +43,14 @@ describe('Authentication API Integration Tests', () => {
 
       const response = await request(app)
         .post('/api/register')
-        .send(userData)
-        .expect(201);
+        .send(userData);
 
+      // Log the response if it's not 201 to debug
+      if (response.status !== 201) {
+        console.log('Registration failed:', response.status, response.body);
+      }
+
+      expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.email).toBe(userData.email);
       expect(response.body).not.toHaveProperty('password');
@@ -84,9 +92,11 @@ describe('Authentication API Integration Tests', () => {
 
     beforeAll(async () => {
       // Create a test user
+      // Use shorter username to ensure it fits validation (3-30 chars)
+      const timestamp = Date.now().toString().slice(-8); // Last 8 digits
       const userData = {
-        username: `testuser_${Date.now()}`,
-        email: `test_${Date.now()}@example.com`,
+        username: `tu${timestamp}`, // "tu" + 8 digits = 10 chars
+        email: `test_${timestamp}@example.com`,
         password: 'TestPassword123!',
       };
 
@@ -94,7 +104,17 @@ describe('Authentication API Integration Tests', () => {
         .post('/api/register')
         .send(userData);
 
+      // Log if registration failed
+      if (registerResponse.status !== 201) {
+        console.log('Test user registration failed:', registerResponse.status, registerResponse.body);
+      }
+
       testUser = registerResponse.body;
+      
+      // Ensure testUser was created
+      if (!testUser || !testUser.id) {
+        throw new Error(`Failed to create test user: ${JSON.stringify(registerResponse.body)}`);
+      }
     });
 
     it('should login with valid credentials', async () => {

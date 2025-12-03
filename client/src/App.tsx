@@ -18,6 +18,7 @@ import { PricingDetail } from "./screens/PricingDetail";
 import { PrivacyPolicy } from "./screens/PrivacyPolicy";
 import { RegulatoryCompliances } from "./screens/RegulatoryCompliances";
 import { TermsOfServices } from "./screens/Terms";
+import { CookiePolicy } from "./screens/CookiePolicy";
 import { Training } from "./screens/Training";
 import { ConsumerProtection } from "./screens/ConsumerProtection";
 import { Login } from "./screens/Login";
@@ -61,6 +62,7 @@ function App() {
               <Route path="/policies" element={<PrivacyPolicy />} />
               <Route path="/compliances" element={<RegulatoryCompliances />} />
               <Route path="/terms" element={<TermsOfServices />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/training" element={<Training />} />
               <Route path="/consumer-protection" element={<ConsumerProtection />} />
               <Route path="/developer-center" element={<DeveloperCenter />} />

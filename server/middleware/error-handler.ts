@@ -156,7 +156,9 @@ export function sendError(
   const isOperational = (error as ApiError).isOperational || false;
 
   // Don't expose internal error details in production
-  const message = config.NODE_ENV === 'production' && !isOperational
+  // Check process.env directly to allow test overrides
+  const isProduction = process.env.NODE_ENV === 'production' || config.NODE_ENV === 'production';
+  const message = isProduction && !isOperational
     ? 'An internal error occurred'
     : error.message;
 

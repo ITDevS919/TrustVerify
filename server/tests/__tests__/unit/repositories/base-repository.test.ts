@@ -63,6 +63,21 @@ describe('BaseRepository', () => {
     });
 
     it('should handle errors', async () => {
+      // Mock the cache service to return null (cache miss) and then throw on fetcher
+      const mockCache = require('../../../../services/read-cache');
+      const originalGetOrSet = mockCache.readCache.getOrSet;
+      
+      // Mock cache to call fetcher which will throw
+      mockCache.readCache.getOrSet = jest.fn().mockImplementation(async ({ fetcher }) => {
+        // Simulate cache miss, then call fetcher which should throw
+        return fetcher();
+      });
+      
+      // Mock cache service to return null (cache miss)
+      const cacheService = require('../../../../services/cache-service');
+      const originalGet = cacheService.cacheService.get;
+      cacheService.cacheService.get = jest.fn().mockResolvedValue(null);
+      
       const mockQuery = {
         from: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -72,6 +87,10 @@ describe('BaseRepository', () => {
       (db.select as jest.Mock).mockReturnValue(mockQuery);
 
       await expect(repository.findById(1)).rejects.toThrow('Repository findById failed');
+      
+      // Restore originals
+      mockCache.readCache.getOrSet = originalGetOrSet;
+      cacheService.cacheService.get = originalGet;
     });
   });
 

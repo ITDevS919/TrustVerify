@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Middleware to check authentication
   const requireAuth = (req: any, res: any, next: any) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Authentication required" });
+      return res.status(401).json({ error: "Authentication required" });
     }
     next();
   };

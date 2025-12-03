@@ -23,25 +23,47 @@ describe('Transactions API Integration Tests', () => {
     server = await registerRoutes(app as any);
 
     // Create test user and login
-    const timestamp = Date.now();
+    // Use shorter username to ensure it fits validation (3-30 chars)
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits
+    const username = `tu${timestamp}`; // "tu" + 8 digits = 10 chars
+    
     const registerResponse = await request(app)
       .post('/api/register')
       .send({
-        username: `testuser_${timestamp}`,
+        username: username,
         email: `test_${timestamp}@example.com`,
         password: 'TestPassword123!',
       });
+
+    // Log if registration failed
+    if (registerResponse.status !== 201) {
+      console.log('Transaction test user registration failed:', registerResponse.status, registerResponse.body);
+    }
 
     testUserId = registerResponse.body.id;
 
     const loginResponse = await request(app)
       .post('/api/login')
       .send({
-        username: `testuser_${timestamp}`,
+        username: username,
         password: 'TestPassword123!',
       });
 
-    authCookie = loginResponse.headers['set-cookie']?.[0] || '';
+    // Log if login failed
+    if (loginResponse.status !== 200) {
+      console.log('Transaction test user login failed:', loginResponse.status, loginResponse.body);
+    }
+
+    // Extract cookie from set-cookie header
+    const setCookie = loginResponse.headers['set-cookie'];
+    if (Array.isArray(setCookie) && setCookie.length > 0) {
+      // Extract just the cookie value part (before the first semicolon)
+      authCookie = setCookie[0].split(';')[0];
+    } else if (typeof setCookie === 'string') {
+      authCookie = setCookie.split(';')[0];
+    } else {
+      authCookie = '';
+    }
   });
 
   afterAll(async () => {

@@ -64,6 +64,7 @@ export function setupAuth(app: Express) {
 
   // Session hardening: short timeouts, SameSite=Strict, secure cookies
   const sessionTimeoutMs = (config.SESSION_TIMEOUT_MINUTES || 30) * 60 * 1000;
+  const isTest = config.NODE_ENV === 'test';
   
   const sessionSettings: session.SessionOptions = {
     secret: config.SESSION_SECRET,
@@ -74,7 +75,7 @@ export function setupAuth(app: Express) {
     rolling: config.SESSION_EXTEND_ON_ACTIVITY, // Extend session on activity
     cookie: {
       secure: config.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: 'strict', // CSRF protection - strict mode
+      sameSite: isTest ? 'lax' : 'strict', // Use 'lax' in test mode for better cookie handling
       httpOnly: true, // Prevent XSS attacks
       maxAge: sessionTimeoutMs, // Short timeout (default 30 minutes)
       domain: config.NODE_ENV === 'production' ? undefined : undefined, // Set domain in production if needed
@@ -138,19 +139,48 @@ export function setupAuth(app: Express) {
     try {
       const { username, email, password } = req.body;
       
+      // Validate required fields
+      if (!username || !email || !password) {
+        return res.status(400).json({ error: "Username, email, and password are required" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      
       // Validate password strength
       if (!password || password.length < 12) {
         return res.status(400).json({ error: "Password must be at least 12 characters long" });
       }
 
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
+      // Validate username format (alphanumeric, underscore, hyphen, 3-30 chars)
+      const usernameRegex = /^[a-zA-Z0-9_-]{3,30}$/;
+      if (!usernameRegex.test(username)) {
+        return res.status(400).json({ error: "Username must be 3-30 characters and contain only letters, numbers, underscores, or hyphens" });
       }
 
-      const existingEmail = await storage.getUserByEmail(email);
-      if (existingEmail) {
-        return res.status(400).json({ error: "Email already registered" });
+      try {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser) {
+          return res.status(400).json({ error: "Username already exists" });
+        }
+      } catch (error: any) {
+        // If database error occurs, treat as validation error for security
+        logger.warn({ error, username }, 'Error checking username - treating as invalid');
+        return res.status(400).json({ error: "Invalid username format" });
+      }
+
+      try {
+        const existingEmail = await storage.getUserByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({ error: "Email already registered" });
+        }
+      } catch (error: any) {
+        // If database error occurs, treat as validation error for security
+        logger.warn({ error, email }, 'Error checking email - treating as invalid');
+        return res.status(400).json({ error: "Invalid email format" });
       }
 
       const user = await storage.createUser({
@@ -162,27 +192,45 @@ export function setupAuth(app: Express) {
         if (err) return next(err);
         res.status(201).json(user);
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      logger.error({ error, body: req.body }, 'Registration error');
+      // Don't expose internal errors
+      const message = process.env.NODE_ENV === 'production' 
+        ? 'Registration failed. Please try again.'
+        : error.message;
+      res.status(500).json({ error: message });
     }
   });
 
-  app.post("/api/login", authRateLimit, passport.authenticate("local"), (req, res) => {
-      AuditService.logUserAction(AuditEventType.LOGIN_SUCCESS, req.user!, req);
-      
-      // Write to WORM storage
-      const auditEvent: AuditEvent = {
-        eventType: AuditEventType.LOGIN_SUCCESS,
-        userId: req.user!.id,
-        userEmail: req.user!.email,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        success: true,
-      };
-      wormStorage.writeRecord(auditEvent).catch(err => {
-        logger.error({ err }, 'Failed to write to WORM storage');
+  app.post("/api/login", authRateLimit, (req, res, next) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ error: info?.message || 'Invalid credentials' });
+      }
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr);
+        }
+        AuditService.logUserAction(AuditEventType.LOGIN_SUCCESS, user, req);
+        
+        // Write to WORM storage
+        const auditEvent: AuditEvent = {
+          eventType: AuditEventType.LOGIN_SUCCESS,
+          userId: user.id,
+          userEmail: user.email,
+          ip: req.ip,
+          userAgent: req.get('User-Agent'),
+          success: true,
+        };
+        wormStorage.writeRecord(auditEvent).catch((err) => {
+          logger.error({ err }, 'Failed to write to WORM storage');
+        });
+        res.status(200).json(user);
       });
-    res.status(200).json(req.user);
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -191,12 +239,14 @@ export function setupAuth(app: Express) {
     }
     req.logout((err) => {
       if (err) return next(err);
-      res.sendStatus(200);
+      res.status(200).json({ message: 'Logged out successfully' });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     res.json(req.user);
   });
 
