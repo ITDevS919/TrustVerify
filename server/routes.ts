@@ -1074,6 +1074,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Newsletter subscription endpoint (public)
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // Check if email already exists in newsletter subscriptions
+      // For now, we'll just log it. In production, you'd store this in a database
+      console.log(`Newsletter subscription: ${email}`);
+
+      // TODO: Store newsletter subscription in database
+      // You can create a newsletter_subscriptions table with fields:
+      // - id, email, subscribedAt, status, unsubscribedAt
+
+      res.json({ 
+        message: "Successfully subscribed to newsletter",
+        email    
+      });
+    } catch (error: any) {
+      console.error("Newsletter subscription error:", error);
+      res.status(500).json({ error: "Failed to subscribe to newsletter" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
