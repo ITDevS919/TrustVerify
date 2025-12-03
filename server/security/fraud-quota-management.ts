@@ -4,9 +4,9 @@
  */
 
 import { db } from '../db';
-import { apiKeys, clientOrganizations, apiUsageLogs } from '@shared/schema';
+import { apiKeys, apiUsageLogs, developerAccounts } from '../shared/schema';
 import { eq, and, gte, sum, count } from 'drizzle-orm';
-import AuditService from './audit-logger';
+import AuditService, { AuditEventType } from './audit-logger';
 import pino from 'pino';
 
 const logger = pino({
@@ -74,20 +74,20 @@ export class FraudQuotaManagementService {
 
       // Check monthly quota (Rule 3.1)
       if (quotaStatus.quotaExceeded) {
-        await AuditService.logAPIKeyEvent(
-          apiKey.developerId,
-          apiKeyId,
-          'used',
-          undefined,
-          undefined,
-          { 
+        await AuditService.logEvent({
+          eventType: AuditEventType.RATE_LIMIT_EXCEEDED,
+          resourceType: 'api_key',
+          resourceId: apiKeyId.toString(),
+          action: 'quota_exceeded',
+          metadata: { 
             endpoint, 
             blocked: true, 
             reason: 'Monthly quota exceeded',
             usage: quotaStatus.currentUsage,
             limit: quotaStatus.monthlyLimit
-          }
-        );
+          },
+          riskLevel: 'high'
+        });
 
         return {
           allowed: false,
@@ -290,18 +290,19 @@ export class FraudQuotaManagementService {
     newMonthlyQuota: number
   ): Promise<boolean> {
     try {
-      await db.update(clientOrganizations)
-        .set({ monthlyFraudCheckQuota: newMonthlyQuota })
-        .where(eq(clientOrganizations.id, clientOrgId));
+      // Update developer account quota
+      await db.update(developerAccounts)
+        .set({ monthlyQuota: newMonthlyQuota })
+        .where(eq(developerAccounts.id, clientOrgId));
 
       // Update all API keys for this organization
       const orgApiKeys = await db.select()
         .from(apiKeys)
         .innerJoin(
-          clientOrganizations,
-          eq(apiKeys.developerId, clientOrganizations.id)
+          developerAccounts,
+          eq(apiKeys.developerId, developerAccounts.id)
         )
-        .where(eq(clientOrganizations.id, clientOrgId));
+        .where(eq(developerAccounts.id, clientOrgId));
 
       for (const keyRecord of orgApiKeys) {
         await this.updateAPIKeyQuota(keyRecord.api_keys.id, newMonthlyQuota);
@@ -344,10 +345,10 @@ export class FraudQuotaManagementService {
       const orgApiKeys = await db.select()
         .from(apiKeys)
         .innerJoin(
-          clientOrganizations,
-          eq(apiKeys.developerId, clientOrganizations.id)
+          developerAccounts,
+          eq(apiKeys.developerId, developerAccounts.id)
         )
-        .where(eq(clientOrganizations.id, clientOrgId));
+        .where(eq(developerAccounts.id, clientOrgId));
 
       if (orgApiKeys.length === 0) {
         return this.getEmptyAnalytics();
@@ -373,11 +374,11 @@ export class FraudQuotaManagementService {
 
       // Calculate quota utilization
       const [org] = await db.select()
-        .from(clientOrganizations)
-        .where(eq(clientOrganizations.id, clientOrgId));
+        .from(developerAccounts)
+        .where(eq(developerAccounts.id, clientOrgId));
 
       const quotaUtilization = org 
-        ? ((org.currentMonthUsage ?? 0) / (org.monthlyFraudCheckQuota ?? 1)) * 100
+        ? ((org.currentUsage ?? 0) / (org.monthlyQuota ?? 1)) * 100
         : 0;
 
       // Top endpoints (simplified)
@@ -451,11 +452,11 @@ export class FraudQuotaManagementService {
 
     // Log the warning event
     await AuditService.logEvent({
-      eventType: 'quota_warning',
+      eventType: AuditEventType.RATE_LIMIT_EXCEEDED,
       action: `quota_warning_${level}`,
-      resource: 'api_key',
+      resourceType: 'api_key',
       resourceId: apiKeyId.toString(),
-      newValues: { usagePercentage, warningLevel: level },
+      metadata: { usagePercentage, warningLevel: level },
       riskLevel: level === 'critical' ? 'high' : 'medium'
     });
   }

@@ -20,7 +20,7 @@ export function setupAppleAuth(app: Express) {
     scope: ['name', 'email'],
     passReqToCallback: false
   },
-  async (accessToken: any, refreshToken: any, idToken: any, profile: any, done: any) => {
+  async (_accessToken: any, _refreshToken: any, idToken: any, profile: any, done: any) => {
     try {
       const email = profile.email || idToken?.email;
       const firstName = profile.name?.firstName;
@@ -73,7 +73,7 @@ export function setupAppleAuth(app: Express) {
 
   app.post('/auth/apple/callback',
     passport.authenticate('apple', { failureRedirect: '/login?error=apple_auth_failed' }),
-    (req, res) => {
+    (_req, res) => {
       // Successful authentication
       res.redirect('/dashboard');
     }

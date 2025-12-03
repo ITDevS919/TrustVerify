@@ -90,14 +90,18 @@ export class TelemetryService {
   /**
    * Create telemetry context from request
    */
-  createContext(req: Request, res?: Response): TelemetryContext {
+  createContext(req: Request | any, res?: Response): TelemetryContext {
+    // Safely access headers with null checks
+    const headers = req?.headers || {};
     const correlationId = 
-      (req.headers['x-correlation-id'] as string) ||
+      (headers['x-correlation-id'] as string) ||
+      (headers['X-Correlation-Id'] as string) ||
       (res?.locals.requestId) ||
       this.generateCorrelationId();
     
     const traceId = 
-      (req.headers['x-trace-id'] as string) ||
+      (headers['x-trace-id'] as string) ||
+      (headers['X-Trace-Id'] as string) ||
       this.generateTraceId();
     
     const spanId = this.generateSpanId();
@@ -106,8 +110,8 @@ export class TelemetryService {
       correlationId,
       traceId,
       spanId,
-      userId: (req as any).user?.id,
-      sessionId: req.sessionID,
+      userId: (req as any)?.user?.id,
+      sessionId: req?.sessionID,
       requestId: res?.locals.requestId || correlationId,
     };
 

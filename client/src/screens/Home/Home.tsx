@@ -12,9 +12,17 @@ import { FrameWrapperSubsection } from "./sections/FrameWrapperSubsection";
 import { Header } from "../../components/Header";
 import { HeroSliderSubsection } from "./sections/HeroSliderSubsection";
 import { SectionComponentNodeSubsection } from "./sections/SectionComponentNodeSubsection";
+import { SEO } from "../../components/SEO";
 
 export const Home = (): JSX.Element => {
   return (
+    <>
+      <SEO
+        title="TrustVerify - Secure Fraud Prevention & Identity Verification Platform"
+        description="TrustVerify provides comprehensive fraud prevention, identity verification (KYC/AML), trust scoring, and secure escrow services. Protect your business with advanced cybersecurity solutions."
+        keywords="fraud prevention, identity verification, KYC, AML, trust scoring, escrow services, cybersecurity, fintech, secure transactions, TrustVerify"
+        canonicalUrl="https://trustverify.online/"
+      />
     <main className="bg-white overflow-hidden w-full relative">
       <img
         className="absolute top-[1177px] left-[-227px] w-[399px] h-[528px] z-10 pointer-events-none"
@@ -59,5 +67,6 @@ export const Home = (): JSX.Element => {
       <SectionComponentNodeSubsection />
       <Footer />
     </main>
+    </>
   );
 };

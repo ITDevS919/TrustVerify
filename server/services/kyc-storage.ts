@@ -1,5 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import { storageMigrationService, StorageResult } from './storage-migration';
+import pino from 'pino';
+import { config } from '../config';
+
+const logger = pino({
+  name: 'kyc-storage',
+  level: config.LOG_LEVEL || 'info'
+});
 
 // Simple file-based storage for MVP testing
 const KYC_STORAGE_DIR = path.join(process.cwd(), 'kyc_submissions');
@@ -91,6 +99,29 @@ export class KycStorageService {
 
     submissions.push(submission);
     this.saveSubmissions(submissions);
+
+    // Migrate to external storage if configured
+    try {
+      const storageResult: StorageResult = await storageMigrationService.migrateSubmission(submission);
+      if (storageResult.success) {
+        logger.info({ 
+          submissionId: submission.submissionId, 
+          provider: config.KYC_STORAGE_PROVIDER,
+          recordId: storageResult.recordId 
+        }, 'Submission stored to external storage');
+      } else {
+        logger.warn({ 
+          submissionId: submission.submissionId,
+          error: storageResult.error 
+        }, 'Failed to store submission to external storage, kept in local storage');
+      }
+    } catch (error: any) {
+      // Don't fail the submission if external storage fails
+      logger.error({ 
+        error, 
+        submissionId: submission.submissionId 
+      }, 'Error storing submission to external storage');
+    }
 
     return submission;
   }

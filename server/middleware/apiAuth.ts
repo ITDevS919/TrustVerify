@@ -54,11 +54,13 @@ export async function validateApiKey(req: AuthenticatedRequest, res: Response, n
     }
 
     // Check quota
-    if (developer.currentUsage >= developer.monthlyQuota) {
+    const currentUsage = developer.currentUsage ?? 0;
+    const monthlyQuota = developer.monthlyQuota ?? 0;
+    if (currentUsage >= monthlyQuota) {
       return res.status(429).json({ 
         error: 'Monthly quota exceeded',
-        quota: developer.monthlyQuota,
-        usage: developer.currentUsage
+        quota: monthlyQuota,
+        usage: currentUsage
       });
     }
 
@@ -74,8 +76,8 @@ export async function validateApiKey(req: AuthenticatedRequest, res: Response, n
       id: developer.id,
       userId: developer.userId,
       status: developer.status,
-      monthlyQuota: developer.monthlyQuota,
-      currentUsage: developer.currentUsage
+      monthlyQuota: monthlyQuota,
+      currentUsage: currentUsage
     };
 
     // Update last used timestamp

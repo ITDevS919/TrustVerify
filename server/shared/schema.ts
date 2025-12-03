@@ -12,8 +12,11 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   profileImage: text("profile_image"),
-  authProvider: text("auth_provider").default("local"), // local, google
+  authProvider: text("auth_provider").default("local"), // local, google, facebook, github, apple
   googleId: text("google_id").unique(),
+  facebookId: text("facebook_id").unique(),
+  githubId: text("github_id").unique(),
+  appleId: text("apple_id").unique(),
   isVerified: boolean("is_verified").default(false),
   trustScore: decimal("trust_score", { precision: 5, scale: 2 }).default("0.00"),
   verificationLevel: text("verification_level").default("none"), // none, basic, full
@@ -31,6 +34,11 @@ export const users = pgTable("users", {
   // Reputation Modifiers
   fastReleaseEligible: boolean("fast_release_eligible").default(false), // Trusted sellers
   requiresExtendedBuffer: boolean("requires_extended_buffer").default(false), // High-risk sellers
+  // MFA fields
+  mfaEnabled: boolean("mfa_enabled").default(false),
+  mfaSecret: text("mfa_secret"),
+  mfaBackupCodes: jsonb("mfa_backup_codes"), // Array of backup codes
+  lastMfaUsed: timestamp("last_mfa_used"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -211,6 +219,16 @@ export const apiKeys = pgTable("api_keys", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
   revokedAt: timestamp("revoked_at"),
+  // API Key Rotation and Quota Management
+  environment: text("environment").default("sandbox"), // sandbox, production
+  rotationDue: timestamp("rotation_due"), // When key should be rotated
+  lastRotated: timestamp("last_rotated"), // Last rotation timestamp
+  rateLimit: integer("rate_limit").default(100), // Requests per minute
+  monthlyQuota: integer("monthly_quota"), // Monthly request quota
+  currentMonthUsage: integer("current_month_usage").default(0), // Current month's usage
+  quotaResetDate: timestamp("quota_reset_date"), // When quota resets
+  ipWhitelist: jsonb("ip_whitelist").default('[]'), // Allowed IP addresses
+  userAgent: text("user_agent"), // Expected user agent
 });
 
 // API Usage Logs table
@@ -347,6 +365,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
   profileImage: true,
   authProvider: true,
   googleId: true,
+  facebookId: true,
+  githubId: true,
+  appleId: true,
   isVerified: true,
 }).extend({
   password: z.string()
@@ -449,4 +470,89 @@ export type InsertApiUsageLog = z.infer<typeof insertApiUsageLogSchema>;
 export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;
 export type InsertPasswordReset = z.infer<typeof insertPasswordResetSchema>;
 export type PasswordReset = typeof passwordResets.$inferSelect;
+
+// Security Incidents table
+export const securityIncidents = pgTable("security_incidents", {
+  id: serial("id").primaryKey(),
+  incidentType: text("incident_type").notNull(),
+  severity: text("severity").notNull(), // low, medium, high, critical
+  status: text("status").default("detected"), // detected, investigating, mitigated, resolved
+  description: text("description").notNull(),
+  affectedSystems: jsonb("affected_systems").default('[]'), // Array of strings
+  sourceIp: text("source_ip"),
+  userAgent: text("user_agent"),
+  attackVector: text("attack_vector"),
+  autoMitigated: boolean("auto_mitigated").default(false),
+  ipBlacklisted: boolean("ip_blacklisted").default(false),
+  socNotified: boolean("soc_notified").default(false),
+  responseTime: integer("response_time"), // in seconds
+  mitigationTime: integer("mitigation_time"), // in seconds
+  assignedTo: integer("assigned_to").references(() => users.id),
+  escalationLevel: integer("escalation_level").default(1),
+  playbookExecuted: text("playbook_executed"),
+  evidence: jsonb("evidence"),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+// IP Blacklist table
+export const ipBlacklist = pgTable("ip_blacklist", {
+  id: serial("id").primaryKey(),
+  ipAddress: text("ip_address").notNull(),
+  reason: text("reason").notNull(),
+  severity: text("severity").notNull(), // low, medium, high, critical
+  sourceType: text("source_type").default("automatic"), // automatic, manual
+  incidentId: integer("incident_id").references(() => securityIncidents.id),
+  isActive: boolean("is_active").default(true),
+  automaticExpiry: boolean("automatic_expiry").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  revokedAt: timestamp("revoked_at"),
+});
+
+// Insurance Coverage table
+export const insuranceCoverage = pgTable("insurance_coverage", {
+  id: serial("id").primaryKey(),
+  clientOrgId: integer("client_org_id").references(() => developerAccounts.id).notNull(),
+  transactionId: integer("transaction_id").references(() => transactions.id),
+  policyNumber: text("policy_number").notNull(),
+  coverageType: text("coverage_type").notNull(), // fraud_protection, chargeback_protection
+  coverageAmount: decimal("coverage_amount", { precision: 12, scale: 2 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  fraudCheckRequired: boolean("fraud_check_required").default(true),
+  apiComplianceRequired: boolean("api_compliance_required").default(true),
+  fraudCheckCompleted: boolean("fraud_check_completed").default(false),
+  apiComplianceVerified: boolean("api_compliance_verified").default(false),
+  liabilityCap: decimal("liability_cap", { precision: 12, scale: 2 }),
+  deductible: decimal("deductible", { precision: 12, scale: 2 }).default("0.00"),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+// Insurance Claims table
+export const insuranceClaims = pgTable("insurance_claims", {
+  id: serial("id").primaryKey(),
+  coverageId: integer("coverage_id").references(() => insuranceCoverage.id).notNull(),
+  transactionId: integer("transaction_id").references(() => transactions.id),
+  claimAmount: text("claim_amount").notNull(), // Stored as text to preserve precision
+  claimType: text("claim_type").notNull(), // fraud_loss, chargeback_loss
+  status: text("status").default("submitted"), // submitted, investigating, approved, denied, paid
+  fraudScoreReports: jsonb("fraud_score_reports").default('[]'),
+  auditLogs: jsonb("audit_logs").default('[]'), // Array of log IDs
+  complianceReport: text("compliance_report"),
+  claimNotes: text("claim_notes"),
+  investigationNotes: text("investigation_notes"),
+  approvedAmount: text("approved_amount"), // Stored as text to preserve precision
+  denialReason: text("denial_reason"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+  paidAt: timestamp("paid_at"),
+});
+
+// Types
+export type SecurityIncident = typeof securityIncidents.$inferSelect;
+export type IPBlacklist = typeof ipBlacklist.$inferSelect;
+export type InsuranceCoverage = typeof insuranceCoverage.$inferSelect;
+export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 

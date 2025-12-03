@@ -73,6 +73,7 @@ import {
     // Scam report methods
     createScamReport(report: InsertScamReport & { reporterId: number }): Promise<ScamReport>;
     getScamReports(): Promise<ScamReport[]>;
+    getFraudReports(limit?: number): Promise<ScamReport[]>; // Alias for getScamReports
     searchScamReports(query: string): Promise<ScamReport[]>;
     updateScamReportStatus(id: number, status: string, reviewedBy: number): Promise<ScamReport | undefined>;
   
@@ -100,6 +101,11 @@ import {
     createApiUsageLog(log: InsertApiUsageLog & { apiKeyId: number; developerId: number }): Promise<ApiUsageLog>;
     getApiUsageByDeveloper(developerId: number, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
     getApiUsageStats(developerId: number, period: 'day' | 'week' | 'month'): Promise<any>;
+  
+    // Admin stats methods
+    getUserCount(): Promise<number>;
+    getActiveTransactionCount(): Promise<number>;
+    getPendingKycCount(): Promise<number>;
   
     // Session store
     sessionStore: session.Store;
@@ -153,6 +159,9 @@ import {
           profileImage: null,
           authProvider: "local",
           googleId: null,
+          facebookId: null,
+          githubId: null,
+          appleId: null,
           isVerified: true,
           trustScore: "95.5",
           verificationLevel: "full",
@@ -167,6 +176,10 @@ import {
           sanctionedUntil: null,
           fastReleaseEligible: true,
           requiresExtendedBuffer: false,
+          mfaEnabled: false,
+          mfaSecret: null,
+          mfaBackupCodes: null,
+          lastMfaUsed: null,
           createdAt: new Date(),
         };
   
@@ -295,7 +308,10 @@ import {
         profileImage: insertUser.profileImage || null,
         authProvider: insertUser.authProvider || "local",
         googleId: insertUser.googleId || null,
-        isVerified: false,
+        facebookId: insertUser.facebookId || null,
+        githubId: insertUser.githubId || null,
+        appleId: insertUser.appleId || null,
+        isVerified: insertUser.isVerified || false,
         trustScore: "0.00",
         verificationLevel: "none",
         isAdmin: false,
@@ -309,6 +325,10 @@ import {
         sanctionedUntil: null,
         fastReleaseEligible: false,
         requiresExtendedBuffer: false,
+        mfaEnabled: false,
+        mfaSecret: null,
+        mfaBackupCodes: null,
+        lastMfaUsed: null,
         createdAt: new Date(),
       };
       this.users.set(id, user);
@@ -620,6 +640,13 @@ import {
         .filter(report => report.isPublic)
         .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
     }
+
+    async getFraudReports(limit?: number): Promise<ScamReport[]> {
+      const reports = Array.from(this.scamReports.values())
+        .filter(report => report.isPublic)
+        .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+      return limit ? reports.slice(0, limit) : reports;
+    }
   
     async searchScamReports(query: string): Promise<ScamReport[]> {
       const lowercaseQuery = query.toLowerCase();
@@ -711,9 +738,26 @@ import {
         'bitcoin payment', 'gift card', 'urgent payment', 'need money now',
         'inheritance', 'lottery winner', 'security code', 'verify account'
       ];
-  
+
       const lowerContent = content.toLowerCase();
       return scamKeywords.some(keyword => lowerContent.includes(keyword));
+    }
+
+    // Admin stats methods
+    async getUserCount(): Promise<number> {
+      return this.users.size;
+    }
+
+    async getActiveTransactionCount(): Promise<number> {
+      return Array.from(this.transactions.values()).filter(
+        t => t.status === 'pending' || t.status === 'in_progress' || t.status === 'escrow_held'
+      ).length;
+    }
+
+    async getPendingKycCount(): Promise<number> {
+      return Array.from(this.kycVerifications.values()).filter(
+        kyc => kyc.status === 'pending'
+      ).length;
     }
   }
   
@@ -918,6 +962,14 @@ import {
   
     async getScamReports(): Promise<ScamReport[]> {
       return await db.select().from(scamReports).where(eq(scamReports.isPublic, true));
+    }
+
+    async getFraudReports(limit?: number): Promise<ScamReport[]> {
+      let query = db.select().from(scamReports).where(eq(scamReports.isPublic, true)).orderBy(desc(scamReports.createdAt));
+      if (limit) {
+        query = query.limit(limit) as any;
+      }
+      return await query;
     }
   
     async searchScamReports(query: string): Promise<ScamReport[]> {
@@ -1135,7 +1187,35 @@ import {
         avgResponseTime: 0
       };
     }
-  
+
+    // Admin stats methods
+    async getUserCount(): Promise<number> {
+      const result = await db.select({ count: count() }).from(users);
+      return result[0]?.count || 0;
+    }
+
+    async getActiveTransactionCount(): Promise<number> {
+      const result = await db
+        .select({ count: count() })
+        .from(transactions)
+        .where(
+          or(
+            eq(transactions.status, 'pending'),
+            eq(transactions.status, 'in_progress'),
+            eq(transactions.status, 'escrow_held')
+          )
+        );
+      return result[0]?.count || 0;
+    }
+
+    async getPendingKycCount(): Promise<number> {
+      const result = await db
+        .select({ count: count() })
+        .from(kycVerifications)
+        .where(eq(kycVerifications.status, 'pending'));
+      return result[0]?.count || 0;
+    }
+
   }
   
   export const storage = new DatabaseStorage();

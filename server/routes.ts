@@ -1074,6 +1074,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Dashboard Stats
+  app.get("/api/admin/stats", requireAuth, requireAdminAccess, async (_req, res) => {
+    try {
+      // Disable caching for real-time stats
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
+      const totalUsers = await storage.getUserCount();
+      const activeTransactions = await storage.getActiveTransactionCount();
+      const pendingKyc = await storage.getPendingKycCount();
+      const securityAlerts = 0; // TODO: Get from monitoring service
+
+      res.json({
+        totalUsers,
+        activeTransactions,
+        pendingKyc,
+        securityAlerts,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  // Admin Activities
+  app.get("/api/admin/activities", requireAuth, requireAdminAccess, async (_req, res) => {
+    try {
+      // Disable caching for real-time activities
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
+      // TODO: Fetch from audit logs
+      res.json([]);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
   // Newsletter subscription endpoint (public)
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {

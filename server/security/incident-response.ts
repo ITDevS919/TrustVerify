@@ -4,8 +4,8 @@
  */
 
 import { db } from '../db';
-import { securityIncidents, ipBlacklist, users } from '@shared/schema';
-import { eq, and, desc, gt, lt } from 'drizzle-orm';
+import { securityIncidents, ipBlacklist } from '../shared/schema';
+import { eq, and, or, desc, gt, lt } from 'drizzle-orm';
 import pino from 'pino';
 
 const logger = pino({
@@ -352,14 +352,19 @@ export class IncidentResponseService {
    */
   static async getActiveIncidents(severity?: string): Promise<SecurityIncident[]> {
     try {
-      let query = db.select()
-        .from(securityIncidents)
-        .where(and(
-          eq(securityIncidents.status, 'detected'),
-          eq(securityIncidents.status, 'investigating')
-        ));
+      const statusCondition = or(
+        eq(securityIncidents.status, 'detected'),
+        eq(securityIncidents.status, 'investigating')
+      );
+      
+      const whereConditions = severity 
+        ? and(statusCondition, eq(securityIncidents.severity, severity))
+        : statusCondition;
 
-      const incidents = await query.orderBy(desc(securityIncidents.createdAt));
+      const incidents = await db.select()
+        .from(securityIncidents)
+        .where(whereConditions)
+        .orderBy(desc(securityIncidents.createdAt));
 
       return incidents.map(this.mapIncidentFromDB);
 

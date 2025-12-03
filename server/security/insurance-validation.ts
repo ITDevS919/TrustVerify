@@ -4,9 +4,9 @@
  */
 
 import { db } from '../db';
-import { insuranceCoverage, insuranceClaims, transactions, clientOrganizations, auditLogs } from '@shared/schema';
-import { eq, and, desc, gte } from 'drizzle-orm';
-import AuditService from './audit-logger';
+import { transactions, insuranceCoverage, insuranceClaims } from '../shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
+import AuditService, { AuditEventType } from './audit-logger';
 import pino from 'pino';
 
 const logger = pino({
@@ -184,18 +184,20 @@ export class InsuranceValidationService {
       }).returning();
 
       // Log claim submission
-      await AuditService.logInsuranceEvent(
-        Number(newClaim.coverageId),
-        1, // System user for now
-        'claim_submitted',
-        newClaim.id,
-        null,
-        {
+      await AuditService.logEvent({
+        eventType: AuditEventType.ADMIN_ACTION,
+        userId: 1, // System user for now
+        action: 'claim_submitted',
+        resourceType: 'insurance_claim',
+        resourceId: newClaim.id?.toString(),
+        metadata: {
+          coverageId: Number(newClaim.coverageId),
           claimAmount: claimData.claimAmount,
           claimType: claimData.claimType,
           documentation: documentation
-        }
-      );
+        },
+        riskLevel: 'medium'
+      });
 
       logger.info({
         claimId: newClaim.id,
@@ -254,19 +256,22 @@ export class InsuranceValidationService {
       }
 
       // Log claim processing
-      await AuditService.logInsuranceEvent(
-        Number(updatedClaim.coverageId),
-        processedBy || 1,
-        `claim_${decision}`,
-        claimId,
-        { status: 'submitted' },
-        {
+      await AuditService.logEvent({
+        eventType: AuditEventType.ADMIN_ACTION,
+        userId: processedBy || 1,
+        action: `claim_${decision}`,
+        resourceType: 'insurance_claim',
+        resourceId: claimId.toString(),
+        oldValue: { status: 'submitted' },
+        metadata: {
+          coverageId: Number(updatedClaim.coverageId),
           decision,
           approvedAmount,
           denialReason,
           investigationNotes
-        }
-      );
+        },
+        riskLevel: 'medium'
+      });
 
       logger.info({
         claimId,
@@ -304,14 +309,19 @@ export class InsuranceValidationService {
       }
 
       // Log payment
-      await AuditService.logInsuranceEvent(
-        Number(updatedClaim.coverageId),
-        paidBy,
-        'claim_paid',
-        claimId,
-        { status: 'approved' },
-        { paidAt: new Date() }
-      );
+      await AuditService.logEvent({
+        eventType: AuditEventType.ADMIN_ACTION,
+        userId: paidBy,
+        action: 'claim_paid',
+        resourceType: 'insurance_claim',
+        resourceId: claimId.toString(),
+        oldValue: { status: 'approved' },
+        metadata: {
+          coverageId: Number(updatedClaim.coverageId),
+          paidAt: new Date()
+        },
+        riskLevel: 'low'
+      });
 
       logger.info({ claimId, paidBy }, 'Insurance claim marked as paid');
       return true;
@@ -325,7 +335,7 @@ export class InsuranceValidationService {
   /**
    * Verify fraud check completion (Rule 4.1)
    */
-  static async verifyFraudCheck(coverageId: number, fraudCheckData: any): Promise<boolean> {
+  static async verifyFraudCheck(coverageId: number, _fraudCheckData: any): Promise<boolean> {
     try {
       // Update coverage to mark fraud check as completed
       await db.update(insuranceCoverage)
@@ -346,7 +356,7 @@ export class InsuranceValidationService {
   /**
    * Verify API compliance (Rule 4.2)
    */
-  static async verifyAPICompliance(coverageId: number, complianceData: any): Promise<boolean> {
+  static async verifyAPICompliance(coverageId: number, _complianceData: any): Promise<boolean> {
     try {
       // Update coverage to mark API compliance as verified
       await db.update(insuranceCoverage)
@@ -369,7 +379,7 @@ export class InsuranceValidationService {
    */
   static async getClientClaims(
     clientOrgId: number,
-    status?: string,
+    _status?: string,
     limit: number = 50
   ): Promise<InsuranceClaim[]> {
     try {
@@ -398,7 +408,7 @@ export class InsuranceValidationService {
         investigationNotes: claim.investigationNotes || undefined,
         approvedAmount: claim.approvedAmount ? Number(claim.approvedAmount) : undefined,
         denialReason: claim.denialReason || undefined,
-        submittedAt: claim.submittedAt,
+        submittedAt: claim.submittedAt || undefined,
         processedAt: claim.processedAt || undefined,
         paidAt: claim.paidAt || undefined
       }));
@@ -456,7 +466,7 @@ export class InsuranceValidationService {
 
   private static async collectRequiredDocumentation(
     coverageId: number,
-    transactionId?: number
+    _transactionId?: number
   ): Promise<{
     fraudReports: any[];
     auditLogIds: number[];

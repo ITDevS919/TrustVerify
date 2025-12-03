@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /messages/
+Disallow: /messages-chat/
+Disallow: /support-center/
+Disallow: /report-scam/
+Disallow: /secure-transaction/
+Disallow: /id-verification/
+Disallow: /transactions/
+Disallow: /secure-escrow/
+Disallow: /developer-portal/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://trustverify.online/sitemap.xml
+

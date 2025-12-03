@@ -121,6 +121,24 @@ const configSchema = z.object({
   DEPLOYMENT_VERSION: z.string().optional(),
   DEPLOYMENT_ENVIRONMENT: z.string().default("development"),
   ROLLBACK_ENABLED: z.string().transform((val) => val === "true").default("true"),
+  
+  // KYC Storage Providers
+  KYC_STORAGE_PROVIDER: z.enum(["local", "googledrive", "airtable", "firebase"]).default("local"),
+  // Google Drive config
+  GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
+  GOOGLE_DRIVE_SHARED_DRIVE_ID: z.string().optional(), // For Shared Drives (required for service accounts)
+  GOOGLE_SERVICE_ACCOUNT_KEY: z.string().optional(),
+  // Airtable config
+  AIRTABLE_API_KEY: z.string().optional(),
+  AIRTABLE_BASE_ID: z.string().optional(),
+  AIRTABLE_TABLE_NAME: z.string().optional(),
+  // Firebase config
+  FIREBASE_PROJECT_ID: z.string().optional(),
+  FIREBASE_SERVICE_ACCOUNT_KEY: z.string().optional(),
+  FIREBASE_COLLECTION_NAME: z.string().optional(),
+  // Secure folder config (local encrypted storage)
+  KYC_SECURE_FOLDER_PATH: z.string().optional(),
+  KYC_ENCRYPT_FILES: z.string().transform((val) => val === "true").default("false"),
 }).refine(
   (data) => {
     // Validate that at least one cloud storage provider is configured if in production

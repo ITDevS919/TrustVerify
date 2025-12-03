@@ -8,7 +8,7 @@ import { users, type User, type InsertUser } from '../shared/schema';
 import { db } from '../db';
 import { eq, ilike, or } from 'drizzle-orm';
 
-export class UserRepository extends BaseRepository<User, InsertUser> {
+export class UserRepository extends BaseRepository<User, InsertUser, Partial<InsertUser>> {
   protected table = users;
   protected primaryKey = 'id';
 

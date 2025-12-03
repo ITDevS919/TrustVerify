@@ -99,8 +99,8 @@ router.post('/api-keys', async (req, res) => {
       name: validatedData.name,
       keyHash,
       keyPrefix,
-      permissions: validatedData.permissions || [],
-      expiresAt: validatedData.expiresAt
+      permissions: Array.isArray(validatedData.permissions) ? validatedData.permissions : [],
+      expiresAt: validatedData.expiresAt || undefined
     });
 
     // Return the full key value only once
@@ -166,9 +166,9 @@ router.get('/usage/stats', async (req, res) => {
       period,
       stats,
       quota: {
-        monthly: account.monthlyQuota,
-        current: account.currentUsage,
-        remaining: account.monthlyQuota - account.currentUsage
+        monthly: account.monthlyQuota ?? 0,
+        current: account.currentUsage ?? 0,
+        remaining: (account.monthlyQuota ?? 0) - (account.currentUsage ?? 0)
       }
     });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { User } from '@shared/schema';
+import { User } from '../shared/schema';
 import AuditService, { AuditEventType } from './audit-logger';
 import pino from 'pino';
 
@@ -74,7 +74,7 @@ export class GDPRService {
   }
   
   private static isValidPurpose(purpose: string, basis: string): boolean {
-    const validCombinations = {
+    const validCombinations: Record<string, string[]> = {
       'fraud_prevention': ['fraud_prevention', 'legitimate_interest'],
       'transaction_processing': ['contract_performance'],
       'compliance_reporting': ['legal_obligation'],
@@ -112,7 +112,7 @@ export class KYCAMLService {
     }
     
     // Geographic risk assessment
-    const geoRisk = await this.assessGeographicRisk(req.ip);
+    const geoRisk = await this.assessGeographicRisk(req.ip || 'unknown');
     riskScore += geoRisk;
     if (geoRisk > 30) {
       flags.push('high_risk_jurisdiction');
@@ -262,9 +262,9 @@ export class SOC2Service {
   private static hasMinimumRequiredAccess(user: User, resource: string, action: string): boolean {
     // Implement role-based access control validation
     // This is a simplified version - production should use comprehensive RBAC
-    const userRole = user.email?.includes('@trustverify.com') ? 'admin' : 'user';
+    const userRole: 'admin' | 'user' = user.email?.includes('@trustverify.com') ? 'admin' : 'user';
     
-    const accessMatrix = {
+    const accessMatrix: Record<'admin' | 'user', string[]> = {
       'admin': ['read', 'write', 'delete', 'configure'],
       'user': ['read', 'write']
     };

@@ -85,6 +85,9 @@
     "typescript": "5.6.3"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
+    "airtable": "^0.12.2",
+    "bufferutil": "^4.0.8",
+    "firebase-admin": "^13.6.0",
+    "googleapis": "^144.0.0"
   }
 }

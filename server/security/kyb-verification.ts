@@ -4,7 +4,7 @@
  */
 
 import { db } from '../db';
-import { clientOrganizations, users, kycVerifications } from '@shared/schema';
+import { users, kycVerifications, developerAccounts } from '../shared/schema';
 import { eq, and, or } from 'drizzle-orm';
 import AuditService from './audit-logger';
 import pino from 'pino';
@@ -80,7 +80,7 @@ export class KYBVerificationService {
       const riskAssessment = await this.assessBusinessRisk(kybData);
       
       // Update organization with KYB data
-      await db.update(clientOrganizations)
+      await db.update(developerAccounts)
         .set({
           name: kybData.companyName,
           website: kybData.website,
@@ -90,7 +90,7 @@ export class KYBVerificationService {
           requiresManualApproval: riskAssessment.requiresManualApproval,
           enhancedMonitoring: riskAssessment.enhancedMonitoring
         })
-        .where(eq(clientOrganizations.id, kybData.orgId));
+        .where(eq(developerAccounts.id, kybData.orgId));
 
       // Generate verification ID
       const verificationId = `KYB-${kybData.orgId}-${Date.now()}`;
@@ -254,12 +254,12 @@ export class KYBVerificationService {
     try {
       const kybStatus = approved ? 'approved' : 'rejected';
       
-      await db.update(clientOrganizations)
+      await db.update(developerAccounts)
         .set({
           kybStatus,
           kybCompletedAt: new Date()
         })
-        .where(eq(clientOrganizations.id, orgId));
+        .where(eq(developerAccounts.id, orgId));
 
       // Log KYB completion
       await AuditService.logComplianceEvent(
@@ -296,8 +296,8 @@ export class KYBVerificationService {
   }> {
     try {
       const [org] = await db.select()
-        .from(clientOrganizations)
-        .where(eq(clientOrganizations.id, orgId));
+        .from(developerAccounts)
+        .where(eq(developerAccounts.id, orgId));
 
       if (!org) {
         return {
@@ -337,9 +337,9 @@ export class KYBVerificationService {
 
       if (ready) {
         // Auto-approve for production if all requirements met
-        await db.update(clientOrganizations)
+        await db.update(developerAccounts)
           .set({ productionApproved: true })
-          .where(eq(clientOrganizations.id, orgId));
+          .where(eq(developerAccounts.id, orgId));
 
         logger.info({ orgId }, 'Organization approved for production access');
       }

@@ -14,14 +14,10 @@ const logger = pino({
   level: config.LOG_LEVEL || 'info'
 });
 
+import { User } from '../shared/schema';
+
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: number;
-    email?: string;
-    isAdmin?: boolean;
-    mfaEnabled?: boolean;
-    ssoProvider?: string;
-  };
+  user?: User;
   mfaVerified?: boolean;
   ssoVerified?: boolean;
 }
@@ -42,7 +38,8 @@ export async function requireAdminMFA(
   next: NextFunction
 ): Promise<void> {
   if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
 
   const user = req.user as any;
@@ -66,11 +63,12 @@ export async function requireAdminMFA(
       { reason: 'MFA not enabled' }
     );
 
-    return res.status(403).json({
+    res.status(403).json({
       error: 'MFA required',
       message: 'Multi-factor authentication is required for admin access. Please enable MFA in your account settings.',
       requiresMFA: true,
     });
+    return;
   }
 
   // Check if MFA was verified in this session
@@ -82,11 +80,12 @@ export async function requireAdminMFA(
     const mfaToken = req.headers['x-mfa-token'] as string || req.body?.mfaToken;
     
     if (!mfaToken) {
-      return res.status(403).json({
+      res.status(403).json({
         error: 'MFA verification required',
         message: 'Please provide MFA token',
         requiresMFA: true,
       });
+      return;
     }
 
     // Verify MFA token
@@ -103,10 +102,11 @@ export async function requireAdminMFA(
         {}
       );
 
-      return res.status(403).json({
+      res.status(403).json({
         error: 'Invalid MFA token',
         message: 'The provided MFA token is invalid or expired',
       });
+      return;
     }
 
     // Mark MFA as verified in session
@@ -136,7 +136,8 @@ export async function requireSSO(
   next: NextFunction
 ): Promise<void> {
   if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
 
   const user = req.user as any;
@@ -166,7 +167,7 @@ export async function requireSSO(
     { requiredProvider: config.SSO_PROVIDER, actualProvider: authProvider }
   );
 
-  return res.status(403).json({
+  res.status(403).json({
     error: 'SSO required',
     message: `Single Sign-On (${config.SSO_PROVIDER}) is required for admin access`,
     requiresSSO: true,

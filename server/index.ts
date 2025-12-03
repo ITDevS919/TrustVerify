@@ -15,10 +15,10 @@ import {
 } from "./security/security-middleware";
 import { auditMiddleware } from "./security/audit-logger";
 import { complianceMiddleware } from "./security/compliance";
-import { calculateSecurityScore } from "./security/security-config";
+// import { calculateSecurityScore } from "./security/security-config"; // Unused
 import { extractApiVersion } from "./middleware/api-versioning";
 import { configureBodyParser, validatePayloadSize } from "./middleware/payload-validation";
-import { siemService } from "./services/siem-integration";
+// import { siemService } from "./services/siem-integration"; // Unused
 import { gdprDataManagement } from "./services/gdpr-data-management";
 import { requestIdMiddleware, errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { telemetryMiddleware } from "./middleware/telemetry";
@@ -129,30 +129,30 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   // Health check endpoints
-  app.get('/health', async (req, res) => {
+  app.get('/health', async (_req, res) => {
     const health = await healthCheckService.performHealthCheck();
     const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
     res.status(statusCode).json(health);
   });
 
-  app.get('/health/live', (req, res) => {
+  app.get('/health/live', (_req, res) => {
     const isAlive = healthCheckService.isAlive();
     res.status(isAlive ? 200 : 503).json({ alive: isAlive });
   });
 
-  app.get('/health/ready', async (req, res) => {
+  app.get('/health/ready', async (_req, res) => {
     const isReady = await healthCheckService.isReady();
     res.status(isReady ? 200 : 503).json({ ready: isReady });
   });
 
   // Metrics endpoint
-  app.get('/metrics', (req, res) => {
+  app.get('/metrics', (_req, res) => {
     const metrics = monitoringService.getDashboardMetrics();
     res.json(metrics);
   });
 
   // Query optimization endpoints
-  app.get('/api/admin/query-stats', async (req, res) => {
+  app.get('/api/admin/query-stats', async (_req, res) => {
     try {
       const slowQueries = await queryOptimizer.getSlowQueries(10);
       const indexUsage = await queryOptimizer.checkIndexUsage();
@@ -191,7 +191,7 @@ app.use((req, res, next) => {
     }
   });
 
-  app.get('/api/admin/security/dashboard', async (req, res) => {
+  app.get('/api/admin/security/dashboard', async (_req, res) => {
     try {
       const metrics = securityAlerts.getDashboardMetrics();
       res.json(metrics);
@@ -635,7 +635,7 @@ app.use((req, res, next) => {
   });
 
   // Deployment info endpoint
-  app.get('/deployment/info', (req, res) => {
+  app.get('/deployment/info', (_req, res) => {
     const deployment = deploymentGovernance.getCurrentDeployment();
     res.json({
       current: deployment,

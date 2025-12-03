@@ -38,6 +38,7 @@ import { DeveloperPortal } from "./screens/DeveloperPortal";
 import { LiveDemo } from "./screens/LiveDemo";
 import { NewTransaction } from "./screens/Transactions/NewTransaction";
 import { AdminReview } from "./screens/AdminReview/AdminReview";
+import { AdminDashboard } from "./screens/AdminDashboard";
 
 function App() {
   return (
@@ -148,6 +149,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DeveloperPortal />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
                   </ProtectedRoute>
                 } 
               />
