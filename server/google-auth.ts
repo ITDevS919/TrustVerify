@@ -13,11 +13,20 @@ export function setupGoogleAuth(app: Express) {
     return;
   }
 
+    // Determine the callback URL based on environment
+  // If GOOGLE_CALLBACK_URL is set, use it; otherwise construct from BASE_URL or default to relative path
+  const baseUrl = process.env.FRONTEND_URL || process.env.SERVER_URL || '';
+  const callbackPath = '/auth/google/callback';
+  const callbackURL = baseUrl 
+    ? `${baseUrl}${callbackPath}` 
+    : callbackPath; // Relative path if no base URL is set
+
+  console.log(`Google OAuth callback URL: ${callbackURL}`);
   // Google OAuth Strategy
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/auth/google/callback"
+    callbackURL: callbackURL
   },
   async (
     _accessToken: string,
