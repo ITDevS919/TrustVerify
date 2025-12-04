@@ -12,6 +12,7 @@ import {
 import crypto from 'crypto';
 import { validateQuery, paginationSchema } from "./middleware/validation";
 import developerRoutes from "./routes/developer";
+import supportRoutes from "./routes/support";
 import { validateApiKey, logApiUsage } from "./middleware/apiAuth";
 import multer from "multer";
 import path from "path";
@@ -43,6 +44,10 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
+  
+  // Register arbitration routes
+  const { registerArbitrationRoutes } = await import('./routes/arbitration');
+  registerArbitrationRoutes(app);
   
   // Serve uploaded files
   app.use('/api/uploads', (req, res, _next) => {
@@ -915,6 +920,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Developer Portal routes
   app.use("/api/developer", developerRoutes);
+
+  // Support routes (chat, tickets)
+  app.use("/api/support", supportRoutes);
 
   // API routes with authentication and logging middleware
   app.use("/api/v1", validateApiKey, logApiUsage);

@@ -39,7 +39,7 @@ class EmailService {
     };
   }
 
-  async sendEmail(to: string, template: EmailTemplate): Promise<boolean> {
+  async sendEmail(to: string, template: EmailTemplate & { text?: string }): Promise<boolean> {
     try {
       switch (this.config.provider) {
         case 'sendgrid':
@@ -65,9 +65,9 @@ class EmailService {
 
     try {
       const sgMail = await import('@sendgrid/mail');
-      sgMail.setApiKey(this.config.apiKey);
+      sgMail.default.setApiKey(this.config.apiKey);
 
-      await sgMail.send({
+      await sgMail.default.send({
         to,
         from: {
           email: this.config.fromEmail!,

@@ -81,6 +81,7 @@ const slides = [
 export const HeroSliderSubsection = (): JSX.Element => {
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [isTransitioning, setIsTransitioning] = React.useState(false);
+  const [isPaused, setIsPaused] = React.useState(false);
   const navigate = useNavigate();
 
   const handleSlideChange = (index: number) => {
@@ -95,8 +96,27 @@ export const HeroSliderSubsection = (): JSX.Element => {
     }, 500);
   };
 
+  // Auto-slide functionality
+  React.useEffect(() => {
+    if (isPaused) return;
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 3000); // Change slide every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  // Handle pause on hover
+  const handleMouseEnter = () => setIsPaused(true);
+  const handleMouseLeave = () => setIsPaused(false);
+
   return (
-    <section className="relative w-full h-screen overflow-hidden">
+    <section 
+      className="relative w-full h-screen overflow-hidden"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div
         className="flex transition-transform duration-500 ease-in-out h-full"
         style={{ transform: `translateX(-${currentSlide * 100}%)` }}
@@ -119,7 +139,12 @@ export const HeroSliderSubsection = (): JSX.Element => {
                   {slides.map((_, dotIndex) => (
                     <button
                       key={dotIndex}
-                      onClick={() => handleSlideChange(dotIndex)}
+                      onClick={() => {
+                        handleSlideChange(dotIndex);
+                        setIsPaused(true);
+                        // Resume auto-slide after 8 seconds of user interaction
+                        setTimeout(() => setIsPaused(false), 8000);
+                      }}
                       className={`h-1 sm:h-1.5 lg:h-1.5 rounded-[50px] transition-all ${
                         dotIndex === currentSlide
                           ? "w-8 sm:w-10 lg:w-10 bg-app-secondary"

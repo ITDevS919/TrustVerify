@@ -39,6 +39,8 @@ import { LiveDemo } from "./screens/LiveDemo";
 import { NewTransaction } from "./screens/Transactions/NewTransaction";
 import { AdminReview } from "./screens/AdminReview/AdminReview";
 import { AdminDashboard } from "./screens/AdminDashboard";
+import ZendeskChat from "./components/ChatBot/ZendeskChat";
+
 
 function App() {
   return (
@@ -170,6 +172,7 @@ function App() {
               />
             </Routes>
           </Router>
+          <ZendeskChat />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

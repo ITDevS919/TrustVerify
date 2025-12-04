@@ -709,7 +709,18 @@ app.use((req, res, next) => {
         incidentResponse.createIncidentFromAlert(alert);
       }
     });
+  }, 5 * 60 * 1000);
+
+  // Schedule dispute workflow processing (every 5 minutes)
+  setInterval(async () => {
+    try {
+      const { DisputeWorkflowEngine } = await import('./services/dispute-workflow-engine');
+      await DisputeWorkflowEngine.processPendingWorkflows();
+    } catch (error) {
+      logger.error({ error }, 'Dispute workflow processing failed');
+    }
   }, 5 * 60 * 1000); // Every 5 minutes
+  logger.info('Dispute workflow scheduler initialized'); // Every 5 minutes
 
   // 404 handler
   app.use(notFoundHandler);

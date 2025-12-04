@@ -118,18 +118,18 @@ export const scamReports = pgTable("scam_reports", {
   reviewedBy: integer("reviewed_by").references(() => users.id),
 });
 
-// Enhanced Disputes table with smart flagging
+// Enhanced Disputes table with smart flagging and AI arbitration
 export const disputes = pgTable("disputes", {
   id: serial("id").primaryKey(),
   transactionId: integer("transaction_id").references(() => transactions.id).notNull(),
   raisedBy: integer("raised_by").references(() => users.id).notNull(),
   reason: text("reason").notNull(),
   description: text("description").notNull(),
-  status: text("status").default("open"), // open, investigating, resolved, closed
+  status: text("status").default("open"), // open, investigating, evidence_collection, ai_analysis, pending_ruling, resolved, closed, human_review
   resolution: text("resolution"),
   resolvedBy: integer("resolved_by").references(() => users.id),
   // Smart Dispute Flagging
-  disputeType: text("dispute_type").notNull(), // item_not_received, scam, quality_issue, unauthorized_charge
+  disputeType: text("dispute_type").notNull(), // item_not_received, scam, quality_issue, unauthorized_charge, sla_breach
   aiConfidenceScore: decimal("ai_confidence_score", { precision: 5, scale: 2 }).default("0.00"),
   fraudIndicators: jsonb("fraud_indicators"), // Array of detected patterns
   priorityLevel: text("priority_level").default("normal"), // low, normal, high, critical
@@ -140,6 +140,15 @@ export const disputes = pgTable("disputes", {
   assignedAgent: integer("assigned_agent").references(() => users.id),
   slaDeadline: timestamp("sla_deadline"), // Service level agreement deadline
   evidenceSubmitted: jsonb("evidence_submitted"), // Files, screenshots, etc.
+  // 72-Hour Workflow Tracking
+  workflowStage: text("workflow_stage").default("created"), // created, evidence_collection, ai_analysis, final_ruling, completed
+  workflowStartedAt: timestamp("workflow_started_at"),
+  workflowDeadline: timestamp("workflow_deadline"), // 72 hours from start
+  evidenceCollectionDeadline: timestamp("evidence_collection_deadline"), // 24 hours from start
+  aiAnalysisDeadline: timestamp("ai_analysis_deadline"), // 48 hours from start
+  // Escrow Status
+  escrowFrozen: boolean("escrow_frozen").default(false),
+  escrowFrozenAt: timestamp("escrow_frozen_at"),
   createdAt: timestamp("created_at").defaultNow(),
   resolvedAt: timestamp("resolved_at"),
 });
@@ -176,18 +185,44 @@ export const escalationQueue = pgTable("escalation_queue", {
   completedAt: timestamp("completed_at"),
 });
 
-// Third-party arbitration tracking
+// AI Arbitration Cases tracking
 export const arbitrationCases = pgTable("arbitration_cases", {
   id: serial("id").primaryKey(),
   disputeId: integer("dispute_id").references(() => disputes.id).notNull(),
-  provider: text("provider").notNull(), // external arbitration service
+  provider: text("provider").default("ai_arbitrator"), // ai_arbitrator, external_arbitration_service
   caseNumber: text("case_number"),
-  status: text("status").default("initiated"), // initiated, pending, resolved, failed
+  status: text("status").default("initiated"), // initiated, evidence_collected, analyzing, ruling_generated, resolved, failed, human_review
   cost: decimal("cost", { precision: 10, scale: 2 }),
   outcome: text("outcome"), // buyer_favor, seller_favor, split_decision
   arbitratorNotes: text("arbitrator_notes"),
+  // AI Decision Output
+  buyerFault: decimal("buyer_fault", { precision: 5, scale: 2 }), // 0.00 to 1.00
+  vendorFault: decimal("vendor_fault", { precision: 5, scale: 2 }), // 0.00 to 1.00
+  recommendedPayoutToBuyer: decimal("recommended_payout_to_buyer", { precision: 12, scale: 2 }),
+  recommendedPayoutToVendor: decimal("recommended_payout_to_vendor", { precision: 12, scale: 2 }),
+  summary: text("summary"), // AI-generated summary
+  confidenceScore: decimal("confidence_score", { precision: 5, scale: 2 }), // 0.00 to 1.00
+  aiAnalysisResult: jsonb("ai_analysis_result"), // Full AI analysis JSON
+  // Human Override
+  humanReviewed: boolean("human_reviewed").default(false),
+  humanReviewerId: integer("human_reviewer_id").references(() => users.id),
+  humanOverrideReason: text("human_override_reason"),
   createdAt: timestamp("created_at").defaultNow(),
   resolvedAt: timestamp("resolved_at"),
+});
+
+// Evidence Collection tracking
+export const disputeEvidence = pgTable("dispute_evidence", {
+  id: serial("id").primaryKey(),
+  disputeId: integer("dispute_id").references(() => disputes.id).notNull(),
+  submittedBy: integer("submitted_by").references(() => users.id).notNull(),
+  evidenceType: text("evidence_type").notNull(), // trustverify_logs, vendor_logs, buyer_evidence, unified_packet
+  evidenceData: jsonb("evidence_data").notNull(), // The actual evidence content
+  source: text("source"), // trustverify, vendor, buyer, ai_generated
+  validated: boolean("validated").default(false),
+  validatedAt: timestamp("validated_at"),
+  validatedBy: integer("validated_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Developer Accounts table
@@ -555,4 +590,5 @@ export type SecurityIncident = typeof securityIncidents.$inferSelect;
 export type IPBlacklist = typeof ipBlacklist.$inferSelect;
 export type InsuranceCoverage = typeof insuranceCoverage.$inferSelect;
 export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
+export type DisputeEvidence = typeof disputeEvidence.$inferSelect;
 

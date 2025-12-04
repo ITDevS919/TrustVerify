@@ -21,52 +21,52 @@ export const Home = (): JSX.Element => {
         title="TrustVerify - Secure Fraud Prevention & Identity Verification Platform"
         description="TrustVerify provides comprehensive fraud prevention, identity verification (KYC/AML), trust scoring, and secure escrow services. Protect your business with advanced cybersecurity solutions."
         keywords="fraud prevention, identity verification, KYC, AML, trust scoring, escrow services, cybersecurity, fintech, secure transactions, TrustVerify"
-        canonicalUrl="https://trustverify.online/"
+        canonicalUrl="https://www.trustverify.co.uk/"
       />
-    <main className="bg-white overflow-hidden w-full relative">
-      <img
-        className="absolute top-[1177px] left-[-227px] w-[399px] h-[528px] z-10 pointer-events-none"
-        alt="Nate shape"
-        src="/nate-shape.svg"
-      />
+      <main className="bg-white overflow-hidden w-full relative">
+        <img
+          className="absolute top-[1177px] left-[-227px] w-[399px] h-[528px] z-10 pointer-events-none"
+          alt="Nate shape"
+          src="/nate-shape.svg"
+        />
 
-      <img
-        className="absolute top-[2044px] left-[100px] w-[30px] h-[30px] z-10 pointer-events-none"
-        alt="Icon star"
-        src="/icon-star.svg"
-      />
+        <img
+          className="absolute top-[2044px] left-[100px] w-[30px] h-[30px] z-10 pointer-events-none"
+          alt="Icon star"
+          src="/icon-star.svg"
+        />
 
-      <img
-        className="absolute top-[1091px] right-[101px] w-[30px] h-[30px] z-10 pointer-events-none"
-        alt="Icon star"
-        src="/icon-star-3.svg"
-      />
+        <img
+          className="absolute top-[1091px] right-[101px] w-[30px] h-[30px] z-10 pointer-events-none"
+          alt="Icon star"
+          src="/icon-star-3.svg"
+        />
 
-      <img
-        className="absolute top-[7089px] right-[120px] w-[30px] h-[30px] z-10 pointer-events-none"
-        alt="Icon star"
-        src="/icon-star.svg"
-      />
+        <img
+          className="absolute top-[7089px] right-[120px] w-[30px] h-[30px] z-10 pointer-events-none"
+          alt="Icon star"
+          src="/icon-star.svg"
+        />
 
-      <img
-        className="absolute top-[7777px] left-[60px] w-8 h-8 z-10 pointer-events-none"
-        alt="Icon star"
-        src="/icon-star-1.svg"
-      />
+        <img
+          className="absolute top-[7777px] left-[60px] w-8 h-8 z-10 pointer-events-none"
+          alt="Icon star"
+          src="/icon-star-1.svg"
+        />
 
-      <Header />
-      <HeroSliderSubsection />
-      <FrameSubsection />
-      <FrameWrapperSubsection />
-      <Frame1Subsection />
-      <BackgroundSubsection />
-      <DivWrapperSubsection />
-      <DivSubsection />
-      <BackgroundWrapperSubsection />
-      <FormSubsection />
-      <SectionComponentNodeSubsection />
-      <Footer />
-    </main>
+        <Header />
+        <HeroSliderSubsection />
+        <FrameSubsection />
+        <FrameWrapperSubsection />
+        <Frame1Subsection />
+        <BackgroundSubsection />
+        <DivWrapperSubsection />
+        <DivSubsection />
+        <BackgroundWrapperSubsection />
+        <FormSubsection />
+        <SectionComponentNodeSubsection />
+        <Footer />
+      </main>
     </>
   );
 };

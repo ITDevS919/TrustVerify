@@ -2,10 +2,10 @@ import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
 
 const contactMetaData = [
-  { title: "Chief Compliance Officer", label: "Email:", value: "compliance@trustverify.com" },
-  { title: "AML Officer", label: "Email:", value: "aml@trustverify.io" },
-  { title: "Data Protection Officer", label: "Email:", value: "dpo@trustverify.io" },
-  { title: "Regulartory Affairs", label: "Email:", value: "regulatory@trustverify.io" },
+  { title: "Chief Compliance Officer", label: "Email:", value: "compliance@trustverify.co.uk" },
+  { title: "AML/Financial Crime Officer", label: "Email:", value: "aml@trustverify.co.uk" },
+  { title: "Data Protection Officer", label: "Email:", value: "dpo@trustverify.co.uk" },
+  { title: "Regulatory Affairs", label: "Email:", value: "regulatory@trustverify.co.uk" },
 ];
 
 export const RegulatoryCompliances = (): JSX.Element => {
@@ -14,7 +14,7 @@ export const RegulatoryCompliances = (): JSX.Element => {
       <Header 
         content={{
           title: "Regulatory Compliance",
-          description: "TrustVerify demonstrates comprehensive compliance with global financial regulations to ensure the highest standards of security and regulatory adherence.",
+          description: "TrustVerify maintains a comprehensive regulatory and compliance framework designed to meet FCA requirements for firms operating in the UK financial ecosystem. This document outlines our AML/CTF, KYC/KYB, data protection, security, vendor governance and reporting practices.",
         }}
       />
       <section className="relative w-full flex justify-center pt-20 pb-32">
@@ -25,186 +25,32 @@ export const RegulatoryCompliances = (): JSX.Element => {
                   Compliance Framework              
                 </p>
                 <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#27AE60] text-lg tracking-[-0.20px] leading-7">
-                  TrustVerify demonstrates comprehensive compliance with global financial regulations to ensure the highest standards of security and regulatory adherence. Our framework covers anti-money laundering, data protection, financial services regulations, and international sanctions compliance.              
+                  TrustVerify maintains a comprehensive regulatory and compliance framework designed to meet FCA requirements for firms operating in the UK financial ecosystem. This document outlines our AML/CTF, KYC/KYB, data protection, security, vendor governance and reporting practices. It is intended for FCA submission, partners, and internal governance documentation.              
                 </p>
             </div>
           </div>
           <div className="flex flex-col items-start gap-[30px] w-full">
               <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                1. Anti-Money Laundering (AML) Compliance
+                1. Regulatory Alignment
               </p>
               <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  AMLD5 Fifth Anti-Money Laundering Directive                
-                </p>
                 <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                    - Enhanced customer due diligence procedures <br />
-                    - Real-time transaction monitoring and reporting <br />
-                    - Beneficial ownership identification and verification <br />
-                    - Suspicious activity reporting and documentation
+                  TrustVerify operates under the following regulations and frameworks: <br />
+                  - UK Money Laundering Regulations 2017 (as amended) <br />
+                  - FCA Handbook (SYSC, COND, FEES, SUP, MLR) <br />
+                  - FCA Consumer Duty <br />
+                  - FATF Recommendations <br />
+                  - GDPR / UK GDPR <br />
+                  - CCPA principles (where applicable) <br />
+                  - PCI DSS (via third-party providers payment infrastructure)
                 </p>
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  Transaction Monitoring
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Automated monitoring for global sanctions lists <br />
-                  - Real-time fraud detection algorithms <br />
-                  - Risk-based transaction limits and controls <br />
-                  - Ongoing monitoring of customer relationships
-                </p>
-              </div>
-          </div>
-          <div className="w-full h-px bg-[#e4e4e4]"></div>
-          <div className="flex flex-col items-start gap-[30px] w-full">
-              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                2. Know Your Customer (KYC) Standards
-              </p>
-              <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  Identity Verification Levels                
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Basic Verification: Government-issued ID and proof of address <br />
-                  - Enhanced Verification: Income verification and source of funds <br />
-                  - Premium Verification: Full financial background checks
-                </p>
-              </div>
-              <div className="flex flex-col items-start gap-2.5 px-[31px] py-[27px] w-full bg-[#2885FF24] rounded-2xl">
-                <div className="flex flex-col items-start gap-2.5">
+                <div className="flex flex-col items-start gap-2.5 px-[31px] py-[27px] w-full bg-[#2885FF24] rounded-2xl">
+                  <div className="flex flex-col items-start gap-2.5">
                     <p className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#2885FF] text-[22px] tracking-[-0.20px] leading-7 whitespace-nowrap">
-                      Verification Partners              
+                      Payment Processing
                     </p>
                     <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#2885FF] text-lg tracking-[-0.20px] leading-7">
-                      We partner with leading KYC providers including Onfido, Jumio, and Sumsub to ensure accurate and compliant identity verification processes.                    
-                    </p>
-                </div>
-              </div>
-          </div>
-
-          <div className="w-full h-px bg-[#e4e4e4]"></div>
-          <div className="flex flex-col items-start gap-[30px] w-full">
-              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                3. Data Protection Regulations
-              </p>
-              <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  GDPR Compliance
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Lawful basis for all data processing activities <br />  
-                  - Data minimization and purpose limitation principles <br />  
-                  - Individual rights management and response procedures <br />  
-                  - Data Protection Impact Assessments (DPIAs) <br />  
-                  - Breach notification procedures (72-hour requirement)
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                    CCPA Compliance
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Consumer rights transparency and response <br />
-                  - Opt-out mechanisms for data sale (we don't sell data) <br />
-                  - Non-discrimination policies for rights exercised
-                </p>
-              </div>
-          </div>
-          <div className="w-full h-px bg-[#e4e4e4]"></div>
-          <div className="flex flex-col items-start gap-[30px] w-full">
-              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                4. Financial Services Regulations
-              </p>
-              <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  FCA Compliance (UK)
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Consumer Duty principles and fair treatment <br />
-                  - Market conduct and integrity standards <br />
-                  - Operational resilience requirements <br />
-                  - Senior Managers and Certification Regime (SMCR)
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  PCI DSS Compliance
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Secure cardholder data environment <br />
-                  - Regular vulnerability assessments <br />  
-                  - Access control and authorization measures <br />
-                  - Network security monitoring
-                </p>
-              </div>
-          </div>
-          <div className="w-full h-px bg-[#e4e4e4]"></div>
-          <div className="flex flex-col items-start gap-[30px] w-full">
-              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                5. Security Certifications
-              </p>
-              <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  SOC 2 Type II 
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Annual third-party audits of our security, availability, processing integrity, confidentiality, and privacy controls <br />
-                  - Comprehensive security policies and procedures <br />
-                  - Incident response and management procedures <br />
-                  - Business continuity and system development lifecycle <br />
-                  - Vendor management and due diligence
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  ISO 27001
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                Information Security Management System certification ensuring systematic approach to managing sensitive company information                </p>
-              </div>
-          </div>
-          <div className="w-full h-px bg-[#e4e4e4]"></div>
-          <div className="flex flex-col items-start gap-[30px] w-full">
-              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                6. Reporting and Transparency
-              </p>
-              <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  Regulatory Reporting
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Quarterly reports to relevant Financial Intelligence Agency <br />
-                  - Transaction reports to relevant financial intelligence units <br />
-                  - Data breach notifications to supervisory authorities <br />
-                  - Annual compliance attestations and filings
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  Transparency Reports
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Annual transparency reports on law enforcement requests <br />
-                  - Compliance metrics and performance indicators <br />
-                  - Security incident summaries and lessons learned <br />
-                  - Third-party audit results and recommendations
-                </p>
-              </div>
-          </div>
-          <div className="w-full h-px bg-[#e4e4e4]"></div>
-          <div className="flex flex-col items-start gap-[30px] w-full">
-              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                7. Global Sanctions Compliance
-              </p>
-              <div className="flex flex-col items-start gap-5 w-full">
-                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
-                  Sanctions Screening
-                </p>
-                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-                  - Real-time screening against OFAC, UN, EU and HMT sanctions lists <br />
-                  - Enhanced due diligence for high-risk jurisdictions <br />
-                  - Ongoing monitoring of existing customers against updated lists <br />
-                  - Automated blocking and escalation procedures
-                </p>
-                <div className="flex flex-col items-start gap-2.5 px-[31px] py-[27px] w-full bg-[#d3203024] rounded-2xl">
-                  <div className="flex flex-col items-start gap-2.5">
-                    <p className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#d32030] text-[22px] tracking-[-0.20px] leading-7 whitespace-nowrap">
-                      Zero Tolerance Policy
-                    </p>
-
-                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#d32030] text-lg tracking-[-0.20px] leading-7">
-                      TrustVerify maintains a zero-tolerance policy towards sanctions evasion and prohibited transactions with sanctioned entities                    \
+                      TrustVerify currently uses third-party providers for payment processing. These third-party PSPs hold their own FCA/European regulatory approvals, and TrustVerify integrates their services without acting as a PSP or EMI at this stage.
                     </p>
                   </div>
                 </div>
@@ -213,7 +59,194 @@ export const RegulatoryCompliances = (): JSX.Element => {
           <div className="w-full h-px bg-[#e4e4e4]"></div>
           <div className="flex flex-col items-start gap-[30px] w-full">
               <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
-                8. Contact Compliance Team
+                2. AML/CTF Programme
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  TrustVerify maintains a full AML/CTF programme aligned with FCA, HMRC and FATF expectations. <br />
+                  Key elements include: <br />
+                  - Risk-based Customer Due Diligence (CDD) <br />
+                  - Enhanced Due Diligence (EDD) for high-risk clients or jurisdictions <br />
+                  - Ongoing monitoring and behavioural analytics <br />
+                  - Comprehensive sanctions, PEP and adverse media screening <br />
+                  - Dedicated MLRO and escalation workflow <br />
+                  - SAR/STR submission procedure aligned to NCA <br />
+                  - 5-year record-keeping requirements
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                3. KYC & KYB Verification
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  TrustVerify uses a multi-layered identity verification approach supported by leading third-party suppliers: <br />
+                  - Third-party providers (IDV, liveness, KYB) <br />
+                  - Third-party providers (Device intelligence) <br />
+                  - Third-party providers (IP/geolocation/fraud intelligence) <br />
+                  - Third-party providers (KYC on payment flows where applicable)
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
+                  Verification Levels
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  - Level 1 – Basic: ID + liveness + address <br />
+                  - Level 2 – Enhanced: SOF/SOW, additional documentation <br />
+                  - Level 3 – High Risk: Manual review, in-depth due diligence
+                </p>
+              </div>
+          </div>
+
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                4. Sanctions & Screening
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  TrustVerify conducts: <br />
+                  - Real-time screening <br />
+                  - Batch rescreening <br />
+                  - Event-driven triggers (name change, device risk, unusual activity)
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
+                  Sanctions Lists
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  - OFAC <br />
+                  - UN <br />
+                  - EU <br />
+                  - UK HMT
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  PEP screening and adverse media checks are performed via third-party providers + internal controls.
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                5. Data Protection & GDPR
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  TrustVerify complies with GDPR / UK GDPR including: <br />
+                  - Data minimisation <br />
+                  - Lawful processing <br />
+                  - User rights (access, deletion, rectification) <br />
+                  - DPIAs for all new high-risk processing <br />
+                  - 72-hour breach reporting workflow <br />
+                  - Secure encryption, pseudonymisation and access controls
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                6. Vendor Governance
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  TrustVerify performs due diligence and ongoing monitoring on all suppliers. <br />
+                  Current suppliers include: <br />
+                  - Third-party providers (KYC/KYB) <br />
+                  - Third-party providers (Device risk intelligence) <br />
+                  - Third-party providers (Fraud detection) <br />
+                  - Third-party providers (Payment infrastructure, PCI DSS-compliant)
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
+                  Vendor Review Includes
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  - SLAs / DPAs <br />
+                  - ISO27001 / SOC 2 reports <br />
+                  - Penetration test summaries <br />
+                  - Data processing diagrams <br />
+                  - Breach notification obligations
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                7. Business-Wide Risk Assessment (BWRA)
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  The BWRA covers: <br />
+                  - Customer risk <br />
+                  - Product/service risk <br />
+                  - Geographic risk <br />
+                  - Delivery channel risk <br />
+                  - Transaction risk
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
+                  Methodology
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  - Likelihood × Impact scoring <br />
+                  - Control mapping (manual/automated) <br />
+                  - Residual risk rating <br />
+                  - Annual MLRO sign-off
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                8. Security Framework
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  TrustVerify maintains: <br />
+                  - ISO 27001-aligned ISMS <br />
+                  - SOC 2-aligned security controls <br />
+                  - Secure SDLC <br />
+                  - Audit logging and monitoring <br />
+                  - Access control and role-based permissions <br />
+                  - Incident response & disaster recovery plans
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                9. Reporting & Governance
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl tracking-[-0.20px] leading-7">
+                  Reporting
+                </p>
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  - Annual AML audit <br />
+                  - Quarterly compliance review <br />
+                  - SAR reporting to NCA <br />
+                  - Transparency reports
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                10. Customer Protection & Disclosures
+              </p>
+              <div className="flex flex-col items-start gap-5 w-full">
+                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
+                  Customer protection includes: <br />
+                  - FCA Consumer Duty alignment <br />
+                  - Clear onboarding disclosures <br />
+                  - Fraud prevention education <br />
+                  - Vulnerable customer support <br />
+                  - Transparent privacy and data policies
+                </p>
+              </div>
+          </div>
+          <div className="w-full h-px bg-[#e4e4e4]"></div>
+          <div className="flex flex-col items-start gap-[30px] w-full">
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl sm:text-5xl tracking-[-0.50px] leading-[49px] sm:leading-[67px]">
+                11. Contact Compliance Team
               </p>
               <div className="grid grid-cols-2 grid-rows-2 items-start gap-10 w-full">
               {contactMetaData.map((item, index) => (
