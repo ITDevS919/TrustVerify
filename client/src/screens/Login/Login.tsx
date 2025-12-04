@@ -95,7 +95,7 @@ export const Login = (): JSX.Element => {
     // 2. Vite dev server is running (restart if needed)
     // 3. OAuth credentials are configured in backend .env
     console.log(`Initiating ${provider} OAuth...`);
-    window.location.href = `/auth/${provider}`;
+    window.location.href = `/auth/${provider}/callback`;
   };
 
   return (
