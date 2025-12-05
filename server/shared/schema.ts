@@ -283,6 +283,69 @@ export const apiUsageLogs = pgTable("api_usage_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Workflow Configurations table - for industry-specific customizations
+export const workflowConfigurations = pgTable("workflow_configurations", {
+  id: serial("id").primaryKey(),
+  developerId: integer("developer_id").references(() => developerAccounts.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  industry: text("industry").notNull(), // ecommerce, fintech, marketplace, crypto, healthcare, real_estate, gaming
+  useCase: text("use_case").notNull(), // checkout, kyc, escrow, dispute_resolution, etc.
+  workflowSteps: jsonb("workflow_steps").notNull(), // Array of workflow step configurations
+  rules: jsonb("rules").default('{}'), // Custom business rules and thresholds
+  triggers: jsonb("triggers").default('[]'), // Webhook triggers and events
+  isActive: boolean("is_active").default(true),
+  isTemplate: boolean("is_template").default(false), // System templates vs custom workflows
+  version: integer("version").default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Industry Templates table - pre-built workflow templates
+export const industryTemplates = pgTable("industry_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  industry: text("industry").notNull(),
+  useCase: text("use_case").notNull(),
+  description: text("description"),
+  workflowSteps: jsonb("workflow_steps").notNull(),
+  defaultRules: jsonb("default_rules").default('{}'),
+  recommendedSettings: jsonb("recommended_settings").default('{}'),
+  documentation: text("documentation"), // Markdown documentation
+  codeExamples: jsonb("code_examples").default('[]'), // Array of code examples
+  isPublic: boolean("is_public").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Webhook Configurations table
+export const webhookConfigurations = pgTable("webhook_configurations", {
+  id: serial("id").primaryKey(),
+  developerId: integer("developer_id").references(() => developerAccounts.id).notNull(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  secret: text("secret").notNull(), // Webhook signing secret
+  events: jsonb("events").default('[]'), // Array of event types to subscribe to
+  isActive: boolean("is_active").default(true),
+  retryPolicy: jsonb("retry_policy").default('{"maxRetries": 3, "backoff": "exponential"}'),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Webhook Delivery Logs table
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: serial("id").primaryKey(),
+  webhookId: integer("webhook_id").references(() => webhookConfigurations.id).notNull(),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  status: text("status").default("pending"), // pending, delivered, failed, retrying
+  statusCode: integer("status_code"),
+  responseBody: text("response_body"),
+  attemptNumber: integer("attempt_number").default(1),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   transactions: many(transactions),
@@ -308,6 +371,8 @@ export const developerAccountsRelations = relations(developerAccounts, ({ one, m
   }),
   apiKeys: many(apiKeys),
   usageLogs: many(apiUsageLogs),
+  workflowConfigurations: many(workflowConfigurations),
+  webhookConfigurations: many(webhookConfigurations),
 }));
 
 export const apiKeysRelations = relations(apiKeys, ({ one, many }) => ({
@@ -326,6 +391,28 @@ export const apiUsageLogsRelations = relations(apiUsageLogs, ({ one }) => ({
   developer: one(developerAccounts, {
     fields: [apiUsageLogs.developerId],
     references: [developerAccounts.id],
+  }),
+}));
+
+export const workflowConfigurationsRelations = relations(workflowConfigurations, ({ one }) => ({
+  developer: one(developerAccounts, {
+    fields: [workflowConfigurations.developerId],
+    references: [developerAccounts.id],
+  }),
+}));
+
+export const webhookConfigurationsRelations = relations(webhookConfigurations, ({ one, many }) => ({
+  developer: one(developerAccounts, {
+    fields: [webhookConfigurations.developerId],
+    references: [developerAccounts.id],
+  }),
+  deliveries: many(webhookDeliveries),
+}));
+
+export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one }) => ({
+  webhook: one(webhookConfigurations, {
+    fields: [webhookDeliveries.webhookId],
+    references: [webhookConfigurations.id],
   }),
 }));
 
@@ -505,6 +592,16 @@ export type InsertApiUsageLog = z.infer<typeof insertApiUsageLogSchema>;
 export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;
 export type InsertPasswordReset = z.infer<typeof insertPasswordResetSchema>;
 export type PasswordReset = typeof passwordResets.$inferSelect;
+
+// Workflow Configuration types
+export type WorkflowConfiguration = typeof workflowConfigurations.$inferSelect;
+export type InsertWorkflowConfiguration = typeof workflowConfigurations.$inferInsert;
+export type IndustryTemplate = typeof industryTemplates.$inferSelect;
+export type InsertIndustryTemplate = typeof industryTemplates.$inferInsert;
+export type WebhookConfiguration = typeof webhookConfigurations.$inferSelect;
+export type InsertWebhookConfiguration = typeof webhookConfigurations.$inferInsert;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type InsertWebhookDelivery = typeof webhookDeliveries.$inferInsert;
 
 // Security Incidents table
 export const securityIncidents = pgTable("security_incidents", {

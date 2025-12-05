@@ -4,6 +4,8 @@ import { storage } from '../storage';
 import { requireDeveloperAuth } from '../middleware/apiAuth';
 import { insertDeveloperAccountSchema, insertApiKeySchema } from '../shared/schema.ts';
 import { z } from 'zod';
+import { workflowService } from '../services/workflow-service';
+import { webhookService } from '../services/webhook-service';
 
 const router = Router();
 
@@ -32,7 +34,9 @@ router.post('/account', async (req, res) => {
     const validatedData = insertDeveloperAccountSchema.parse(req.body);
     const account = await storage.createDeveloperAccount({
       ...validatedData,
-      userId: req.user!.id
+      userId: req.user!.id,
+      status: 'approved', // Auto-approve developer accounts
+      approvedAt: new Date(), // Set approval timestamp
     });
 
     res.status(201).json(account);
@@ -215,6 +219,318 @@ router.get('/usage/logs', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching usage logs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== Workflow Configuration Routes ====================
+
+// Get all workflows for developer
+router.get('/workflows', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const filters: any = {};
+    if (req.query.industry) filters.industry = req.query.industry as string;
+    if (req.query.useCase) filters.useCase = req.query.useCase as string;
+    if (req.query.isActive !== undefined) filters.isActive = req.query.isActive === 'true';
+
+    const workflows = await workflowService.listWorkflows(account.id, filters);
+    res.json(workflows);
+  } catch (error) {
+    console.error('Error fetching workflows:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get single workflow
+router.get('/workflows/:id', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const workflowId = parseInt(req.params.id);
+    if (isNaN(workflowId)) {
+      return res.status(400).json({ error: 'Invalid workflow ID' });
+    }
+
+    const workflow = await workflowService.getWorkflow(workflowId, account.id);
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
+    }
+
+    res.json(workflow);
+  } catch (error) {
+    console.error('Error fetching workflow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create workflow
+router.post('/workflows', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const workflow = await workflowService.createWorkflow(account.id, req.body);
+    res.status(201).json(workflow);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Error creating workflow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update workflow
+router.put('/workflows/:id', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const workflowId = parseInt(req.params.id);
+    if (isNaN(workflowId)) {
+      return res.status(400).json({ error: 'Invalid workflow ID' });
+    }
+
+    const workflow = await workflowService.updateWorkflow(workflowId, account.id, req.body);
+    res.json(workflow);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Workflow not found or access denied') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error updating workflow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete workflow
+router.delete('/workflows/:id', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const workflowId = parseInt(req.params.id);
+    if (isNaN(workflowId)) {
+      return res.status(400).json({ error: 'Invalid workflow ID' });
+    }
+
+    await workflowService.deleteWorkflow(workflowId, account.id);
+    res.json({ message: 'Workflow deleted successfully' });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Workflow not found or access denied') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error deleting workflow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get industry templates
+router.get('/templates', async (req, res) => {
+  try {
+    const filters: any = {};
+    if (req.query.industry) filters.industry = req.query.industry as string;
+    if (req.query.useCase) filters.useCase = req.query.useCase as string;
+
+    const templates = await workflowService.getIndustryTemplates(filters);
+    res.json(templates);
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get single template
+router.get('/templates/:id', async (req, res) => {
+  try {
+    const templateId = parseInt(req.params.id);
+    if (isNaN(templateId)) {
+      return res.status(400).json({ error: 'Invalid template ID' });
+    }
+
+    const template = await workflowService.getTemplate(templateId);
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.json(template);
+  } catch (error) {
+    console.error('Error fetching template:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create workflow from template
+router.post('/templates/:id/create-workflow', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const templateId = parseInt(req.params.id);
+    if (isNaN(templateId)) {
+      return res.status(400).json({ error: 'Invalid template ID' });
+    }
+
+    const workflow = await workflowService.createFromTemplate(account.id, templateId, req.body);
+    res.status(201).json(workflow);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Template not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error creating workflow from template:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== Webhook Configuration Routes ====================
+
+// Get all webhooks
+router.get('/webhooks', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const webhooks = await webhookService.listWebhooks(account.id);
+    res.json(webhooks);
+  } catch (error) {
+    console.error('Error fetching webhooks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get single webhook
+router.get('/webhooks/:id', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const webhookId = parseInt(req.params.id);
+    if (isNaN(webhookId)) {
+      return res.status(400).json({ error: 'Invalid webhook ID' });
+    }
+
+    const webhook = await webhookService.getWebhook(webhookId, account.id);
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook not found' });
+    }
+
+    res.json(webhook);
+  } catch (error) {
+    console.error('Error fetching webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create webhook
+router.post('/webhooks', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const webhook = await webhookService.createWebhook(account.id, req.body);
+    res.status(201).json(webhook);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Error creating webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update webhook
+router.put('/webhooks/:id', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const webhookId = parseInt(req.params.id);
+    if (isNaN(webhookId)) {
+      return res.status(400).json({ error: 'Invalid webhook ID' });
+    }
+
+    const webhook = await webhookService.updateWebhook(webhookId, account.id, req.body);
+    res.json(webhook);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Webhook not found or access denied') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error updating webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete webhook
+router.delete('/webhooks/:id', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const webhookId = parseInt(req.params.id);
+    if (isNaN(webhookId)) {
+      return res.status(400).json({ error: 'Invalid webhook ID' });
+    }
+
+    await webhookService.deleteWebhook(webhookId, account.id);
+    res.json({ message: 'Webhook deleted successfully' });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Webhook not found or access denied') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error deleting webhook:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get webhook delivery logs
+router.get('/webhooks/:id/deliveries', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const webhookId = parseInt(req.params.id);
+    if (isNaN(webhookId)) {
+      return res.status(400).json({ error: 'Invalid webhook ID' });
+    }
+
+    // Verify webhook belongs to developer
+    const webhook = await webhookService.getWebhook(webhookId, account.id);
+    if (!webhook) {
+      return res.status(404).json({ error: 'Webhook not found' });
+    }
+
+    const limit = parseInt(req.query.limit as string) || 50;
+    const deliveries = await webhookService.getDeliveryLogs(webhookId, account.id, limit);
+    res.json(deliveries);
+  } catch (error) {
+    console.error('Error fetching webhook deliveries:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

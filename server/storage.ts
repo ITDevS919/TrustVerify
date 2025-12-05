@@ -9,6 +9,10 @@ import {
     apiKeys,
     apiUsageLogs,
     passwordResets,
+    workflowConfigurations,
+    industryTemplates,
+    webhookConfigurations,
+    webhookDeliveries,
     type User, 
     type InsertUser,
     type KycVerification,
@@ -84,7 +88,7 @@ import {
     updateDisputeStatus(id: number, status: string, resolution?: string, resolvedBy?: number): Promise<Dispute | undefined>;
   
     // Developer Account methods
-    createDeveloperAccount(account: InsertDeveloperAccount & { userId: number }): Promise<DeveloperAccount>;
+    createDeveloperAccount(account: InsertDeveloperAccount & { userId: number; status?: string; approvedAt?: Date }): Promise<DeveloperAccount>;
     getDeveloperAccountByUserId(userId: number): Promise<DeveloperAccount | undefined>;
     getDeveloperAccount(id: number): Promise<DeveloperAccount | undefined>;
     updateDeveloperAccountStatus(id: number, status: string, approvedBy?: number): Promise<DeveloperAccount | undefined>;
@@ -101,6 +105,30 @@ import {
     createApiUsageLog(log: InsertApiUsageLog & { apiKeyId: number; developerId: number }): Promise<ApiUsageLog>;
     getApiUsageByDeveloper(developerId: number, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
     getApiUsageStats(developerId: number, period: 'day' | 'week' | 'month'): Promise<any>;
+  
+    // Workflow Configuration methods
+    createWorkflowConfiguration(config: { developerId: number; name: string; description?: string; industry: string; useCase: string; workflowSteps: any; rules?: any; triggers?: any; isActive?: boolean; isTemplate?: boolean; version?: number }): Promise<any>;
+    getWorkflowConfiguration(id: number): Promise<any | undefined>;
+    listWorkflowConfigurations(developerId: number, filters?: { industry?: string; useCase?: string; isActive?: boolean }): Promise<any[]>;
+    updateWorkflowConfiguration(id: number, updates: Partial<any>): Promise<any | undefined>;
+    deleteWorkflowConfiguration(id: number): Promise<void>;
+  
+    // Industry Template methods
+    createIndustryTemplate(template: { name: string; industry: string; useCase: string; description?: string; workflowSteps: any; defaultRules?: any; recommendedSettings?: any; documentation?: string; codeExamples?: any; isPublic?: boolean }): Promise<any>;
+    getIndustryTemplate(id: number): Promise<any | undefined>;
+    listIndustryTemplates(filters?: { industry?: string; useCase?: string }): Promise<any[]>;
+    updateIndustryTemplate(id: number, updates: Partial<any>): Promise<any | undefined>;
+  
+    // Webhook Configuration methods
+    createWebhookConfiguration(config: { developerId: number; name: string; url: string; secret: string; events: any; isActive?: boolean; retryPolicy?: any }): Promise<any>;
+    getWebhookConfiguration(id: number): Promise<any | undefined>;
+    listWebhookConfigurations(developerId: number): Promise<any[]>;
+    updateWebhookConfiguration(id: number, updates: Partial<any>): Promise<any | undefined>;
+    deleteWebhookConfiguration(id: number): Promise<void>;
+  
+    // Webhook Delivery methods
+    createWebhookDelivery(delivery: { webhookId: number; eventType: string; payload: any; status?: string; statusCode?: number; responseBody?: string; attemptNumber?: number }): Promise<any>;
+    listWebhookDeliveries(webhookId: number, limit?: number): Promise<any[]>;
   
     // Admin stats methods
     getUserCount(): Promise<number>;
@@ -370,7 +398,7 @@ import {
     }
   
     // Developer Account methods
-    async createDeveloperAccount(_account: InsertDeveloperAccount & { userId: number }): Promise<DeveloperAccount> {
+    async createDeveloperAccount(_account: InsertDeveloperAccount & { userId: number; status?: string; approvedAt?: Date }): Promise<DeveloperAccount> {
       throw new Error("Developer accounts not supported in MemStorage");
     }
   
@@ -696,6 +724,13 @@ import {
         assignedAgent: disputeData.assignedAgent || null,
         slaDeadline: disputeData.slaDeadline || null,
         evidenceSubmitted: disputeData.evidenceSubmitted || null,
+        workflowStage: "created",
+        workflowStartedAt: null,
+        workflowDeadline: null,
+        evidenceCollectionDeadline: null,
+        aiAnalysisDeadline: null,
+        escrowFrozen: false,
+        escrowFrozenAt: null,
         createdAt: new Date(),
         resolvedAt: null,
       };
@@ -758,6 +793,86 @@ import {
       return Array.from(this.kycVerifications.values()).filter(
         kyc => kyc.status === 'pending'
       ).length;
+    }
+
+    // Workflow Configuration methods
+    async createWorkflowConfiguration(_config: { developerId: number; name: string; description?: string; industry: string; useCase: string; workflowSteps: any; rules?: any; triggers?: any; isActive?: boolean; isTemplate?: boolean; version?: number }): Promise<any> {
+      throw new Error("Workflow configurations not supported in MemStorage");
+    }
+
+    async getWorkflowConfiguration(_id: number): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async listWorkflowConfigurations(_developerId: number, _filters?: { industry?: string; useCase?: string; isActive?: boolean }): Promise<any[]> {
+      return [];
+    }
+
+    async updateWorkflowConfiguration(_id: number, _updates: Partial<any>): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async deleteWorkflowConfiguration(_id: number): Promise<void> {
+      // No-op
+    }
+
+    // Industry Template methods
+    async createIndustryTemplate(_template: { name: string; industry: string; useCase: string; description?: string; workflowSteps: any; defaultRules?: any; recommendedSettings?: any; documentation?: string; codeExamples?: any; isPublic?: boolean }): Promise<any> {
+      throw new Error("Industry templates not supported in MemStorage");
+    }
+
+    async getIndustryTemplate(_id: number): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async listIndustryTemplates(_filters?: { industry?: string; useCase?: string }): Promise<any[]> {
+      return [];
+    }
+
+    async updateIndustryTemplate(_id: number, _updates: Partial<any>): Promise<any | undefined> {
+      return undefined;
+    }
+
+    // Webhook Configuration methods
+    async createWebhookConfiguration(_config: { developerId: number; name: string; url: string; secret: string; events: any; isActive?: boolean; retryPolicy?: any }): Promise<any> {
+      throw new Error("Webhook configurations not supported in MemStorage");
+    }
+
+    async getWebhookConfiguration(_id: number): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async listWebhookConfigurations(_developerId: number): Promise<any[]> {
+      return [];
+    }
+
+    async updateWebhookConfiguration(_id: number, _updates: Partial<any>): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async deleteWebhookConfiguration(_id: number): Promise<void> {
+      // No-op
+    }
+
+    // Webhook Delivery methods
+    async createWebhookDelivery(_delivery: { webhookId: number; eventType: string; payload: any; status?: string; statusCode?: number; responseBody?: string; attemptNumber?: number }): Promise<any> {
+      throw new Error("Webhook deliveries not supported in MemStorage");
+    }
+
+    async listWebhookDeliveries(_webhookId: number, _limit?: number): Promise<any[]> {
+      return [];
+    }
+
+    async getWebhookDelivery(_id: number): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async updateWebhookDelivery(_id: number, _updates: Partial<any>): Promise<any | undefined> {
+      return undefined;
+    }
+
+    async getWebhookDeliveries(_webhookId: number, _limit?: number): Promise<any[]> {
+      return [];
     }
   }
   
@@ -1042,7 +1157,7 @@ import {
     }
   
     // Developer Account methods
-    async createDeveloperAccount(account: InsertDeveloperAccount & { userId: number }): Promise<DeveloperAccount> {
+    async createDeveloperAccount(account: InsertDeveloperAccount & { userId: number; status?: string; approvedAt?: Date }): Promise<DeveloperAccount> {
       const [developerAccount] = await db
         .insert(developerAccounts)
         .values(account)
@@ -1214,6 +1329,198 @@ import {
         .from(kycVerifications)
         .where(eq(kycVerifications.status, 'pending'));
       return result[0]?.count || 0;
+    }
+
+    // Workflow Configuration methods
+    async createWorkflowConfiguration(config: { developerId: number; name: string; description?: string; industry: string; useCase: string; workflowSteps: any; rules?: any; triggers?: any; isActive?: boolean; isTemplate?: boolean; version?: number }): Promise<any> {
+      const [workflow] = await db
+        .insert(workflowConfigurations)
+        .values({
+          developerId: config.developerId,
+          name: config.name,
+          description: config.description || null,
+          industry: config.industry,
+          useCase: config.useCase,
+          workflowSteps: config.workflowSteps,
+          rules: config.rules || {},
+          triggers: config.triggers || [],
+          isActive: config.isActive !== undefined ? config.isActive : true,
+          isTemplate: config.isTemplate || false,
+          version: config.version || 1,
+          updatedAt: new Date(),
+        })
+        .returning();
+      return workflow;
+    }
+
+    async getWorkflowConfiguration(id: number): Promise<any | undefined> {
+      const [workflow] = await db.select().from(workflowConfigurations).where(eq(workflowConfigurations.id, id));
+      return workflow || undefined;
+    }
+
+    async listWorkflowConfigurations(developerId: number, filters?: { industry?: string; useCase?: string; isActive?: boolean }): Promise<any[]> {
+      const conditions = [eq(workflowConfigurations.developerId, developerId)];
+      
+      if (filters?.industry) {
+        conditions.push(eq(workflowConfigurations.industry, filters.industry));
+      }
+      if (filters?.useCase) {
+        conditions.push(eq(workflowConfigurations.useCase, filters.useCase));
+      }
+      if (filters?.isActive !== undefined) {
+        conditions.push(eq(workflowConfigurations.isActive, filters.isActive));
+      }
+      
+      return await db.select()
+        .from(workflowConfigurations)
+        .where(and(...conditions));
+    }
+
+    async updateWorkflowConfiguration(id: number, updates: Partial<any>): Promise<any | undefined> {
+      const [workflow] = await db
+        .update(workflowConfigurations)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(workflowConfigurations.id, id))
+        .returning();
+      return workflow || undefined;
+    }
+
+    async deleteWorkflowConfiguration(id: number): Promise<void> {
+      await db.delete(workflowConfigurations).where(eq(workflowConfigurations.id, id));
+    }
+
+    // Industry Template methods
+    async createIndustryTemplate(template: { name: string; industry: string; useCase: string; description?: string; workflowSteps: any; defaultRules?: any; recommendedSettings?: any; documentation?: string; codeExamples?: any; isPublic?: boolean }): Promise<any> {
+      const [industryTemplate] = await db
+        .insert(industryTemplates)
+        .values({
+          name: template.name,
+          industry: template.industry,
+          useCase: template.useCase,
+          description: template.description || null,
+          workflowSteps: template.workflowSteps,
+          defaultRules: template.defaultRules || {},
+          recommendedSettings: template.recommendedSettings || {},
+          documentation: template.documentation || null,
+          codeExamples: template.codeExamples || [],
+          isPublic: template.isPublic !== undefined ? template.isPublic : true,
+          updatedAt: new Date(),
+        })
+        .returning();
+      return industryTemplate;
+    }
+
+    async getIndustryTemplate(id: number): Promise<any | undefined> {
+      const [template] = await db.select().from(industryTemplates).where(eq(industryTemplates.id, id));
+      return template || undefined;
+    }
+
+    async listIndustryTemplates(filters?: { industry?: string; useCase?: string }): Promise<any[]> {
+      const conditions = [eq(industryTemplates.isPublic, true)];
+      
+      if (filters?.industry) {
+        conditions.push(eq(industryTemplates.industry, filters.industry));
+      }
+      if (filters?.useCase) {
+        conditions.push(eq(industryTemplates.useCase, filters.useCase));
+      }
+      
+      return await db.select()
+        .from(industryTemplates)
+        .where(and(...conditions));
+    }
+
+    async updateIndustryTemplate(id: number, updates: Partial<any>): Promise<any | undefined> {
+      const [template] = await db
+        .update(industryTemplates)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(industryTemplates.id, id))
+        .returning();
+      return template || undefined;
+    }
+
+    // Webhook Configuration methods
+    async createWebhookConfiguration(config: { developerId: number; name: string; url: string; secret: string; events: any; isActive?: boolean; retryPolicy?: any }): Promise<any> {
+      const [webhook] = await db
+        .insert(webhookConfigurations)
+        .values({
+          developerId: config.developerId,
+          name: config.name,
+          url: config.url,
+          secret: config.secret,
+          events: config.events,
+          isActive: config.isActive !== undefined ? config.isActive : true,
+          retryPolicy: config.retryPolicy || { maxRetries: 3, backoff: 'exponential' },
+          updatedAt: new Date(),
+        })
+        .returning();
+      return webhook;
+    }
+
+    async getWebhookConfiguration(id: number): Promise<any | undefined> {
+      const [webhook] = await db.select().from(webhookConfigurations).where(eq(webhookConfigurations.id, id));
+      return webhook || undefined;
+    }
+
+    async listWebhookConfigurations(developerId: number): Promise<any[]> {
+      return await db.select().from(webhookConfigurations).where(eq(webhookConfigurations.developerId, developerId));
+    }
+
+    async updateWebhookConfiguration(id: number, updates: Partial<any>): Promise<any | undefined> {
+      const [webhook] = await db
+        .update(webhookConfigurations)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(webhookConfigurations.id, id))
+        .returning();
+      return webhook || undefined;
+    }
+
+    async deleteWebhookConfiguration(id: number): Promise<void> {
+      await db.delete(webhookConfigurations).where(eq(webhookConfigurations.id, id));
+    }
+
+    // Webhook Delivery methods
+    async createWebhookDelivery(delivery: { webhookId: number; eventType: string; payload: any; status?: string; statusCode?: number; responseBody?: string; attemptNumber?: number }): Promise<any> {
+      const [webhookDelivery] = await db
+        .insert(webhookDeliveries)
+        .values({
+          webhookId: delivery.webhookId,
+          eventType: delivery.eventType,
+          payload: delivery.payload,
+          status: delivery.status || 'pending',
+          statusCode: delivery.statusCode || null,
+          responseBody: delivery.responseBody || null,
+          attemptNumber: delivery.attemptNumber || 1,
+        })
+        .returning();
+      return webhookDelivery;
+    }
+
+    async getWebhookDelivery(id: number): Promise<any | undefined> {
+      const [delivery] = await db.select().from(webhookDeliveries).where(eq(webhookDeliveries.id, id));
+      return delivery || undefined;
+    }
+
+    async listWebhookDeliveries(webhookId: number, limit: number = 50): Promise<any[]> {
+      return await db
+        .select()
+        .from(webhookDeliveries)
+        .where(eq(webhookDeliveries.webhookId, webhookId))
+        .orderBy(desc(webhookDeliveries.createdAt))
+        .limit(limit);
+    }
+
+    async updateWebhookDelivery(id: number, updates: Partial<any>): Promise<any | undefined> {
+      const [delivery] = await db
+        .update(webhookDeliveries)
+        .set(updates)
+        .where(eq(webhookDeliveries.id, id))
+        .returning();
+      return delivery || undefined;
+    }
+
+    async getWebhookDeliveries(webhookId: number, limit: number = 50): Promise<any[]> {
+      return this.listWebhookDeliveries(webhookId, limit);
     }
 
   }

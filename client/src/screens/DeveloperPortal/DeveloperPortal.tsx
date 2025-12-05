@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import { X, Clock, Copy, Eye, Trash2, ChevronDown } from "lucide-react";
 import { HeaderDemo } from "../../components/HeaderDemo";
@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { WorkflowBuilder } from "./components/WorkflowBuilder";
+import { TemplateGallery } from "./components/TemplateGallery";
+import { ApiExplorer } from "./components/ApiExplorer";
+import { DeveloperAuth } from "./components/DeveloperAuth";
+import { WebhookManager } from "./components/WebhookManager";
+import { SDKManager } from "./components/SDKManager";
+import { EnhancedAnalytics } from "./components/EnhancedAnalytics";
+import { apiRequest } from "../../lib/queryClient";
 
 const scoreBreakdown = [
   { label: "Account Age:", points: "+25 points" },
@@ -80,6 +88,18 @@ const sidebarNavigationItems = [
     active: true,
   },
   {
+    id: "workflows",
+    label: "Workflows",
+    icon: "/fi-8750790.svg",
+    active: false,
+  },
+  {
+    id: "templates",
+    label: "Templates",
+    icon: "/fi-15489140.svg",
+    active: false,
+  },
+  {
     id: "api-keys",
     label: "API Keys",
     icon: "/fi-8750790.svg",
@@ -98,6 +118,12 @@ const sidebarNavigationItems = [
     active: false,
   },
   {
+    id: "api-explorer",
+    label: "API Explorer",
+    icon: "/fi-18896210.svg",
+    active: false,
+  },
+  {
     id: "api-sandbox",
     label: "API Sandbox",
     icon: "/fi-18896210.svg",
@@ -107,6 +133,18 @@ const sidebarNavigationItems = [
     id: "trust-simulator",
     label: "Trust Simulator",
     icon: "/fi-14895910.svg",
+    active: false,
+  },
+  {
+    id: "webhooks",
+    label: "Webhooks",
+    icon: "/fi-16601650.svg",
+    active: false,
+  },
+  {
+    id: "sdk",
+    label: "SDK",
+    icon: "/fi-16601650.svg",
     active: false,
   },
   {
@@ -334,10 +372,311 @@ export const DeveloperPortal = (): JSX.Element => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [newKeyName, setNewKeyName] = useState<string>("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [analyticsStats, setAnalyticsStats] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [trustScoreInputs, setTrustScoreInputs] = useState({
+    accountAge: "",
+    transactionHistory: "",
+    kycLevel: "",
+    disputeHistory: "",
+  });
+  const [trustScoreResult, setTrustScoreResult] = useState<any>(null);
+  const [apiSandboxEndpoint, setApiSandboxEndpoint] = useState<string>("");
+  const [apiSandboxRequest, setApiSandboxRequest] = useState<string>("");
+  const [apiSandboxResponse, setApiSandboxResponse] = useState<any>(null);
+  const [apiSandboxLoading, setApiSandboxLoading] = useState<boolean>(false);
+  const [hasDeveloperAccount, setHasDeveloperAccount] = useState<boolean | null>(null);
+  const [checkingAccount, setCheckingAccount] = useState<boolean>(true);
+  const [accountStatus, setAccountStatus] = useState<string | null>(null);
+
+  // Check developer account on mount
+  useEffect(() => {
+    checkDeveloperAccount();
+  }, []);
+
+  // Fetch API keys on mount and when tab changes
+  useEffect(() => {
+    if (activeNavItem === "api-keys" && hasDeveloperAccount) {
+      fetchApiKeys();
+    }
+  }, [activeNavItem, hasDeveloperAccount]);
+
+  const checkDeveloperAccount = async () => {
+    try {
+      setCheckingAccount(true);
+      const response = await apiRequest("GET", "/api/developer/account");
+      const account = await response.json();
+      if (account && (account.status === "approved" || account.status === "pending")) {
+        setHasDeveloperAccount(true);
+        setAccountStatus(account.status);
+      } else {
+        setHasDeveloperAccount(false);
+        setAccountStatus(null);
+      }
+    } catch (error) {
+      // Account doesn't exist
+      setHasDeveloperAccount(false);
+      setAccountStatus(null);
+    } finally {
+      setCheckingAccount(false);
+    }
+  };
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    if (activeNavItem === "dashboard") {
+      fetchDashboardStats();
+    }
+  }, [activeNavItem]);
+
+  // Fetch analytics stats
+  useEffect(() => {
+    if (activeNavItem === "analytics") {
+      fetchAnalyticsStats();
+    }
+  }, [activeNavItem]);
+
+  const fetchApiKeys = async () => {
+    try {
+      setLoading(true);
+      const response = await apiRequest("GET", "/api/developer/api-keys");
+      const data = await response.json();
+      setApiKeys(
+        data.map((key: any) => ({
+          id: key.id.toString(),
+          name: key.name,
+          key: key.keyPrefix ? `${key.keyPrefix}...` : "tvk_...",
+          createdAt: new Date(key.createdAt).toLocaleDateString("en-GB"),
+          lastUsed: key.lastUsed
+            ? new Date(key.lastUsed).toLocaleDateString("en-GB")
+            : "Never",
+          isVisible: false,
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching API keys:", error);
+      alert("Failed to load API keys. Please ensure the backend server is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createApiKey = async (name: string) => {
+    if (accountStatus === "pending") {
+      alert("Your developer account must be approved before you can create API keys. Please wait for approval or contact support.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await apiRequest("POST", "/api/developer/api-keys", {
+        name,
+        permissions: ["read", "write"],
+      });
+      const data = await response.json();
+      await fetchApiKeys();
+      return data;
+    } catch (error: any) {
+      console.error("Error creating API key:", error);
+      alert(error.message || "Failed to create API key. Please ensure the backend server is running.");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteApiKey = async (keyId: string) => {
+    try {
+      setLoading(true);
+      await apiRequest("DELETE", `/api/developer/api-keys/${keyId}`);
+      await fetchApiKeys();
+    } catch (error: any) {
+      console.error("Error deleting API key:", error);
+      alert(error.message || "Failed to delete API key. Please ensure the backend server is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await apiRequest("GET", "/api/developer/usage/stats");
+      const data = await response.json();
+      setDashboardStats(data);
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      // Silently fail for dashboard stats to not interrupt user experience
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAnalyticsStats = async () => {
+    try {
+      setLoading(true);
+      const [statsResponse, logsResponse] = await Promise.all([
+        apiRequest("GET", "/api/developer/usage/stats"),
+        apiRequest("GET", "/api/developer/usage/logs?limit=10"),
+      ]);
+      const stats = await statsResponse.json();
+      const logs = await logsResponse.json();
+      setAnalyticsStats({ stats, logs });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      // Silently fail for analytics to not interrupt user experience
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateTrustScore = () => {
+    const accountAge = parseInt(trustScoreInputs.accountAge) || 0;
+    const transactionHistory = parseInt(trustScoreInputs.transactionHistory) || 0;
+    const kycLevel = trustScoreInputs.kycLevel;
+    const disputeHistory = parseInt(trustScoreInputs.disputeHistory) || 0;
+
+    let score = 0;
+    const breakdown: any[] = [];
+
+    // Account Age (max 25 points)
+    const agePoints = Math.min(accountAge / 30, 1) * 25;
+    score += agePoints;
+    breakdown.push({ label: "Account Age:", points: `+${Math.round(agePoints)} points` });
+
+    // Transaction History (max 20 points)
+    const txPoints = Math.min(transactionHistory / 50, 1) * 20;
+    score += txPoints;
+    breakdown.push({ label: "Transaction History:", points: `+${Math.round(txPoints)} Points` });
+
+    // KYC Verification (max 30 points)
+    const kycPoints = kycLevel === "level3" ? 30 : kycLevel === "level2" ? 20 : kycLevel === "level1" ? 10 : 0;
+    score += kycPoints;
+    breakdown.push({ label: "KYC Verification:", points: `+${kycPoints} Points` });
+
+    // Clean Record (max 12 points, reduced by disputes)
+    const disputePenalty = Math.min(disputeHistory * 3, 12);
+    const cleanPoints = Math.max(12 - disputePenalty, 0);
+    score += cleanPoints;
+    breakdown.push({ label: "Clean Record:", points: `+${Math.round(cleanPoints)} Points` });
+
+    // Cap at 100
+    score = Math.min(Math.round(score), 100);
+
+    let level = "Low Trust";
+    let recommendations: string[] = [];
+
+    if (score >= 85) {
+      level = "Highly Trusted";
+      recommendations = [
+        "Allow high-value transactions",
+        "Minimal verification required",
+        "Suitable for premium features",
+      ];
+    } else if (score >= 70) {
+      level = "Trusted";
+      recommendations = [
+        "Standard verification required",
+        "Monitor for unusual activity",
+      ];
+    } else if (score >= 50) {
+      level = "Moderate Trust";
+      recommendations = [
+        "Additional verification recommended",
+        "Limit transaction amounts",
+      ];
+    } else {
+      level = "Low Trust";
+      recommendations = [
+        "Require enhanced verification",
+        "Restrict high-value transactions",
+        "Manual review recommended",
+      ];
+    }
+
+    setTrustScoreResult({
+      score,
+      level,
+      breakdown,
+      recommendations,
+    });
+  };
+
+  const testApiSandbox = async () => {
+    if (!apiSandboxEndpoint) {
+      alert("Please select an endpoint");
+      return;
+    }
+
+    try {
+      setApiSandboxLoading(true);
+      const endpoint = apiSandboxEndpoint.replace("{id}", "test_id");
+      const requestBody = apiSandboxRequest
+        ? JSON.parse(apiSandboxRequest)
+        : null;
+
+      const method = requestBody ? "POST" : "GET";
+      const response = await apiRequest(method, endpoint, requestBody || undefined);
+      const data = await response.json();
+      
+      setApiSandboxResponse({
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
+    } catch (error: any) {
+      setApiSandboxResponse({
+        status: "Error",
+        error: error.message || "Request failed. Please ensure the backend server is running.",
+      });
+    } finally {
+      setApiSandboxLoading(false);
+    }
+  };
+
+  // Show loading or auth screen
+  if (checkingAccount) {
+    return (
+      <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
+        <HeaderDemo />
+        <div className="flex items-center justify-center flex-1">
+          <div className="text-[#808080]">Checking developer account...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasDeveloperAccount) {
+    return (
+      <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
+        <HeaderDemo />
+        <DeveloperAuth onSuccess={() => {
+          setHasDeveloperAccount(true);
+          checkDeveloperAccount(); // Refresh to get account status
+        }} />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col">
       <HeaderDemo />
+      {/* Pending Account Banner */}
+      {accountStatus === "pending" && (
+        <div className="w-full bg-yellow-50 border-b border-yellow-200 px-4 md:px-8 py-3">
+          <div className="flex items-center gap-3 max-w-7xl mx-auto">
+            <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-yellow-800">
+                Your developer account is pending approval
+              </p>
+              <p className="text-xs text-yellow-700 mt-0.5">
+                Some features may be limited until your account is approved. You can still explore the portal and view documentation.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header Section with Title and Menu Button */}
       <section className="md:hidden flex flex-col items-start gap-2.5 w-full pb-4 md:px-8 md:py-6">
         <div className="flex items-center justify-start gap-2.5 md:justify-start w-full bg-white py-5 px-4 md:px-0">
@@ -694,8 +1033,15 @@ export const DeveloperPortal = (): JSX.Element => {
               </div>
 
               <Button
-                onClick={() => setShowCreateApiKeyModal(true)}
-                className="relative w-full sm:w-[223px] h-12 sm:h-14 rounded-[10px] overflow-hidden bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
+                onClick={() => {
+                  if (accountStatus === "pending") {
+                    alert("Your developer account must be approved before you can create API keys.");
+                    return;
+                  }
+                  setShowCreateApiKeyModal(true);
+                }}
+                disabled={accountStatus === "pending"}
+                className="relative w-full sm:w-[223px] h-12 sm:h-14 rounded-[10px] overflow-hidden bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <div className="relative w-[171px] h-6">
                   <div className="absolute top-[calc(50.00%_-_10px)] left-[calc(50.00%_-_52px)] w-[139px] h-[18px] flex items-center justify-center">
@@ -736,8 +1082,15 @@ export const DeveloperPortal = (): JSX.Element => {
                   </div>
 
                   <Button
-                    onClick={() => setShowCreateApiKeyModal(true)}
-                    className="relative w-full sm:w-[209px] h-12 bg-[#27ae60] rounded-[10px] overflow-hidden hover:bg-[#27ae60]/90"
+                    onClick={() => {
+                      if (accountStatus === "pending") {
+                        alert("Your developer account must be approved before you can create API keys.");
+                        return;
+                      }
+                      setShowCreateApiKeyModal(true);
+                    }}
+                    disabled={accountStatus === "pending"}
+                    className="relative w-full sm:w-[209px] h-12 bg-[#27ae60] rounded-[10px] overflow-hidden hover:bg-[#27ae60]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span className="flex items-center justify-center h-[18px] -ml-0.5 w-[157px] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-base text-center tracking-[-0.20px] leading-[18px] whitespace-nowrap">
                       Create Your First Key
@@ -781,12 +1134,10 @@ export const DeveloperPortal = (): JSX.Element => {
                                 variant="ghost"
                                 size="icon"
                                 className="w-8 h-8 md:w-9 md:h-9 p-0"
-                                onClick={() => {
-                                  setApiKeys(
-                                    apiKeys.filter(
-                                      (key) => key.id !== apiKey.id
-                                    )
-                                  );
+                                onClick={async () => {
+                                  if (confirm("Are you sure you want to delete this API key?")) {
+                                    await deleteApiKey(apiKey.id);
+                                  }
                                 }}
                               >
                                 <Trash2 className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" />
@@ -899,28 +1250,24 @@ export const DeveloperPortal = (): JSX.Element => {
                         Cancel
                       </Button>
                       <Button
-                        onClick={() => {
+                        onClick={async () => {
                           if (newKeyName.trim()) {
-                            const newKey: ApiKey = {
-                              id: Date.now().toString(),
-                              name: newKeyName.trim(),
-                              key: `tv_${Math.random()
-                                .toString(36)
-                                .substring(2, 15)}${Math.random()
-                                .toString(36)
-                                .substring(2, 15)}`,
-                              createdAt: new Date().toLocaleDateString("en-GB"),
-                              lastUsed: "Never",
-                              isVisible: false,
-                            };
-                            setApiKeys([...apiKeys, newKey]);
-                            setNewKeyName("");
-                            setShowCreateApiKeyModal(false);
+                            try {
+                              const result = await createApiKey(newKeyName.trim());
+                              setNewKeyName("");
+                              setShowCreateApiKeyModal(false);
+                              if (result && result.apiKey) {
+                                alert(`API Key created! Save this key: ${result.apiKey}\n\nThis is the only time you'll see it.`);
+                              }
+                            } catch (error) {
+                              // Error already handled in createApiKey
+                            }
                           }
                         }}
-                        className="w-full sm:w-auto sm:flex-1 h-12 md:h-14 bg-[#27ae60] rounded-lg hover:bg-[#229954] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm md:text-base tracking-[-0.20px]"
+                        disabled={loading || !newKeyName.trim()}
+                        className="w-full sm:w-auto sm:flex-1 h-12 md:h-14 bg-[#27ae60] rounded-lg hover:bg-[#229954] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm md:text-base tracking-[-0.20px] disabled:opacity-50"
                       >
-                        Create API Key
+                        {loading ? "Creating..." : "Create API Key"}
                       </Button>
                     </div>
                   </div>
@@ -931,6 +1278,13 @@ export const DeveloperPortal = (): JSX.Element => {
         )}
 
         {activeNavItem === "analytics" && (
+          <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
+            <EnhancedAnalytics />
+          </section>
+        )}
+
+        {/* Old analytics section - keeping for reference but replaced above */}
+        {false && activeNavItem === "analytics-old" && (
           <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
             <header className="flex flex-col items-start gap-2.5">
               <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl md:text-3xl lg:text-[40px] tracking-[0] leading-[normal]">
@@ -1146,15 +1500,33 @@ export const DeveloperPortal = (): JSX.Element => {
           </section>
         )}
 
+        {activeNavItem === "workflows" && (
+          <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
+            <WorkflowBuilder />
+          </section>
+        )}
+
+        {activeNavItem === "templates" && (
+          <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
+            <TemplateGallery />
+          </section>
+        )}
+
+        {activeNavItem === "api-explorer" && (
+          <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
+            <ApiExplorer />
+          </section>
+        )}
+
         {activeNavItem === "documentation" && (
           <main className="flex-0 p-4 md:p-6 lg:p-8 w-full">
             <div className="flex flex-col gap-[30px] max-w-[1546px]">
               <div className="flex flex-col gap-2.5">
                 <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl md:text-3xl lg:text-[40px] tracking-[0] leading-[normal]">
-                  Help Center
+                  API Documentation
                 </h2>
                 <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base lg:text-lg tracking-[0] leading-6 md:leading-8">
-                  Track your API usage and performance metrics
+                  Comprehensive API reference and integration guides
                 </p>
               </div>
 
@@ -1234,7 +1606,12 @@ const trustverify = new TrustVerify({
                         {apiEndpoints.map((item, index) => (
                           <div
                             key={index}
-                            className="w-full bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] p-5 cursor-pointer hover:border-[#003d2b] transition-colors"
+                            onClick={() => setApiSandboxEndpoint(item.endpoint)}
+                            className={`w-full bg-[#fcfcfc] rounded-[10px] border border-solid p-5 cursor-pointer transition-colors ${
+                              apiSandboxEndpoint === item.endpoint
+                                ? "border-[#27ae60] bg-[#27ae6010]"
+                                : "border-[#e4e4e4] hover:border-[#003d2b]"
+                            }`}
                           >
                             <div className="inline-flex items-center gap-2.5">
                               <Badge
@@ -1264,24 +1641,27 @@ const trustverify = new TrustVerify({
                       </h2>
 
                       <div className="flex flex-col items-start gap-4 w-full">
-                        <div className="w-full bg-[#121728] rounded-[10px] px-[23px] py-6">
-                          <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#27ae60] text-base tracking-[0] leading-6 whitespace-pre-wrap">
-                            {`{
-      "transactionId": "txn_test_123",
-      "userAgent": "Mozilla/5.0...",
-      "ipAddress": "192.168.1.1",
-      "amount": 299.99,
-      "currency": "USD",
-      "deviceFingerprint": "test_device_123"
-    }`}
-                          </pre>
+                        <div className="w-full">
+                          <Label className="mb-2 block [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                            Request Body (JSON)
+                          </Label>
+                          <textarea
+                            value={apiSandboxRequest}
+                            onChange={(e) => setApiSandboxRequest(e.target.value)}
+                            placeholder={`{\n  "transactionId": "txn_test_123",\n  "userAgent": "Mozilla/5.0...",\n  "ipAddress": "192.168.1.1",\n  "amount": 299.99,\n  "currency": "USD",\n  "deviceFingerprint": "test_device_123"\n}`}
+                            className="w-full bg-[#121728] rounded-[10px] px-[23px] py-6 [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#27ae60] text-base tracking-[0] leading-6 whitespace-pre-wrap min-h-[200px] resize-y"
+                          />
                         </div>
 
-                        <Button className="w-full bg-neutral-900 hover:bg-neutral-800 rounded-md shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_2px_#0000000d] h-auto py-2.5">
+                        <Button
+                          onClick={testApiSandbox}
+                          disabled={apiSandboxLoading || !apiSandboxEndpoint}
+                          className="w-full bg-neutral-900 hover:bg-neutral-800 rounded-md shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_2px_#0000000d] h-auto py-2.5 disabled:opacity-50"
+                        >
                           <div className="inline-flex items-center gap-2.5">
                             <PlayIcon className="w-[15px] h-[15px]" />
                             <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-neutral-50 text-sm tracking-[0] leading-5">
-                              Test API Call
+                              {apiSandboxLoading ? "Testing..." : "Test API Call"}
                             </span>
                           </div>
                         </Button>
@@ -1300,25 +1680,22 @@ const trustverify = new TrustVerify({
 
                     <div className="w-full bg-[#121728] rounded-[10px] px-[23px] py-6">
                       <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-base tracking-[0] leading-6 whitespace-pre-wrap">
-                        <span className="text-white">{"{\n"}</span>
-                        <span className="text-[#27ae60]">
-                          {`  "riskScore": 23,
-      "riskLevel": "low",
-      "fraudProbability": 0.08,
-      "recommendations": [
-    `}
-                        </span>
-                        <span className="text-[#edc23f]">
-                          {`    "Allow transaction",
-        "No additional verification required"
-    `}
-                        </span>
-                        <span className="text-[#27ae60]">
-                          {`  ],
-      "timestamp": "2025-07-01T19:16:00Z"
-    `}
-                        </span>
-                        <span className="text-white">{"}"}</span>
+                        {apiSandboxResponse ? (
+                          <>
+                            <span className="text-white">{"{\n"}</span>
+                            <span className="text-[#27ae60]">
+                              {`  "status": ${apiSandboxResponse.status},\n`}
+                              {apiSandboxResponse.statusText && `  "statusText": "${apiSandboxResponse.statusText}",\n`}
+                              {`  "data": `}
+                            </span>
+                            <span className="text-white">
+                              {JSON.stringify(apiSandboxResponse.data || apiSandboxResponse.error, null, 2)}
+                            </span>
+                            <span className="text-white">{"\n}"}</span>
+                          </>
+                        ) : (
+                          <span className="text-[#808080]">Select an endpoint and click "Test API Call" to see response</span>
+                        )}
                       </pre>
                     </div>
                   </div>
@@ -1356,6 +1733,14 @@ const trustverify = new TrustVerify({
                               Account Age (Days)
                             </Label>
                             <Input
+                              type="number"
+                              value={trustScoreInputs.accountAge}
+                              onChange={(e) =>
+                                setTrustScoreInputs({
+                                  ...trustScoreInputs,
+                                  accountAge: e.target.value,
+                                })
+                              }
                               placeholder="Enter Account Age"
                               className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
                             />
@@ -1366,6 +1751,14 @@ const trustverify = new TrustVerify({
                               Transaction History
                             </Label>
                             <Input
+                              type="number"
+                              value={trustScoreInputs.transactionHistory}
+                              onChange={(e) =>
+                                setTrustScoreInputs({
+                                  ...trustScoreInputs,
+                                  transactionHistory: e.target.value,
+                                })
+                              }
                               placeholder="Enter Transaction History"
                               className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
                             />
@@ -1377,7 +1770,15 @@ const trustverify = new TrustVerify({
                             <Label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm md:text-base tracking-[0] leading-6">
                               KYC Verfication Level
                             </Label>
-                            <Select>
+                            <Select
+                              value={trustScoreInputs.kycLevel}
+                              onValueChange={(value) =>
+                                setTrustScoreInputs({
+                                  ...trustScoreInputs,
+                                  kycLevel: value,
+                                })
+                              }
+                            >
                               <SelectTrigger className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base w-full">
                                 <SelectValue placeholder="Select Level" />
                               </SelectTrigger>
@@ -1394,6 +1795,14 @@ const trustverify = new TrustVerify({
                               Dispute History
                             </Label>
                             <Input
+                              type="number"
+                              value={trustScoreInputs.disputeHistory}
+                              onChange={(e) =>
+                                setTrustScoreInputs({
+                                  ...trustScoreInputs,
+                                  disputeHistory: e.target.value,
+                                })
+                              }
                               placeholder="Enter Dispute History"
                               className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base w-full"
                             />
@@ -1402,7 +1811,10 @@ const trustverify = new TrustVerify({
                       </div>
                     </div>
 
-                    <Button className="w-full h-[51px] bg-app-secondary hover:bg-app-secondary/90 rounded-[10px] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-base">
+                    <Button
+                      onClick={calculateTrustScore}
+                      className="w-full h-[51px] bg-app-secondary hover:bg-app-secondary/90 rounded-[10px] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-base"
+                    >
                       <CalculatorIcon className="w-5 h-5 mr-[5px]" />
                       Calculate Test Score
                     </Button>
@@ -1420,17 +1832,17 @@ const trustverify = new TrustVerify({
                     <div className="flex flex-col items-center gap-4 md:gap-6 w-full">
                       <div className="flex flex-col items-center gap-[5px]">
                         <div className="bg-[linear-gradient(90deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent] [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-transparent text-4xl md:text-5xl lg:text-[64px] text-center tracking-[0] leading-[normal]">
-                          87
+                          {trustScoreResult?.score ?? "—"}
                         </div>
                         <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base md:text-lg tracking-[0] leading-[normal]">
-                          Highly Trusted
+                          {trustScoreResult?.level ?? "Enter data to calculate"}
                         </div>
                       </div>
 
                       <div className="flex flex-col items-start gap-4 w-full">
                         <div className="flex flex-col items-start gap-5 w-full">
                           <div className="flex flex-col items-start gap-1.5 w-full">
-                            {scoreBreakdown.map((item, index) => (
+                            {trustScoreResult?.breakdown?.map((item: any, index: number) => (
                               <div
                                 key={index}
                                 className="flex items-center justify-between w-full"
@@ -1442,7 +1854,11 @@ const trustverify = new TrustVerify({
                                   {item.points}
                                 </div>
                               </div>
-                            ))}
+                            )) ?? (
+                              <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                                Enter data and calculate to see breakdown
+                              </div>
+                            )}
                           </div>
 
                           <Separator className="w-full" />
@@ -1453,12 +1869,14 @@ const trustverify = new TrustVerify({
                             Recommendations
                           </h3>
                           <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base tracking-[0] leading-6">
-                            {recommendations.map((rec, index) => (
+                            {trustScoreResult?.recommendations?.map((rec: string, index: number) => (
                               <React.Fragment key={index}>
                                 {rec}
-                                {index < recommendations.length - 1 && <br />}
+                                {index < trustScoreResult.recommendations.length - 1 && <br />}
                               </React.Fragment>
-                            ))}
+                            )) ?? (
+                              <span className="text-sm">Enter data and calculate to see recommendations</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1467,6 +1885,18 @@ const trustverify = new TrustVerify({
                 </CardContent>
               </Card>
             </div>
+          </section>
+        )}
+
+        {activeNavItem === "webhooks" && (
+          <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
+            <WebhookManager />
+          </section>
+        )}
+
+        {activeNavItem === "sdk" && (
+          <section className="flex flex-col items-start gap-[30px] w-full p-4 md:p-6 lg:p-8">
+            <SDKManager />
           </section>
         )}
 

@@ -972,6 +972,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const account = await storage.createDeveloperAccount({
         ...validatedData,
         userId: req.user.id,
+        status: 'approved', // Auto-approve developer accounts
+        approvedAt: new Date(), // Set approval timestamp
       });
       res.status(201).json(account);
     } catch (error: any) {
@@ -989,6 +991,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(account);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch developer account" });
+    }
+  });
+
+  // Admin endpoint to update developer account status
+  app.patch("/api/admin/developer-accounts/:id/status", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const accountId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!status || !['pending', 'approved', 'suspended'].includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be 'pending', 'approved', or 'suspended'" });
+      }
+
+      const account = await storage.updateDeveloperAccountStatus(
+        accountId,
+        status,
+        req.user.id // approvedBy
+      );
+
+      if (!account) {
+        return res.status(404).json({ error: "Developer account not found" });
+      }
+
+      res.json(account);
+    } catch (error: any) {
+      console.error('Error updating developer account status:', error);
+      res.status(500).json({ error: "Failed to update developer account status" });
+    }
+  });
+
+  // Admin endpoint to list all developer accounts
+  app.get("/api/admin/developer-accounts", requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      // Get all developer accounts (you may need to add a method to storage for this)
+      // For now, this is a placeholder - you might need to query the database directly
+      res.json({ message: "List all developer accounts endpoint - implementation needed" });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch developer accounts" });
     }
   });
 
