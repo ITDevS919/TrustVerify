@@ -1,11 +1,14 @@
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
-import { CheckCircle2Icon, XCircleIcon, StarIcon, Globe } from "lucide-react";
+import { CheckCircle2Icon, XCircleIcon, StarIcon, Globe, Loader2 } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "../../lib/utils";
+import { apiRequest } from "../../lib/queryClient";
+import { useAuth } from "../../hooks/use-auth";
+import { useToast } from "../../hooks/use-toast";
 import {
   Accordion,
   AccordionContent,
@@ -537,9 +540,109 @@ const faqItems = [
 ];
 
 export const PricingDetail = (): JSX.Element => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [isMonthly, setIsMonthly] = useState(true);
   const [planType, setPlanType] = useState<'consumer' | 'business' | 'education'>('business');
   const [selectedLocale, setSelectedLocale] = useState<string>(getBrowserLocale());
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+
+  // Fetch current subscription if user is logged in
+  useEffect(() => {
+    if (user) {
+      fetchCurrentSubscription();
+    }
+  }, [user]);
+
+  const fetchCurrentSubscription = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/subscriptions/current");
+      const data = await response.json();
+      setCurrentSubscription(data);
+    } catch (error) {
+      // No subscription found - that's okay
+    }
+  };
+
+  const handleSubscribe = async (planName: string) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to subscribe to a plan",
+        variant: "destructive",
+      });
+      window.location.href = "/login";
+      return;
+    }
+
+    // First, try to fetch plans from API to get the correct mapping
+    try {
+      const response = await apiRequest("GET", "/api/subscriptions/plans");
+      const plans = await response.json();
+      
+      // Map pricing page plan names to subscription plan names/IDs
+      // Pricing page uses different names, so we need to map them
+      const planNameMapping: Record<string, string> = {
+        "Essential": "free", // Consumer Essential -> Free
+        "Plus": "basic", // Consumer Plus -> Basic
+        "Elite": "pro", // Consumer Elite -> Pro
+        "Micro": "free", // Business Micro -> Free
+        "Growth": "basic", // Business Growth -> Basic
+        "Professional": "pro", // Business Professional -> Pro
+        "Enterprise": "enterprise", // Business Enterprise -> Enterprise
+      };
+
+      const targetPlanName = planNameMapping[planName];
+      const plan = plans.find((p: any) => p.name === targetPlanName);
+      
+      if (!plan) {
+        toast({
+          title: "Error",
+          description: "Plan not found. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const planId = plan.id;
+
+      setProcessingPlan(planName);
+      try {
+        const successUrl = `${window.location.origin}/subscription/success`;
+        const cancelUrl = `${window.location.origin}/subscription/cancel`;
+
+        const response = await apiRequest("POST", "/api/subscriptions/checkout", {
+          planId,
+          successUrl,
+          cancelUrl,
+        });
+
+        const data = await response.json();
+        
+        // Redirect to Stripe Checkout
+        if (data.url) {
+          window.location.href = data.url;
+        }
+      } catch (error: any) {
+        console.error("Error creating checkout session:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create checkout session",
+          variant: "destructive",
+        });
+        setProcessingPlan(null);
+      }
+    } catch (error: any) {
+      console.error("Error fetching plans:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load subscription plans",
+        variant: "destructive",
+      });
+      setProcessingPlan(null);
+    }
+  };
 
   const basePlans = planType === 'consumer' ? consumerPlans : planType === 'business' ? businessPlans : educationPlans;
   const addOns = planType === 'consumer' ? consumerAddOns : planType === 'business' ? businessAddOns : educationAddOns;
@@ -690,6 +793,18 @@ export const PricingDetail = (): JSX.Element => {
                 </div>
               </div>
             </div>
+            {/* Manage Subscription Link */}
+            {user && currentSubscription && (
+              <div className="flex items-center justify-center w-full mb-4">
+                <Button
+                  variant="outline"
+                  onClick={() => (window.location.href = "/subscription/manage")}
+                  className="[font-family:'DM_Sans_18pt-Medium',Helvetica]"
+                >
+                  Manage My Subscription
+                </Button>
+              </div>
+            )}
             <div className="relative mx-auto w-[200px] h-[40px]">
               <div className="relative w-full h-full flex items-center justify-between bg-transparent border border-solid border-[#e4e4e4] rounded-[12px] p-2">
                 {/* Background slider */}
@@ -774,6 +889,20 @@ export const PricingDetail = (): JSX.Element => {
                       </span>
                     </div>
                   )}
+                  {user && currentSubscription && (
+                    (currentSubscription.plan?.displayName === plan.name) ||
+                    (plan.name === "Essential" && currentSubscription.plan?.name === "free") ||
+                    (plan.name === "Plus" && currentSubscription.plan?.name === "basic") ||
+                    (plan.name === "Elite" && currentSubscription.plan?.name === "pro") ||
+                    (plan.name === "Micro" && currentSubscription.plan?.name === "free") ||
+                    (plan.name === "Growth" && currentSubscription.plan?.name === "basic") ||
+                    (plan.name === "Professional" && currentSubscription.plan?.name === "pro") ||
+                    (plan.name === "Enterprise" && currentSubscription.plan?.name === "enterprise")
+                  ) && (
+                    <div className="absolute top-4 right-4 z-20">
+                      <Badge className="bg-blue-500 text-white">Current Plan</Badge>
+                    </div>
+                  )}
 
                   <CardContent className="p-[31px] flex flex-col gap-[30px]">
                     <div className="flex flex-col gap-[13px]">
@@ -839,14 +968,26 @@ export const PricingDetail = (): JSX.Element => {
                           : "bg-app-secondary hover:bg-app-secondary/90 text-white"
                       )}
                       onClick={() => {
-                        if (plan.cta === "Contact Sales") {
-                          window.location.href = '/auth?mode=contact';
+                        if (plan.cta === "Contact Sales" || plan.name === "Enterprise") {
+                          window.location.href = '/contact';
+                        } else if (plan.cta.includes("Start") || plan.cta.includes("Choose") || plan.cta.includes("Get")) {
+                          handleSubscribe(plan.name);
                         } else {
-                          window.location.href = '/auth';
+                          window.location.href = '/login';
                         }
                       }}
+                      disabled={processingPlan === plan.name}
                     >
-                      {plan.cta}
+                      {processingPlan === plan.name ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : currentSubscription?.plan?.displayName === plan.name ? (
+                        "Current Plan"
+                      ) : (
+                        plan.cta
+                      )}
                     </Button>
 
                     <div className="w-full h-px bg-[#e4e4e4]"></div>

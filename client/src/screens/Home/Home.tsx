@@ -64,7 +64,7 @@ export const Home = (): JSX.Element => {
         <DivSubsection />
         <BackgroundWrapperSubsection />
         <FormSubsection />
-        <SectionComponentNodeSubsection />
+        {/* <SectionComponentNodeSubsection /> */}
         <Footer />
       </main>
     </>

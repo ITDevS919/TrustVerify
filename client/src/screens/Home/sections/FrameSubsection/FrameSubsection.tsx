@@ -51,12 +51,11 @@ export const FrameSubsection = (): JSX.Element => {
         </div>
       </div>
 
-      <div className="w-full max-w-[1326px] h-[37px] overflow-hidden">
+      {/* <div className="w-full max-w-[1326px] h-[37px] overflow-hidden">
         <div 
           className="inline-flex items-end gap-[118px] animation-marquee-custom"
           style={{ '--gap': '118px' } as React.CSSProperties}
         >
-          {/* First set of logos */}
           {logoItems.map((logo, index) => (
             <div
               key={`logo-${index}`}
@@ -69,7 +68,6 @@ export const FrameSubsection = (): JSX.Element => {
               />
             </div>
           ))}
-          {/* Duplicate set for seamless loop */}
           {logoItems.map((logo, index) => (
             <div
               key={`logo-duplicate-${index}`}
@@ -83,7 +81,7 @@ export const FrameSubsection = (): JSX.Element => {
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </section>
   );
 };

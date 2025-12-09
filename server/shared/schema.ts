@@ -682,10 +682,103 @@ export const insuranceClaims = pgTable("insurance_claims", {
   paidAt: timestamp("paid_at"),
 });
 
+// Subscription Plans table
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Free, Basic, Pro, Enterprise
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(), // Monthly price
+  currency: text("currency").default("USD"),
+  interval: text("interval").notNull(), // month, year
+  stripePriceId: text("stripe_price_id").unique(), // Stripe Price ID
+  stripeProductId: text("stripe_product_id"), // Stripe Product ID
+  features: jsonb("features").default("[]"), // Array of feature strings
+  limits: jsonb("limits").default("{}"), // Usage limits (e.g., { apiCalls: 10000, workflows: 5 })
+  isActive: boolean("is_active").default(true),
+  isPublic: boolean("is_public").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Subscriptions table
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  planId: integer("plan_id").references(() => subscriptionPlans.id).notNull(),
+  status: text("status").notNull().default("active"), // active, canceled, past_due, unpaid, trialing
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeCustomerId: text("stripe_customer_id"), // Stripe Customer ID
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  canceledAt: timestamp("canceled_at"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  quantity: integer("quantity").default(1), // For multi-seat subscriptions
+  metadata: jsonb("metadata").default("{}"), // Additional metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription Invoices table
+export const subscriptionInvoices = pgTable("subscription_invoices", {
+  id: serial("id").primaryKey(),
+  subscriptionId: integer("subscription_id").references(() => userSubscriptions.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  stripeInvoiceId: text("stripe_invoice_id").unique(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("USD"),
+  status: text("status").notNull().default("draft"), // draft, open, paid, void, uncollectible
+  hostedInvoiceUrl: text("hosted_invoice_url"),
+  invoicePdf: text("invoice_pdf"),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription Usage Tracking table
+export const subscriptionUsage = pgTable("subscription_usage", {
+  id: serial("id").primaryKey(),
+  subscriptionId: integer("subscription_id").references(() => userSubscriptions.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  metric: text("metric").notNull(), // api_calls, workflows, webhooks, etc.
+  quantity: integer("quantity").default(0),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription schemas
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).pick({
+  name: true,
+  displayName: true,
+  description: true,
+  price: true,
+  currency: true,
+  interval: true,
+  stripePriceId: true,
+  stripeProductId: true,
+  features: true,
+  limits: true,
+  isActive: true,
+  isPublic: true,
+  sortOrder: true,
+});
+
 // Types
 export type SecurityIncident = typeof securityIncidents.$inferSelect;
 export type IPBlacklist = typeof ipBlacklist.$inferSelect;
 export type InsuranceCoverage = typeof insuranceCoverage.$inferSelect;
 export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 export type DisputeEvidence = typeof disputeEvidence.$inferSelect;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
+export type SubscriptionInvoice = typeof subscriptionInvoices.$inferSelect;
+export type SubscriptionUsage = typeof subscriptionUsage.$inferSelect;
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
 

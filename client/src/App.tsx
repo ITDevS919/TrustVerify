@@ -39,6 +39,7 @@ import { LiveDemo } from "./screens/LiveDemo";
 import { NewTransaction } from "./screens/Transactions/NewTransaction";
 import { AdminReview } from "./screens/AdminReview/AdminReview";
 import { AdminDashboard } from "./screens/AdminDashboard";
+import { SubscriptionManagement, SubscriptionSuccess, SubscriptionCancel } from "./screens/Subscriptions";
 import ZendeskChat from "./components/ChatBot/ZendeskChat";
 
 
@@ -62,6 +63,9 @@ function App() {
               <Route path="/platform" element={<PlatformSuite />} />
               <Route path="/media" element={<PressMedia />} />
               <Route path="/pricing" element={<PricingDetail />} />
+              <Route path="/subscription/manage" element={<SubscriptionManagement />} />
+              <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+              <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
               <Route path="/policies" element={<PrivacyPolicy />} />
               <Route path="/compliances" element={<RegulatoryCompliances />} />
               <Route path="/terms" element={<TermsOfServices />} />

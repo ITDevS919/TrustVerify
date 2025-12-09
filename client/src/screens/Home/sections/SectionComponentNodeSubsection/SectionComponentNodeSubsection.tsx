@@ -73,7 +73,7 @@ const reviewPlatforms = [
 
 export const SectionComponentNodeSubsection = (): JSX.Element => {
   return (
-    <section className="relative w-full pt-[120px] pb-[100px]">
+    <section className="relative w-full pb-[100px]">
       <div className="w-full grid grid-cols-1 xl:grid-cols-3 gap-[60px] max-w-[1290px] px-6 md:px-10 mx-auto">
         <div className="hidden xl:block relative h-[670px] overflow-hidden">
           <div className="flex flex-col items-center gap-8 absolute top-[-663px] left-[15px]">

@@ -13,6 +13,7 @@ import crypto from 'crypto';
 import { validateQuery, paginationSchema } from "./middleware/validation";
 import developerRoutes from "./routes/developer";
 import supportRoutes from "./routes/support";
+import subscriptionRoutes from "./routes/subscriptions";
 import { validateApiKey, logApiUsage } from "./middleware/apiAuth";
 import multer from "multer";
 import path from "path";
@@ -920,6 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Developer Portal routes
   app.use("/api/developer", developerRoutes);
+  app.use("/api/subscriptions", subscriptionRoutes);
 
   // Support routes (chat, tickets)
   app.use("/api/support", supportRoutes);

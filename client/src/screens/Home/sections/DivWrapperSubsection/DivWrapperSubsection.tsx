@@ -103,19 +103,6 @@ export const DivWrapperSubsection = (): JSX.Element => {
                   src="/subsection-image4.png"
                 />            
             </div>
-
-            <Card className="absolute left-0 bottom-[45px] w-[44.35%] h-[90px] bg-white rounded-[5px] border-l-2 border-[#1e357e] shadow-[0px_2px_14px_#00000024]">
-              <CardContent className="flex items-center gap-[14px] sm:gap-[22.2px] p-0 h-full">
-                <div className="ml-[12px] sm:ml-[17px] [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#1e357e] text-[30px] sm:text-[46px] tracking-[-0.92px] leading-[normal] whitespace-nowrap">
-                  19+
-                </div>
-                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-[10px] sm:text-base tracking-[0] leading-5 sm:leading-[27.2px]">
-                  Years of experience
-                  <br />
-                  in Industry
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
 

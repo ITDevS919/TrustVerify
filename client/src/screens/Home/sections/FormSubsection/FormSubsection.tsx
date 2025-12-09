@@ -3,7 +3,7 @@ import { Card, CardContent } from "../../../../components/ui/card";
 
 export const FormSubsection = (): JSX.Element => {
   return (
-    <div className="z-10 px-6 md:px-10">
+    <div className="z-10 px-6 md:px-10 pb-[120px]">
     <Card className="w-full bg-app-primary rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-[20px] shadow-[0px_4px_10px_#003d2b1a] border-0 max-w-[1370px] mx-auto mt-24">
       <CardContent className="flex items-center gap-0 sm:gap-4 md:gap-9 lg:gap-14 py-4 sm:py-5 md:py-6 lg:py-7 px-5 sm:px-7 md:px-10 lg:px-14">
         <div className="flex w-full mt-0 sm:mt-2 md:mt-4 lg:mt-7 flex-col items-start gap-2 sm:gap-4 md:gap-6 lg:gap-8">

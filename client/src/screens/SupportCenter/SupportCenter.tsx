@@ -339,9 +339,9 @@ export const SupportCenter = (): JSX.Element => {
                                     For critical security incidents or urgent fraud reports:
                                     <br />
                                     <br />
-                                    emergency@trustverify.com
+                                    emergency@trustverify.co.uk
                                     <br />
-                                    +44 20 7123 4567 (24/7)
+                                    0204542733 (24/7)
                                 </p>
                             </CardContent>
                         </Card>

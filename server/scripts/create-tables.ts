@@ -1,6 +1,6 @@
 /**
  * Create Database Tables
- * Creates the workflow and webhook tables if they don't exist
+ * Creates the workflow, webhook, and subscription tables if they don't exist
  */
 
 import { neon } from '@neondatabase/serverless';
@@ -132,6 +132,114 @@ async function createTables() {
       ON webhook_deliveries(webhook_id);
     `;
     console.log('✓ Created index on webhook_deliveries.webhook_id');
+
+    // Create subscription_plans table
+    await sql`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        currency TEXT DEFAULT 'USD',
+        interval TEXT NOT NULL,
+        stripe_price_id TEXT UNIQUE,
+        stripe_product_id TEXT,
+        features JSONB DEFAULT '[]',
+        limits JSONB DEFAULT '{}',
+        is_active BOOLEAN DEFAULT true,
+        is_public BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log('✓ Created subscription_plans table');
+
+    // Create user_subscriptions table
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        plan_id INTEGER NOT NULL REFERENCES subscription_plans(id),
+        status TEXT NOT NULL DEFAULT 'active',
+        stripe_subscription_id TEXT UNIQUE,
+        stripe_customer_id TEXT,
+        current_period_start TIMESTAMP NOT NULL,
+        current_period_end TIMESTAMP NOT NULL,
+        cancel_at_period_end BOOLEAN DEFAULT false,
+        canceled_at TIMESTAMP,
+        trial_start TIMESTAMP,
+        trial_end TIMESTAMP,
+        quantity INTEGER DEFAULT 1,
+        metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log('✓ Created user_subscriptions table');
+
+    // Create subscription_invoices table
+    await sql`
+      CREATE TABLE IF NOT EXISTS subscription_invoices (
+        id SERIAL PRIMARY KEY,
+        subscription_id INTEGER NOT NULL REFERENCES user_subscriptions(id),
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        stripe_invoice_id TEXT UNIQUE,
+        amount DECIMAL(10, 2) NOT NULL,
+        currency TEXT DEFAULT 'USD',
+        status TEXT NOT NULL DEFAULT 'draft',
+        hosted_invoice_url TEXT,
+        invoice_pdf TEXT,
+        period_start TIMESTAMP,
+        period_end TIMESTAMP,
+        paid_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log('✓ Created subscription_invoices table');
+
+    // Create subscription_usage table
+    await sql`
+      CREATE TABLE IF NOT EXISTS subscription_usage (
+        id SERIAL PRIMARY KEY,
+        subscription_id INTEGER NOT NULL REFERENCES user_subscriptions(id),
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        metric TEXT NOT NULL,
+        quantity INTEGER DEFAULT 0,
+        period_start TIMESTAMP NOT NULL,
+        period_end TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log('✓ Created subscription_usage table');
+
+    // Create indexes for subscription tables
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id 
+      ON user_subscriptions(user_id);
+    `;
+    console.log('✓ Created index on user_subscriptions.user_id');
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_subscriptions_stripe_id 
+      ON user_subscriptions(stripe_subscription_id);
+    `;
+    console.log('✓ Created index on user_subscriptions.stripe_subscription_id');
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_subscription_invoices_user_id 
+      ON subscription_invoices(user_id);
+    `;
+    console.log('✓ Created index on subscription_invoices.user_id');
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_subscription_usage_subscription_id 
+      ON subscription_usage(subscription_id);
+    `;
+    console.log('✓ Created index on subscription_usage.subscription_id');
 
     console.log('\n✅ All tables created successfully!');
   } catch (error: any) {

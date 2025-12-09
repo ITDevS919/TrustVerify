@@ -13,6 +13,10 @@ import {
     industryTemplates,
     webhookConfigurations,
     webhookDeliveries,
+    subscriptionPlans,
+    userSubscriptions,
+    subscriptionInvoices,
+    subscriptionUsage,
     type User, 
     type InsertUser,
     type KycVerification,
@@ -30,7 +34,12 @@ import {
     type ApiKey,
     type ApiUsageLog,
     type InsertApiUsageLog,
-    type PasswordReset
+    type PasswordReset,
+    type SubscriptionPlan,
+    type UserSubscription,
+    type SubscriptionInvoice,
+    type SubscriptionUsage,
+    type InsertSubscriptionPlan
   } from "./shared/schema";
   import { db } from "./db.ts";
   import { eq, and, or, ilike, gte, lte, desc, count, avg, sql } from "drizzle-orm";
@@ -129,12 +138,39 @@ import {
     // Webhook Delivery methods
     createWebhookDelivery(delivery: { webhookId: number; eventType: string; payload: any; status?: string; statusCode?: number; responseBody?: string; attemptNumber?: number }): Promise<any>;
     listWebhookDeliveries(webhookId: number, limit?: number): Promise<any[]>;
-  
+
+    // Subscription Plan methods
+    createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan>;
+    getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined>;
+    getSubscriptionPlanByStripePriceId(stripePriceId: string): Promise<SubscriptionPlan | undefined>;
+    listSubscriptionPlans(filters?: { isActive?: boolean; isPublic?: boolean }): Promise<SubscriptionPlan[]>;
+
+    // User Subscription methods
+    createUserSubscription(subscription: { userId: number; planId: number; status: string; stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodStart: Date; currentPeriodEnd: Date; trialStart?: Date; trialEnd?: Date; quantity?: number; metadata?: any }): Promise<UserSubscription>;
+    getUserSubscription(id: number): Promise<UserSubscription | undefined>;
+    getUserSubscriptionByUserId(userId: number): Promise<UserSubscription | undefined>;
+    getUserSubscriptionByStripeId(stripeSubscriptionId: string): Promise<UserSubscription | undefined>;
+    updateUserSubscription(id: number, updates: Partial<UserSubscription>): Promise<UserSubscription | undefined>;
+    cancelUserSubscription(id: number, canceledAt: Date): Promise<UserSubscription | undefined>;
+
+    // Subscription Invoice methods
+    createSubscriptionInvoice(invoice: { subscriptionId: number; userId: number; stripeInvoiceId?: string; amount: string; currency?: string; status?: string; hostedInvoiceUrl?: string; invoicePdf?: string; periodStart?: Date; periodEnd?: Date; paidAt?: Date }): Promise<SubscriptionInvoice>;
+    getSubscriptionInvoice(id: number): Promise<SubscriptionInvoice | undefined>;
+    getSubscriptionInvoiceByStripeId(stripeInvoiceId: string): Promise<SubscriptionInvoice | undefined>;
+    listSubscriptionInvoices(userId: number, limit?: number): Promise<SubscriptionInvoice[]>;
+    updateSubscriptionInvoice(id: number, updates: Partial<SubscriptionInvoice>): Promise<SubscriptionInvoice | undefined>;
+
+    // Subscription Usage methods
+    createSubscriptionUsage(usage: { subscriptionId: number; userId: number; metric: string; quantity: number; periodStart: Date; periodEnd: Date }): Promise<SubscriptionUsage>;
+    getSubscriptionUsage(subscriptionId: number, metric: string, periodStart: Date, periodEnd: Date): Promise<SubscriptionUsage | undefined>;
+    incrementSubscriptionUsage(subscriptionId: number, metric: string, quantity: number, periodStart: Date, periodEnd: Date): Promise<SubscriptionUsage>;
+    listSubscriptionUsage(subscriptionId: number, periodStart?: Date, periodEnd?: Date): Promise<SubscriptionUsage[]>;
+
     // Admin stats methods
     getUserCount(): Promise<number>;
     getActiveTransactionCount(): Promise<number>;
     getPendingKycCount(): Promise<number>;
-  
+
     // Session store
     sessionStore: session.Store;
   }
@@ -874,6 +910,86 @@ import {
     async getWebhookDeliveries(_webhookId: number, _limit?: number): Promise<any[]> {
       return [];
     }
+
+    // Subscription Plan methods (MemStorage - not supported)
+    async createSubscriptionPlan(_plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+      throw new Error("Subscription plans not supported in MemStorage");
+    }
+
+    async getSubscriptionPlan(_id: number): Promise<SubscriptionPlan | undefined> {
+      return undefined;
+    }
+
+    async getSubscriptionPlanByStripePriceId(_stripePriceId: string): Promise<SubscriptionPlan | undefined> {
+      return undefined;
+    }
+
+    async listSubscriptionPlans(_filters?: { isActive?: boolean; isPublic?: boolean }): Promise<SubscriptionPlan[]> {
+      return [];
+    }
+
+    // User Subscription methods (MemStorage - not supported)
+    async createUserSubscription(_subscription: { userId: number; planId: number; status: string; stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodStart: Date; currentPeriodEnd: Date; trialStart?: Date; trialEnd?: Date; quantity?: number; metadata?: any }): Promise<UserSubscription> {
+      throw new Error("User subscriptions not supported in MemStorage");
+    }
+
+    async getUserSubscription(_id: number): Promise<UserSubscription | undefined> {
+      return undefined;
+    }
+
+    async getUserSubscriptionByUserId(_userId: number): Promise<UserSubscription | undefined> {
+      return undefined;
+    }
+
+    async getUserSubscriptionByStripeId(_stripeSubscriptionId: string): Promise<UserSubscription | undefined> {
+      return undefined;
+    }
+
+    async updateUserSubscription(_id: number, _updates: Partial<UserSubscription>): Promise<UserSubscription | undefined> {
+      return undefined;
+    }
+
+    async cancelUserSubscription(_id: number, _canceledAt: Date): Promise<UserSubscription | undefined> {
+      return undefined;
+    }
+
+    // Subscription Invoice methods (MemStorage - not supported)
+    async createSubscriptionInvoice(_invoice: { subscriptionId: number; userId: number; stripeInvoiceId?: string; amount: string; currency?: string; status?: string; hostedInvoiceUrl?: string; invoicePdf?: string; periodStart?: Date; periodEnd?: Date; paidAt?: Date }): Promise<SubscriptionInvoice> {
+      throw new Error("Subscription invoices not supported in MemStorage");
+    }
+
+    async getSubscriptionInvoice(_id: number): Promise<SubscriptionInvoice | undefined> {
+      return undefined;
+    }
+
+    async getSubscriptionInvoiceByStripeId(_stripeInvoiceId: string): Promise<SubscriptionInvoice | undefined> {
+      return undefined;
+    }
+
+    async listSubscriptionInvoices(_userId: number, _limit?: number): Promise<SubscriptionInvoice[]> {
+      return [];
+    }
+
+    async updateSubscriptionInvoice(_id: number, _updates: Partial<SubscriptionInvoice>): Promise<SubscriptionInvoice | undefined> {
+      return undefined;
+    }
+
+    // Subscription Usage methods (MemStorage - not supported)
+    async createSubscriptionUsage(_usage: { subscriptionId: number; userId: number; metric: string; quantity: number; periodStart: Date; periodEnd: Date }): Promise<SubscriptionUsage> {
+      throw new Error("Subscription usage not supported in MemStorage");
+    }
+
+    async getSubscriptionUsage(_subscriptionId: number, _metric: string, _periodStart: Date, _periodEnd: Date): Promise<SubscriptionUsage | undefined> {
+      return undefined;
+    }
+
+    async incrementSubscriptionUsage(_subscriptionId: number, _metric: string, _quantity: number, _periodStart: Date, _periodEnd: Date): Promise<SubscriptionUsage> {
+      throw new Error("Subscription usage not supported in MemStorage");
+    }
+
+    async listSubscriptionUsage(_subscriptionId: number, _periodStart?: Date, _periodEnd?: Date): Promise<SubscriptionUsage[]> {
+      return [];
+    }
   }
   
   export class DatabaseStorage implements IStorage {
@@ -1521,6 +1637,221 @@ import {
 
     async getWebhookDeliveries(webhookId: number, limit: number = 50): Promise<any[]> {
       return this.listWebhookDeliveries(webhookId, limit);
+    }
+
+    // Subscription Plan methods
+    async createSubscriptionPlan(plan: InsertSubscriptionPlan): Promise<SubscriptionPlan> {
+      const [subscriptionPlan] = await db
+        .insert(subscriptionPlans)
+        .values({
+          ...plan,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return subscriptionPlan;
+    }
+
+    async getSubscriptionPlan(id: number): Promise<SubscriptionPlan | undefined> {
+      const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.id, id));
+      return plan || undefined;
+    }
+
+    async getSubscriptionPlanByStripePriceId(stripePriceId: string): Promise<SubscriptionPlan | undefined> {
+      const [plan] = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.stripePriceId, stripePriceId));
+      return plan || undefined;
+    }
+
+    async listSubscriptionPlans(filters?: { isActive?: boolean; isPublic?: boolean }): Promise<SubscriptionPlan[]> {
+      const conditions = [];
+      if (filters?.isActive !== undefined) {
+        conditions.push(eq(subscriptionPlans.isActive, filters.isActive));
+      }
+      if (filters?.isPublic !== undefined) {
+        conditions.push(eq(subscriptionPlans.isPublic, filters.isPublic));
+      }
+      
+      if (conditions.length > 0) {
+        return await db.select()
+          .from(subscriptionPlans)
+          .where(and(...conditions))
+          .orderBy(subscriptionPlans.sortOrder);
+      }
+      
+      return await db.select()
+        .from(subscriptionPlans)
+        .orderBy(subscriptionPlans.sortOrder);
+    }
+
+    // User Subscription methods
+    async createUserSubscription(subscription: { userId: number; planId: number; status: string; stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodStart: Date; currentPeriodEnd: Date; trialStart?: Date; trialEnd?: Date; quantity?: number; metadata?: any }): Promise<UserSubscription> {
+      const [userSubscription] = await db
+        .insert(userSubscriptions)
+        .values({
+          ...subscription,
+          quantity: subscription.quantity || 1,
+          metadata: subscription.metadata || {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return userSubscription;
+    }
+
+    async getUserSubscription(id: number): Promise<UserSubscription | undefined> {
+      const [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.id, id));
+      return subscription || undefined;
+    }
+
+    async getUserSubscriptionByUserId(userId: number): Promise<UserSubscription | undefined> {
+      const [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, userId));
+      return subscription || undefined;
+    }
+
+    async getUserSubscriptionByStripeId(stripeSubscriptionId: string): Promise<UserSubscription | undefined> {
+      const [subscription] = await db.select().from(userSubscriptions).where(eq(userSubscriptions.stripeSubscriptionId, stripeSubscriptionId));
+      return subscription || undefined;
+    }
+
+    async updateUserSubscription(id: number, updates: Partial<UserSubscription>): Promise<UserSubscription | undefined> {
+      const [subscription] = await db
+        .update(userSubscriptions)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(userSubscriptions.id, id))
+        .returning();
+      return subscription || undefined;
+    }
+
+    async cancelUserSubscription(id: number, canceledAt: Date): Promise<UserSubscription | undefined> {
+      const [subscription] = await db
+        .update(userSubscriptions)
+        .set({ 
+          status: 'canceled',
+          cancelAtPeriodEnd: true,
+          canceledAt,
+          updatedAt: new Date()
+        })
+        .where(eq(userSubscriptions.id, id))
+        .returning();
+      return subscription || undefined;
+    }
+
+    // Subscription Invoice methods
+    async createSubscriptionInvoice(invoice: { subscriptionId: number; userId: number; stripeInvoiceId?: string; amount: string; currency?: string; status?: string; hostedInvoiceUrl?: string; invoicePdf?: string; periodStart?: Date; periodEnd?: Date; paidAt?: Date }): Promise<SubscriptionInvoice> {
+      const [subscriptionInvoice] = await db
+        .insert(subscriptionInvoices)
+        .values({
+          ...invoice,
+          currency: invoice.currency || 'USD',
+          status: invoice.status || 'draft',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return subscriptionInvoice;
+    }
+
+    async getSubscriptionInvoice(id: number): Promise<SubscriptionInvoice | undefined> {
+      const [invoice] = await db.select().from(subscriptionInvoices).where(eq(subscriptionInvoices.id, id));
+      return invoice || undefined;
+    }
+
+    async getSubscriptionInvoiceByStripeId(stripeInvoiceId: string): Promise<SubscriptionInvoice | undefined> {
+      const [invoice] = await db.select().from(subscriptionInvoices).where(eq(subscriptionInvoices.stripeInvoiceId, stripeInvoiceId));
+      return invoice || undefined;
+    }
+
+    async listSubscriptionInvoices(userId: number, limit: number = 50): Promise<SubscriptionInvoice[]> {
+      return await db
+        .select()
+        .from(subscriptionInvoices)
+        .where(eq(subscriptionInvoices.userId, userId))
+        .orderBy(desc(subscriptionInvoices.createdAt))
+        .limit(limit);
+    }
+
+    async updateSubscriptionInvoice(id: number, updates: Partial<SubscriptionInvoice>): Promise<SubscriptionInvoice | undefined> {
+      const [invoice] = await db
+        .update(subscriptionInvoices)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(subscriptionInvoices.id, id))
+        .returning();
+      return invoice || undefined;
+    }
+
+    // Subscription Usage methods
+    async createSubscriptionUsage(usage: { subscriptionId: number; userId: number; metric: string; quantity: number; periodStart: Date; periodEnd: Date }): Promise<SubscriptionUsage> {
+      const [usageRecord] = await db
+        .insert(subscriptionUsage)
+        .values({
+          ...usage,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return usageRecord;
+    }
+
+    async getSubscriptionUsage(subscriptionId: number, metric: string, periodStart: Date, periodEnd: Date): Promise<SubscriptionUsage | undefined> {
+      const [usage] = await db.select()
+        .from(subscriptionUsage)
+        .where(
+          and(
+            eq(subscriptionUsage.subscriptionId, subscriptionId),
+            eq(subscriptionUsage.metric, metric),
+            gte(subscriptionUsage.periodStart, periodStart),
+            lte(subscriptionUsage.periodEnd, periodEnd)
+          )
+        );
+      return usage || undefined;
+    }
+
+    async incrementSubscriptionUsage(subscriptionId: number, metric: string, quantity: number, periodStart: Date, periodEnd: Date): Promise<SubscriptionUsage> {
+      // Try to get existing usage record
+      const existing = await this.getSubscriptionUsage(subscriptionId, metric, periodStart, periodEnd);
+      
+      if (existing) {
+        // Update existing record
+        const [updated] = await db
+          .update(subscriptionUsage)
+          .set({ 
+            quantity: sql`${subscriptionUsage.quantity} + ${quantity}`,
+            updatedAt: new Date()
+          })
+          .where(eq(subscriptionUsage.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        // Create new record
+        const subscription = await this.getUserSubscription(subscriptionId);
+        if (!subscription) {
+          throw new Error('Subscription not found');
+        }
+        return await this.createSubscriptionUsage({
+          subscriptionId,
+          userId: subscription.userId,
+          metric,
+          quantity,
+          periodStart,
+          periodEnd,
+        });
+      }
+    }
+
+    async listSubscriptionUsage(subscriptionId: number, periodStart?: Date, periodEnd?: Date): Promise<SubscriptionUsage[]> {
+      const conditions = [eq(subscriptionUsage.subscriptionId, subscriptionId)];
+      
+      if (periodStart) {
+        conditions.push(gte(subscriptionUsage.periodStart, periodStart));
+      }
+      if (periodEnd) {
+        conditions.push(lte(subscriptionUsage.periodEnd, periodEnd));
+      }
+      
+      return await db.select()
+        .from(subscriptionUsage)
+        .where(and(...conditions))
+        .orderBy(desc(subscriptionUsage.createdAt));
     }
 
   }

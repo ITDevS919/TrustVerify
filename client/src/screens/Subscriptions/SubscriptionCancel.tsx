@@ -1,0 +1,43 @@
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { XCircle } from "lucide-react";
+import { HeaderDemo } from "../../components/HeaderDemo";
+
+export const SubscriptionCancel = () => {
+  return (
+    <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
+      <HeaderDemo />
+      <div className="flex items-center justify-center flex-1">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <XCircle className="w-16 h-16 text-red-500" />
+            </div>
+            <CardTitle className="text-2xl">Checkout Canceled</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-[#808080]">
+              Your subscription checkout was canceled. No charges were made.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => (window.location.href = "/subscriptions")}
+                className="flex-1 bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
+              >
+                View Plans
+              </Button>
+              <Button
+                onClick={() => (window.location.href = "/")}
+                variant="outline"
+                className="flex-1"
+              >
+                Go Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
