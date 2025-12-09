@@ -401,7 +401,7 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
 
         {/* Mobile Menu Button */}
         <button
-          value={isMenuOpen ? "Close" : "Open"}
+          aria-label="Mobile menu"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md border border-solid border-white bg-transparent text-white"
         >

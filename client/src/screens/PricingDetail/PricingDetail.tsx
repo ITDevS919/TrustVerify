@@ -17,8 +17,8 @@ import {
 } from "../../components/ui/accordion";
 import {
   currencyConfig,
-  convertPrice,
   formatPrice,
+  convertPrice,
   getBrowserLocale,
 } from "../../lib/multilingual";
 
