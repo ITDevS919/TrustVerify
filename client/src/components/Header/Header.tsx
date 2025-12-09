@@ -217,8 +217,11 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
         <Link to="/">
           <img
             className="w-[184px] h-[38px] cursor-pointer"
-            alt="Group"
-            src="/logo.png"
+            alt="TrustVerify logo"
+            src="/logo2.png"
+            srcSet="/logo.png 1x, /logo2.png 2x"
+            width={184}
+            height={38}
           />
         </Link>
 

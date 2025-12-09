@@ -136,6 +136,7 @@ export const Frame1Subsection = (): JSX.Element => {
                     >
                       <img
                        className="w-24 h-24 rounded-full border-gray-800 border-2"
+                       alt="play"
                        src="/play_button.png"
                       />
                     </div>
@@ -149,6 +150,7 @@ export const Frame1Subsection = (): JSX.Element => {
                     >
                       <img
                        className="w-24 h-24 rounded-full border-gray-800 border-2"
+                       alt="play"
                        src="/play_button.png"
                       />
                     </div>

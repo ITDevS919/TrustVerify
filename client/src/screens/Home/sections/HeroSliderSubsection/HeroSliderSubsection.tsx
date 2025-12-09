@@ -168,9 +168,11 @@ export const HeroSliderSubsection = (): JSX.Element => {
             </div>
             <div className="max-w-full lg:max-w-none">
               <img
-                alt="heading"
+                alt="TrustVerify - Secure Fraud Prevention & Identity Verification Platform"
                 src={slide.title}
                 className="w-full max-w-full h-auto object-contain lg:w-auto lg:h-auto lg:max-w-none"
+                role="presentation"
+                aria-hidden="true"
               />
             </div>
             <div className="flex flex-col items-start gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] w-full max-w-full lg:w-[685px] lg:max-w-none">
