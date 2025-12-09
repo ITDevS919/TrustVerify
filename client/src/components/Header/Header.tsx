@@ -401,8 +401,9 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
 
         {/* Mobile Menu Button */}
         <button
+          value={isMenuOpen ? "Close" : "Open"}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md bg-[#27ae60] text-white"
+          className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md border border-solid border-white bg-transparent text-white"
         >
           {isMenuOpen ? (
             <XIcon className="w-6 h-6" />
@@ -413,49 +414,51 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
       </div>
         
       {/* Mobile Drawer Menu */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="lg:hidden bg-app-secondary border-t border-white/10 overflow-hidden"
-          >
-            <div className="flex flex-col gap-16 items-start p-6 pb-10 space-y-3">
-              <div className="w-full flex flex-col gap-6">
+      {isMenuOpen && (
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-[70] bg-[#27Ae60] shadow-lg border-b border-gray-200">
+          <div className="flex items-center justify-between px-6 py-4">
+            <Link to="/" onClick={() => setIsMenuOpen(false)}>
+              <img
+                className="h-8 w-auto"
+                alt="TrustVerify logo"
+                src="/logo2.png"
+                srcSet="/logo.png 1x, /logo2.png 2x"
+                width={184}
+                height={38}
+              />
+            </Link>
+            <button
+              aria-label="Close menu"
+              onClick={() => {
+                setIsMenuOpen(false);
+                setMobileExpandedItems(new Set());
+              }}
+              className="flex items-center justify-center w-10 h-10 rounded-md border border-gray-300"
+            >
+              <XIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="max-h-[80vh] overflow-y-auto px-6 pb-6 flex flex-col gap-10">
+            <div className="w-full flex flex-col gap-4">
               {navigationItems.map((item, index) =>
-               item.hasDropdown ? (
-                <div key={index} className="w-full">
-                  <button 
-                    onClick={() => toggleMobileDropdown(item.label)}
-                    className={`w-full text-left text-white text-lg font-medium ${
-                      location.pathname === item.path ? "opacity-100" : "opacity-80"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="whitespace-nowrap">
-                        {item.label}
-                      </span>
+                item.hasDropdown ? (
+                  <div key={index} className="w-full">
+                    <button 
+                      onClick={() => toggleMobileDropdown(item.label)}
+                      className="w-full text-left text-lg font-medium text-white flex items-center justify-between py-2"
+                    >
+                      <span className="whitespace-nowrap">{item.label}</span>
                       <ChevronDownIcon 
-                        className={`w-5 h-5 text-white transition-transform ${
+                        className={`w-5 h-5 transition-transform ${
                           mobileExpandedItems.has(item.label) ? 'rotate-180' : ''
                         }`} 
                       />
-                    </div>
-                  </button>
-                  
-                  {/* Mobile Sub-items */}
-                  <AnimatePresence>
+                    </button>
+                    
                     {mobileExpandedItems.has(item.label) && item.subItems && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden mt-2 ml-4"
-                      >
-                        <div className="flex flex-col gap-3 border-l-2 border-white/20 pl-4">
+                      <div className="mt-2 ml-3 border-l border-gray-200 pl-3">
+                        <div className="flex flex-col gap-2">
                           {item.subItems.map((subItem, subIndex) => (
                             <Link
                               key={subIndex}
@@ -464,95 +467,94 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
                                 setIsMenuOpen(false);
                                 setMobileExpandedItems(new Set());
                               }}
-                              className="text-white/70 text-base font-normal hover:text-white transition-colors [font-family:'DM_Sans_18pt-Regular',Helvetica]"
+                              className="text-white text-base font-normal hover:text-app-secondary transition-colors [font-family:'DM_Sans_18pt-Regular',Helvetica]"
                             >
                               <div className="font-medium">{subItem.label}</div>
                               {subItem.description && (
-                                <div className="text-sm text-white/50 mt-0.5">
+                                <div className="text-sm text-gray-500 mt-0.5">
                                   {subItem.description}
                                 </div>
                               )}
                             </Link>
                           ))}
                         </div>
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
-                </div>
-               ) : item.path ? (
+                  </div>
+                ) : item.path ? (
                   <Link
                     key={index}
                     to={item.path}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`w-full text-left text-white text-lg font-medium ${
-                      location.pathname === item.path ? "opacity-100" : "opacity-80"
-                    }`}
+                    className="w-full text-left text-lg font-medium text-white py-2"
                   >
                     {item.label}
                   </Link>
                 ) : (
                   <button
                     key={index}
-                    className="w-full text-left text-white/80 text-lg font-medium"
+                    className="w-full text-left text-lg font-medium text-white py-2"
                   >
                     {item.label}
                   </button>
                 )
               )}
-              </div>
-              {user ? (
-                <>
-                  <div className="w-full flex items-center gap-3 px-2 py-3 border-b border-white/10">
-                    <Avatar className="w-10 h-10 border-2 border-white">
-                      <AvatarImage src={user.profileImage || undefined} alt={getUserDisplayName()} />
-                      <AvatarFallback className="bg-app-secondary text-white text-sm font-semibold">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col items-start">
-                      <span className="text-white text-lg font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica]">
-                        {getUserDisplayName()}
+            </div>
+
+            {user ? (
+              <div className="w-full border-t border-gray-200 pt-4 flex gap-3">
+                <div className="w-full flex items-center gap-3">
+                  <Avatar className="w-10 h-10 border border-gray-300">
+                    <AvatarImage src={user.profileImage || undefined} alt={getUserDisplayName()} />
+                    <AvatarFallback className="bg-app-secondary text-white text-sm font-semibold">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <span className="text-white text-lg font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica]">
+                      {getUserDisplayName()}
+                    </span>
+                    {getTrustScore() && (
+                      <span className="text-gray-600 text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                        Score: {getTrustScore()}
                       </span>
-                      {getTrustScore() && (
-                        <span className="text-white/70 text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                          Score: {getTrustScore()}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
-                  <Link 
-                    to="/dashboard"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="w-full flex items-center gap-3 text-left text-white/80 text-lg font-medium"
-                  >
-                    <User2 className="w-7 h-7"/>
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full flex items-center gap-3 text-left text-white/80 text-lg font-medium"
-                  >
-                    <LogOut className="w-7 h-7"/>
-                    Logout
-                  </button>
-                </>
-              ) : (
+                </div>
+                <Link 
+                  to="/dashboard"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full flex items-center justify-end sm:justify-center gap-2 text-left text-white text-base font-medium"
+                >
+                  <User2 className="w-5 h-5"/>
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-end sm:justify-center gap-2 text-left text-white text-base font-medium"
+                >
+                  <LogOut className="w-5 h-5"/>
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="w-full border-t border-gray-200 pt-4 flex flex-col gap-3">
                 <Link 
                   to="/login"
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-full flex items-center gap-3 text-left text-white/80 text-lg font-medium"
+                  className="w-full flex items-center gap-2 text-left text-white text-base font-medium"
                 >
-                  <User2 className="w-7 h-7"/>
+                  <User2 className="w-5 h-5"/>
                   Login
                 </Link>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </header>
       
       {/* Content Section */}

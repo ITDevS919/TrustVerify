@@ -779,7 +779,7 @@ export const PricingDetail = (): JSX.Element => {
                   >
                     Business Plans
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => setPlanType('education')}
                     className={cn(
                       "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 [font-family:'DM_Sans_18pt-Medium',Helvetica]",
@@ -789,7 +789,7 @@ export const PricingDetail = (): JSX.Element => {
                     )}
                   >
                     Education & Training
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
