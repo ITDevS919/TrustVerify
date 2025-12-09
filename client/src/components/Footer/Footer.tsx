@@ -287,7 +287,7 @@ export const Footer = (): JSX.Element => {
                   Need help!
                 </p>
                 <p className="text-lg sm:text-xl leading-6 [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white break-all sm:break-normal">
-                      0204542733
+                      0204542723
                 </p>
               </div>
               <div className="w-px h-[61px] bg-[#ffffff1a]" />
