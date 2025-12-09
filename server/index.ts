@@ -339,7 +339,7 @@ app.use((req, res, next) => {
   };
 
   // Fraud Detection v2 endpoints
-  app.post('/api/fraud/analyze', requireAuth, async (req, res) => {
+  const fraudAnalyzeHandler = async (req: any, res: any) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -363,7 +363,12 @@ app.use((req, res, next) => {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  app.post('/api/fraud/analyze', requireAuth, fraudAnalyzeHandler);
+  
+  // API Spec alias: POST /api/fraud/score
+  app.post('/api/fraud/score', requireAuth, fraudAnalyzeHandler);
 
   app.get('/api/fraud/result/:transactionId', requireAuth, async (req, res) => {
     try {
@@ -430,6 +435,112 @@ app.use((req, res, next) => {
       const result = await vendorIntegrations.checkThreatIntelligence(
         req.user.id,
         ipAddress || req.ip || 'unknown',
+        email || req.user.email
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Device/IP Intelligence endpoints
+  const { deviceIPIntelligence } = await import('./services/device-ip-intelligence');
+
+  const ipCheckHandler = async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const ipAddress = req.params.ipAddress || req.body.ipAddress;
+      if (!ipAddress) {
+        return res.status(400).json({ error: 'ipAddress is required' });
+      }
+
+      const result = await deviceIPIntelligence.checkIPReputation(ipAddress);
+      if (!result) {
+        return res.status(404).json({ error: 'IP reputation data not available' });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
+  app.get('/api/device-ip/ip/:ipAddress', requireAuth, ipCheckHandler);
+  
+  // API Spec alias: POST /api/fraud/ip-check
+  app.post('/api/fraud/ip-check', requireAuth, ipCheckHandler);
+
+  const deviceFingerprintHandler = async (req: any, res: any) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { deviceFingerprint } = req.body;
+      if (!deviceFingerprint) {
+        return res.status(400).json({ error: 'deviceFingerprint is required' });
+      }
+
+      const result = await deviceIPIntelligence.checkDeviceFingerprint(
+        deviceFingerprint,
+        req.user.id
+      );
+      if (!result) {
+        return res.status(404).json({ error: 'Device fingerprint data not available' });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
+  app.post('/api/device-ip/device', requireAuth, deviceFingerprintHandler);
+  
+  // API Spec alias: POST /api/fraud/device
+  app.post('/api/fraud/device', requireAuth, deviceFingerprintHandler);
+
+  app.post('/api/device-ip/threat', requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { ipAddress, email } = req.body;
+      const result = await deviceIPIntelligence.checkThreatIntelligence(
+        req.user.id,
+        ipAddress || req.ip || 'unknown',
+        email || req.user.email
+      );
+      if (!result) {
+        return res.status(404).json({ error: 'Threat intelligence data not available' });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post('/api/device-ip/assess', requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { ipAddress, deviceFingerprint, email } = req.body;
+      if (!ipAddress) {
+        return res.status(400).json({ error: 'ipAddress is required' });
+      }
+
+      const result = await deviceIPIntelligence.assessDeviceIPRisk(
+        req.user.id,
+        ipAddress || req.ip || 'unknown',
+        deviceFingerprint,
         email || req.user.email
       );
 

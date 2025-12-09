@@ -240,6 +240,41 @@ export class WebhookService {
 
     return await storage.getWebhookDeliveries(webhookId, limit);
   }
+
+  /**
+   * Trigger webhook event for all webhooks subscribed to the event
+   * This is a helper method to trigger webhooks from other services
+   */
+  async triggerWebhookEvent(
+    eventType: string,
+    payload: Record<string, any>,
+    developerId?: number
+  ): Promise<void> {
+    try {
+      // Get all webhooks for the developer (or all if developerId not specified)
+      const allWebhooks = developerId 
+        ? await storage.listWebhookConfigurations(developerId)
+        : await storage.listAllWebhookConfigurations();
+      
+      // Filter webhooks that are active and subscribed to this event
+      const matchingWebhooks = allWebhooks.filter(webhook => 
+        webhook.isActive && 
+        (Array.isArray(webhook.events) ? webhook.events.includes(eventType) : false)
+      );
+      
+      // Deliver to all matching webhooks
+      for (const webhook of matchingWebhooks) {
+        try {
+          await this.deliverWebhook(webhook.id!, eventType, payload);
+        } catch (error) {
+          // Log error but continue with other webhooks
+          console.error(`Failed to deliver webhook ${webhook.id} for event ${eventType}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error(`Error triggering webhook event ${eventType}:`, error);
+    }
+  }
 }
 
 export const webhookService = new WebhookService();

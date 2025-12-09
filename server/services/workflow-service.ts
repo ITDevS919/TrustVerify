@@ -9,7 +9,7 @@ import { z } from 'zod';
 export interface WorkflowStep {
   id: string;
   name: string;
-  type: 'kyc' | 'fraud_check' | 'escrow' | 'dispute' | 'payment' | 'custom';
+  type: 'kyc' | 'fraud_check' | 'escrow' | 'dispute' | 'payment' | 'device_ip_check' | 'custom';
   order: number;
   config: Record<string, any>;
   conditions?: {
@@ -54,7 +54,7 @@ export interface IndustryTemplate {
 const workflowStepSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(['kyc', 'fraud_check', 'escrow', 'dispute', 'payment', 'custom']),
+  type: z.enum(['kyc', 'fraud_check', 'escrow', 'dispute', 'payment', 'device_ip_check', 'custom']),
   order: z.number(),
   config: z.record(z.any()),
   conditions: z.object({

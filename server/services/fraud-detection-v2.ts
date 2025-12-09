@@ -5,6 +5,7 @@
 
 import { cacheService } from './cache-service';
 import { storage } from '../storage';
+import { deviceIPIntelligence } from './device-ip-intelligence';
 
 export interface FraudSignal {
   signalType: string;
@@ -144,9 +145,20 @@ export class FraudDetectionEngineV2 {
         });
       }
 
-      const ipResult = await this.checkIPVendor(ipAddress);
+      // Use Device/IP Intelligence service for IP reputation
+      const ipResult = await deviceIPIntelligence.checkIPReputation(ipAddress);
       if (ipResult) {
-        vendorResults.ip = ipResult;
+        vendorResults.ip = {
+          provider: ipResult.provider || 'unknown',
+          riskScore: ipResult.riskScore,
+          isProxy: ipResult.isProxy,
+          isVPN: ipResult.isVPN,
+          isTor: ipResult.isTor,
+          country: ipResult.country,
+          threatLevel: ipResult.threatLevel,
+          flags: ipResult.flags,
+          metadata: ipResult.metadata,
+        };
         signals.push({
           signalType: 'vendor',
           signalName: 'ip_reputation',
@@ -158,9 +170,17 @@ export class FraudDetectionEngineV2 {
         });
       }
 
-      const threatResult = await this.checkThreatIntelVendor(userId, ipAddress);
+      // Use Device/IP Intelligence service for threat intelligence
+      const threatResult = await deviceIPIntelligence.checkThreatIntelligence(userId, ipAddress);
       if (threatResult) {
-        vendorResults.threatIntel = threatResult;
+        vendorResults.threatIntel = {
+          provider: threatResult.provider || 'unknown',
+          isThreat: threatResult.isThreat,
+          threatTypes: threatResult.threatTypes,
+          riskScore: threatResult.riskScore,
+          lastSeen: threatResult.lastSeen,
+          metadata: threatResult.metadata,
+        };
         signals.push({
           signalType: 'vendor',
           signalName: 'threat_intelligence',
@@ -197,6 +217,30 @@ export class FraudDetectionEngineV2 {
 
     // Cache result
     await this.cacheResult(transactionId, result);
+
+    // Trigger webhook event
+    try {
+      const { webhookService } = await import('./webhook-service');
+      const transaction = await storage.getTransaction(transactionId);
+      if (transaction) {
+        const buyerAccount = await storage.getDeveloperAccountByUserId(transaction.buyerId);
+        const sellerAccount = await storage.getDeveloperAccountByUserId(transaction.sellerId);
+        const developerIds = [buyerAccount?.id, sellerAccount?.id].filter(Boolean) as number[];
+        
+        for (const devId of developerIds) {
+          await webhookService.triggerWebhookEvent('fraud.score.generated', {
+            transactionId,
+            overallScore: result.overallScore,
+            riskLevel: result.riskLevel,
+            confidence: result.confidence,
+            recommendations: result.recommendations,
+            timestamp: new Date().toISOString(),
+          }, devId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to trigger fraud.score.generated webhook:', error);
+    }
 
     return result;
   }
@@ -246,18 +290,25 @@ export class FraudDetectionEngineV2 {
       timestamp: new Date(),
     });
 
-    // Device fingerprint signal
+    // Device fingerprint signal (using Device/IP Intelligence service)
     if (deviceFingerprint) {
-      const deviceHistory = await this.checkDeviceHistory(deviceFingerprint, userId);
-      signals.push({
-        signalType: 'internal',
-        signalName: 'device_fingerprint',
-        score: deviceHistory.isNewDevice ? 50 : deviceHistory.isSuspicious ? 70 : 10,
-        weight: this.config.signalWeights.deviceFingerprint,
-        source: 'internal',
-        metadata: deviceHistory,
-        timestamp: new Date(),
-      });
+      const deviceResult = await deviceIPIntelligence.checkDeviceFingerprint(deviceFingerprint, userId);
+      if (deviceResult) {
+        signals.push({
+          signalType: 'internal',
+          signalName: 'device_fingerprint',
+          score: deviceResult.riskScore,
+          weight: this.config.signalWeights.deviceFingerprint,
+          source: 'internal',
+          metadata: {
+            isNewDevice: deviceResult.isNewDevice,
+            isSuspicious: deviceResult.isSuspicious,
+            deviceCount: deviceResult.deviceCount,
+            flags: deviceResult.flags,
+          },
+          timestamp: new Date(),
+        });
+      }
     }
 
     // Velocity checks (rapid transactions)

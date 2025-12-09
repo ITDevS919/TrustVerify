@@ -280,6 +280,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // KYC status by ID (for API spec compliance)
+  app.get("/api/kyc/status/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const verificationId = req.params.id;
+      const { kycStorage } = await import("./services/kyc-storage");
+      const submission = (await kycStorage.getAllSubmissions())
+        .find(s => s.submissionId === verificationId);
+      
+      if (!submission) {
+        return res.status(404).json({ message: "KYC verification not found" });
+      }
+
+      const kyc = await storage.getKycByUserId(submission.userId);
+      
+      res.json({
+        id: verificationId,
+        ...kyc,
+        submissionId: submission.submissionId,
+        status: submission.status || kyc?.status || "not_submitted",
+        submittedAt: submission.submittedAt,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // KYC start endpoint (alias for API spec compliance - same as /api/kyc/submit)
+  app.post("/api/kyc/start", requireAuth, upload.fields([
+    { name: 'frontImage', maxCount: 1 },
+    { name: 'backImage', maxCount: 1 },
+    { name: 'selfieImage', maxCount: 1 }
+  ]), async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { 
+        firstName, 
+        lastName, 
+        email, 
+        phone, 
+        documentType, 
+        documentNumber,
+        userType
+      } = req.body;
+
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (!files.frontImage || !files.selfieImage) {
+        return res.status(400).json({ message: "Front ID image and selfie are required" });
+      }
+
+      if (!documentType) {
+        return res.status(400).json({ message: "Document type is required" });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { kycStorage } = await import("./services/kyc-storage");
+
+      const frontImagePath = files.frontImage[0].path;
+      const backImagePath = files.backImage?.[0]?.path;
+      const selfieImagePath = files.selfieImage[0].path;
+
+      const submission = await kycStorage.createSubmission({
+        userId: req.user.id,
+        userEmail: email || user.email,
+        userName: `${firstName || user.firstName || ''} ${lastName || user.lastName || ''}`.trim() || user.username || 'Unknown',
+        userPhone: phone,
+        documentType,
+        documentNumber,
+        frontImagePath,
+        backImagePath,
+        selfieImagePath,
+        userType,
+      });
+
+      const existingKyc = await storage.getKycByUserId(req.user.id);
+      if (!existingKyc || existingKyc.status !== "approved") {
+        await storage.createKycVerification({
+          userId: req.user.id,
+          documentType,
+          documentNumber: documentNumber || undefined,
+        });
+      }
+
+      res.status(201).json({
+        id: submission.submissionId,
+        submissionId: submission.submissionId,
+        status: 'pending',
+        message: 'KYC workflow initiated successfully'
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // KYB Routes
+  app.post("/api/kyb/start", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { KYBVerificationService } = await import("./security/kyb-verification");
+      const account = await storage.getDeveloperAccountByUserId(req.user.id);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Developer account not found. Please create a developer account first." });
+      }
+
+      const kybData = {
+        orgId: account.id,
+        companyName: req.body.companyName || account.companyName || '',
+        registrationNumber: req.body.registrationNumber || '',
+        registrationCountry: req.body.registrationCountry || '',
+        businessAddress: req.body.businessAddress || '',
+        industry: req.body.industry || '',
+        website: req.body.website || account.website || undefined,
+        primaryContactName: req.body.primaryContactName || `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.username || '',
+        primaryContactEmail: req.body.primaryContactEmail || req.user.email || '',
+        primaryContactPhone: req.body.primaryContactPhone || '',
+        businessDescription: req.body.businessDescription || account.description || '',
+        expectedTransactionVolume: req.body.expectedTransactionVolume || 0,
+        sourceOfFunds: req.body.sourceOfFunds || '',
+        beneficialOwners: req.body.beneficialOwners || [],
+        complianceDocuments: req.body.complianceDocuments || [],
+      };
+
+      const result = await KYBVerificationService.initiateKYBVerification(kybData);
+
+      if (!result.success) {
+        return res.status(400).json({
+          error: 'KYB verification initiation failed',
+          errors: result.errors,
+        });
+      }
+
+      res.status(201).json({
+        verificationId: result.verificationId,
+        status: 'pending',
+        riskLevel: result.riskLevel,
+        requiresManualReview: result.requiresManualReview,
+        message: 'KYB verification initiated successfully',
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/kyb/status/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const verificationId = req.params.id;
+      const account = await storage.getDeveloperAccountByUserId(req.user.id);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Developer account not found" });
+      }
+
+      // Extract org ID from verification ID if format is KYB-{orgId}-{timestamp}
+      const kybMatch = verificationId.match(/^KYB-(\d+)-/);
+      const orgId = kybMatch ? parseInt(kybMatch[1]) : account.id;
+
+      // Verify the KYB belongs to the user's organization
+      if (orgId !== account.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get KYB status from developer account
+      // Note: KYB status fields may be stored in a separate table or as metadata
+      // For now, return basic account status
+      res.json({
+        id: verificationId,
+        orgId: account.id,
+        status: account.status || 'pending',
+        companyName: account.companyName,
+        website: account.website,
+        description: account.description,
+        approvedAt: account.approvedAt,
+        createdAt: account.createdAt,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Helper function for admin check (flexible for MVP testing)
   const requireAdminAccess = (req: any, res: any, next: any) => {
     // In development/MVP, allow all authenticated users for testing
@@ -921,7 +1119,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Developer Portal routes
   app.use("/api/developer", developerRoutes);
+
+  // API Spec aliases for Workflow Builder API
+  const { requireDeveloperAuth } = await import('./middleware/apiAuth');
+  const { workflowService } = await import('./services/workflow-service');
+
+  // POST /api/workflow/create -> POST /api/developer/workflows
+  app.post("/api/workflow/create", requireDeveloperAuth, async (req, res) => {
+    try {
+      const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+      if (!account) {
+        return res.status(404).json({ error: 'Developer account not found' });
+      }
+      const workflow = await workflowService.createWorkflow(account.id, req.body);
+      res.status(201).json(workflow);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Validation error', details: error.errors });
+      }
+      console.error('Error creating workflow:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // GET /api/workflow/:id -> GET /api/developer/workflows/:id
+  app.get("/api/workflow/:id", requireDeveloperAuth, async (req, res) => {
+    try {
+      const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+      if (!account) {
+        return res.status(404).json({ error: 'Developer account not found' });
+      }
+      const workflowId = parseInt(req.params.id);
+      if (isNaN(workflowId)) {
+        return res.status(400).json({ error: 'Invalid workflow ID' });
+      }
+      const workflow = await workflowService.getWorkflow(workflowId, account.id);
+      if (!workflow) {
+        return res.status(404).json({ error: 'Workflow not found' });
+      }
+      res.json(workflow);
+    } catch (error) {
+      console.error('Error fetching workflow:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // POST /api/workflow/execute -> Execute workflow with workflowId in body
+  app.post("/api/workflow/execute", requireDeveloperAuth, async (req, res) => {
+    try {
+      const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+      if (!account) {
+        return res.status(404).json({ error: 'Developer account not found' });
+      }
+      const { workflowId } = req.body;
+      if (!workflowId) {
+        return res.status(400).json({ error: 'workflowId is required in request body' });
+      }
+      const workflow = await workflowService.getWorkflow(parseInt(workflowId), account.id);
+      if (!workflow) {
+        return res.status(404).json({ error: 'Workflow not found' });
+      }
+      if (!workflow.isActive) {
+        return res.status(400).json({ error: 'Workflow is not active' });
+      }
+      const { context } = req.body;
+      // Execute workflow steps in order (same logic as in developer routes)
+      const executionResults: any[] = [];
+      let currentContext = context || {};
+
+      for (const step of workflow.workflowSteps.sort((a, b) => a.order - b.order)) {
+        try {
+          let stepResult: any = { stepId: step.id, stepName: step.name, status: 'pending' };
+
+          switch (step.type) {
+            case 'kyc':
+              if (currentContext.userId) {
+                const kyc = await storage.getKycByUserId(currentContext.userId);
+                stepResult = {
+                  ...stepResult,
+                  status: kyc?.status === 'approved' ? 'passed' : 'pending',
+                  result: { kycStatus: kyc?.status || 'not_submitted' }
+                };
+              }
+              break;
+            case 'fraud_check':
+              if (currentContext.transactionId) {
+                const { fraudDetectionEngineV2 } = await import('./services/fraud-detection-v2');
+                const fraudResult = await fraudDetectionEngineV2.analyzeTransaction(
+                  currentContext.transactionId,
+                  currentContext.userId || 0,
+                  currentContext.ipAddress || 'unknown',
+                  currentContext.userAgent,
+                  currentContext.deviceFingerprint
+                );
+                stepResult = {
+                  ...stepResult,
+                  status: fraudResult.riskLevel === 'low' || fraudResult.riskLevel === 'medium' ? 'passed' : 'failed',
+                  result: fraudResult
+                };
+              }
+              break;
+            case 'device_ip_check':
+              if (currentContext.userId && currentContext.ipAddress) {
+                const { deviceIPIntelligence } = await import('./services/device-ip-intelligence');
+                const assessment = await deviceIPIntelligence.assessDeviceIPRisk(
+                  currentContext.userId,
+                  currentContext.ipAddress,
+                  currentContext.deviceFingerprint,
+                  currentContext.email
+                );
+                stepResult = {
+                  ...stepResult,
+                  status: assessment.riskLevel === 'low' ? 'passed' : assessment.riskLevel === 'medium' ? 'warning' : 'failed',
+                  result: assessment
+                };
+              }
+              break;
+            case 'escrow':
+              if (currentContext.transactionId) {
+                const { escrowService } = await import('./services/escrowService');
+                const escrowAccount = await escrowService.createEscrowTransaction(currentContext.transactionId);
+                stepResult = {
+                  ...stepResult,
+                  status: 'passed',
+                  result: { escrowId: escrowAccount.id, status: escrowAccount.status }
+                };
+                currentContext.escrowId = escrowAccount.id;
+              }
+              break;
+            case 'payment':
+              stepResult = { ...stepResult, status: 'passed', result: { message: 'Payment step executed' } };
+              break;
+            case 'custom':
+              stepResult = { ...stepResult, status: 'passed', result: { message: 'Custom step executed', config: step.config } };
+              break;
+            default:
+              stepResult = { ...stepResult, status: 'skipped', result: { message: `Unknown step type: ${step.type}` } };
+          }
+
+          executionResults.push(stepResult);
+          if (step.conditions && step.conditions.if && stepResult.status !== 'passed') {
+            if (step.conditions.else) break;
+          }
+        } catch (error: any) {
+          executionResults.push({ stepId: step.id, stepName: step.name, status: 'error', error: error.message });
+        }
+      }
+
+      res.json({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        executionId: `exec-${workflow.id}-${Date.now()}`,
+        status: executionResults.every(r => r.status === 'passed' || r.status === 'warning') ? 'completed' : 'failed',
+        results: executionResults,
+        executedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error executing workflow:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
   app.use("/api/subscriptions", subscriptionRoutes);
+
+  // Analytics & Reporting routes
+  const analyticsRoutes = await import('./routes/analytics');
+  app.use("/api/analytics", analyticsRoutes.default);
 
   // Support routes (chat, tickets)
   app.use("/api/support", supportRoutes);

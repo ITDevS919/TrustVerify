@@ -7,6 +7,7 @@ import { db } from '../db';
 import { disputes, transactions, arbitrationCases } from '../shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
 import { EscrowService } from './escrowService';
+import { storage } from '../storage';
 
 const escrowService = new EscrowService();
 import { AIArbitrationEngine } from './ai-arbitration-engine';
@@ -329,6 +330,33 @@ export class DisputeWorkflowEngine {
         resolvedAt: new Date(),
       })
       .where(eq(arbitrationCases.id, arbitrationCase.id));
+
+    // Trigger webhook event
+    try {
+      const { webhookService } = await import('./webhook-service');
+      const [transaction] = await db.select().from(transactions).where(eq(transactions.id, dispute.transactionId));
+      if (transaction) {
+        const buyerAccount = await storage.getDeveloperAccountByUserId(transaction.buyerId);
+        const sellerAccount = await storage.getDeveloperAccountByUserId(transaction.sellerId);
+        const developerIds = [buyerAccount?.id, sellerAccount?.id].filter(Boolean) as number[];
+        
+        for (const devId of developerIds) {
+          await webhookService.triggerWebhookEvent('arbitration.resolved', {
+            disputeId,
+            arbitrationCaseId: arbitrationCase.id,
+            outcome: arbitrationCase.outcome,
+            buyerFault: arbitrationCase.buyerFault,
+            vendorFault: arbitrationCase.vendorFault,
+            recommendedPayoutToBuyer: arbitrationCase.recommendedPayoutToBuyer,
+            recommendedPayoutToVendor: arbitrationCase.recommendedPayoutToVendor,
+            confidenceScore: arbitrationCase.confidenceScore,
+            timestamp: new Date().toISOString(),
+          }, devId);
+        }
+      }
+    } catch (error) {
+      logger.error({ error, disputeId }, 'Failed to trigger arbitration.resolved webhook');
+    }
 
     logger.info({ disputeId }, '72-hour workflow completed');
   }

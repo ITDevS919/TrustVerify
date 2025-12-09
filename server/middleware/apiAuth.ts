@@ -143,6 +143,17 @@ export async function logApiUsage(req: AuthenticatedRequest, res: Response, next
 
         // Update usage count
         await storage.updateDeveloperUsage(req.developer.id, req.developer.currentUsage + 1);
+
+        // Record usage for billing tracker
+        const { usageBillingTracker } = await import('../services/usage-billing-tracker');
+        await usageBillingTracker.recordUsage(
+          req.developer.id,
+          req.apiKey.id,
+          req.path,
+          req.method,
+          res.statusCode,
+          responseTime
+        );
       } catch (error) {
         console.error('Failed to log API usage:', error);
       }

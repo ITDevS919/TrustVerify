@@ -12,6 +12,7 @@ import { db } from '../db';
 import { disputes, arbitrationCases } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import AuditService, { AuditEventType } from '../security/audit-logger';
+import { storage } from '../storage';
 import pino from 'pino';
 
 const logger = pino({ name: 'arbitration-routes' });
@@ -21,7 +22,7 @@ export function registerArbitrationRoutes(app: Express) {
    * POST /api/disputes/create
    * Create a new dispute and initialize 72-hour workflow
    */
-  app.post('/api/disputes/create', requireDeveloperAuth, async (req: Request, res: Response) => {
+  const createDisputeHandler = async (req: Request, res: Response) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -48,6 +49,29 @@ export function registerArbitrationRoutes(app: Express) {
 
       // Initialize 72-hour workflow
       await DisputeWorkflowEngine.initializeWorkflow(newDispute.id);
+
+      // Trigger webhook event
+      try {
+        const { webhookService } = await import('../services/webhook-service');
+        const transaction = await storage.getTransaction(transactionId);
+        if (transaction) {
+          const buyerAccount = await storage.getDeveloperAccountByUserId(transaction.buyerId);
+          const sellerAccount = await storage.getDeveloperAccountByUserId(transaction.sellerId);
+          const developerIds = [buyerAccount?.id, sellerAccount?.id].filter(Boolean) as number[];
+          
+          for (const devId of developerIds) {
+            await webhookService.triggerWebhookEvent('escrow.disputed', {
+              disputeId: newDispute.id,
+              transactionId,
+              reason,
+              disputeType: disputeType || 'other',
+              timestamp: new Date().toISOString(),
+            }, devId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to trigger escrow.disputed webhook:', error);
+      }
 
       // Log dispute creation
       await AuditService.logEvent({
@@ -76,13 +100,18 @@ export function registerArbitrationRoutes(app: Express) {
       logger.error({ error }, 'Failed to create dispute');
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  app.post('/api/disputes/create', requireDeveloperAuth, createDisputeHandler);
+  
+  // API Spec alias: POST /api/arbitration/open
+  app.post('/api/arbitration/open', requireDeveloperAuth, createDisputeHandler);
 
   /**
    * POST /api/disputes/:id/evidence
    * Submit evidence for a dispute
    */
-  app.post('/api/disputes/:id/evidence', requireDeveloperAuth, async (req: Request, res: Response) => {
+    app.post('/api/disputes/:id/evidence', requireDeveloperAuth, async (req: Request, res: Response) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -148,7 +177,7 @@ export function registerArbitrationRoutes(app: Express) {
    * GET /api/disputes/:id/status
    * Get dispute status and workflow progress
    */
-  app.get('/api/disputes/:id/status', requireDeveloperAuth, async (req: Request, res: Response) => {
+  const getDisputeStatusHandler = async (req: Request, res: Response) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -206,7 +235,12 @@ export function registerArbitrationRoutes(app: Express) {
       logger.error({ error }, 'Failed to get dispute status');
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  app.get('/api/disputes/:id/status', requireDeveloperAuth, getDisputeStatusHandler);
+  
+  // API Spec alias: GET /api/arbitration/status/:id
+  app.get('/api/arbitration/status/:id', requireDeveloperAuth, getDisputeStatusHandler);
 
   /**
    * POST /api/disputes/:id/run-ai
@@ -266,7 +300,7 @@ export function registerArbitrationRoutes(app: Express) {
    * POST /api/disputes/:id/human-review
    * Escalate dispute to human review or override AI decision
    */
-  app.post('/api/disputes/:id/human-review', requireDeveloperAuth, async (req: Request, res: Response) => {
+  const humanReviewHandler = async (req: Request, res: Response) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -349,7 +383,12 @@ export function registerArbitrationRoutes(app: Express) {
       logger.error({ error }, 'Failed to escalate to human review');
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  app.post('/api/disputes/:id/human-review', requireDeveloperAuth, humanReviewHandler);
+  
+  // API Spec alias: POST /api/arbitration/decision
+  app.post('/api/arbitration/decision', requireDeveloperAuth, humanReviewHandler);
 
   /**
    * GET /api/disputes/:id/evidence
@@ -377,6 +416,80 @@ export function registerArbitrationRoutes(app: Express) {
   });
 
   /**
+   * POST /api/escrow/create
+   * Create escrow for a transaction
+   */
+  app.post('/api/escrow/create', requireDeveloperAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { transactionId, providerPreference } = req.body;
+
+      if (!transactionId) {
+        return res.status(400).json({ error: 'transactionId is required' });
+      }
+
+      const { escrowService } = await import('../services/escrowService');
+      const escrowAccount = await escrowService.createEscrowTransaction(
+        parseInt(transactionId),
+        providerPreference
+      );
+
+      res.json({
+        success: true,
+        escrowId: escrowAccount.id,
+        status: escrowAccount.status,
+        message: 'Escrow created successfully',
+      });
+    } catch (error: any) {
+      logger.error({ error }, 'Failed to create escrow');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/escrow/refund
+   * Refund escrow funds
+   */
+  app.post('/api/escrow/refund', requireDeveloperAuth, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { transactionId, reason } = req.body;
+
+      if (!transactionId || !reason) {
+        return res.status(400).json({ error: 'transactionId and reason are required' });
+      }
+
+      const { escrowService } = await import('../services/escrowService');
+      const refundResult = await escrowService.refundEscrowFunds(
+        parseInt(transactionId),
+        reason || 'Refund requested'
+      );
+
+      res.json({
+        success: true,
+        escrowId: refundResult.id,
+        status: refundResult.status,
+        message: 'Escrow refund processed',
+      });
+    } catch (error: any) {
+      logger.error({ error }, 'Failed to refund escrow');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/escrow/dispute
+   * Open dispute for escrow transaction (alias to /api/disputes/create)
+   */
+  app.post('/api/escrow/dispute', requireDeveloperAuth, createDisputeHandler);
+
+  /**
    * POST /api/escrow/release
    * Manually release escrow funds (admin only)
    */
@@ -392,10 +505,16 @@ export function registerArbitrationRoutes(app: Express) {
         return res.status(400).json({ error: 'transactionId is required' });
       }
 
-      // This would integrate with the escrow service
-      // For now, return success
+      const { escrowService } = await import('../services/escrowService');
+      const releaseResult = await escrowService.releaseEscrowFunds(
+        parseInt(transactionId),
+        amount ? parseFloat(amount) : undefined
+      );
+
       res.json({
         success: true,
+        escrowId: releaseResult.id,
+        status: releaseResult.status,
         message: 'Escrow release initiated',
       });
     } catch (error: any) {

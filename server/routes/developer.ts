@@ -247,7 +247,7 @@ router.get('/workflows', async (req, res) => {
 });
 
 // Get single workflow
-router.get('/workflows/:id', async (req, res) => {
+const getWorkflowHandler = async (req: any, res: any) => {
   try {
     const account = await storage.getDeveloperAccountByUserId(req.user!.id);
     if (!account) {
@@ -269,7 +269,9 @@ router.get('/workflows/:id', async (req, res) => {
     console.error('Error fetching workflow:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-});
+};
+
+router.get('/workflows/:id', getWorkflowHandler);
 
 // Create workflow
 router.post('/workflows', async (req, res) => {
@@ -338,6 +340,167 @@ router.delete('/workflows/:id', async (req, res) => {
   }
 });
 
+// Execute workflow
+router.post('/workflows/:id/execute', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const workflowId = parseInt(req.params.id);
+    if (isNaN(workflowId)) {
+      return res.status(400).json({ error: 'Invalid workflow ID' });
+    }
+
+    const workflow = await workflowService.getWorkflow(workflowId, account.id);
+    if (!workflow) {
+      return res.status(404).json({ error: 'Workflow not found' });
+    }
+
+    if (!workflow.isActive) {
+      return res.status(400).json({ error: 'Workflow is not active' });
+    }
+
+    const { context } = req.body; // Execution context (transactionId, userId, etc.)
+
+    // Execute workflow steps in order
+    const executionResults: any[] = [];
+    let currentContext = context || {};
+
+    for (const step of workflow.workflowSteps.sort((a, b) => a.order - b.order)) {
+      try {
+        let stepResult: any = { stepId: step.id, stepName: step.name, status: 'pending' };
+
+        // Execute step based on type
+        switch (step.type) {
+          case 'kyc':
+            // KYC step execution
+            if (currentContext.userId) {
+              const kyc = await storage.getKycByUserId(currentContext.userId);
+              stepResult = {
+                ...stepResult,
+                status: kyc?.status === 'approved' ? 'passed' : 'pending',
+                result: { kycStatus: kyc?.status || 'not_submitted' }
+              };
+            }
+            break;
+
+          case 'fraud_check':
+            // Fraud check step execution
+            if (currentContext.transactionId) {
+              const { fraudDetectionEngineV2 } = await import('../services/fraud-detection-v2');
+              const fraudResult = await fraudDetectionEngineV2.analyzeTransaction(
+                currentContext.transactionId,
+                currentContext.userId || 0,
+                currentContext.ipAddress || 'unknown',
+                currentContext.userAgent,
+                currentContext.deviceFingerprint
+              );
+              stepResult = {
+                ...stepResult,
+                status: fraudResult.riskLevel === 'low' || fraudResult.riskLevel === 'medium' ? 'passed' : 'failed',
+                result: fraudResult
+              };
+            }
+            break;
+
+          case 'device_ip_check':
+            // Device/IP check step execution
+            if (currentContext.userId && currentContext.ipAddress) {
+              const { deviceIPIntelligence } = await import('../services/device-ip-intelligence');
+              const assessment = await deviceIPIntelligence.assessDeviceIPRisk(
+                currentContext.userId,
+                currentContext.ipAddress,
+                currentContext.deviceFingerprint,
+                currentContext.email
+              );
+              stepResult = {
+                ...stepResult,
+                status: assessment.riskLevel === 'low' ? 'passed' : assessment.riskLevel === 'medium' ? 'warning' : 'failed',
+                result: assessment
+              };
+            }
+            break;
+
+          case 'escrow':
+            // Escrow step execution
+            if (currentContext.transactionId) {
+              const { escrowService } = await import('../services/escrowService');
+              const escrowAccount = await escrowService.createEscrowTransaction(currentContext.transactionId);
+              stepResult = {
+                ...stepResult,
+                status: 'passed',
+                result: { escrowId: escrowAccount.id, status: escrowAccount.status }
+              };
+              currentContext.escrowId = escrowAccount.id;
+            }
+            break;
+
+          case 'payment':
+            // Payment step execution (placeholder)
+            stepResult = {
+              ...stepResult,
+              status: 'passed',
+              result: { message: 'Payment step executed' }
+            };
+            break;
+
+          case 'custom':
+            // Custom step execution - use step config
+            stepResult = {
+              ...stepResult,
+              status: 'passed',
+              result: { message: 'Custom step executed', config: step.config }
+            };
+            break;
+
+          default:
+            stepResult = {
+              ...stepResult,
+              status: 'skipped',
+              result: { message: `Unknown step type: ${step.type}` }
+            };
+        }
+
+        executionResults.push(stepResult);
+
+        // Check conditions
+        if (step.conditions) {
+          if (step.conditions.if && stepResult.status !== 'passed') {
+            // Condition not met, skip to else branch if exists
+            if (step.conditions.else) {
+              // Handle else branch (could skip remaining steps or take alternative path)
+              break;
+            }
+          }
+        }
+
+      } catch (error: any) {
+        executionResults.push({
+          stepId: step.id,
+          stepName: step.name,
+          status: 'error',
+          error: error.message
+        });
+        // Continue with next step or break based on workflow rules
+      }
+    }
+
+    res.json({
+      workflowId: workflow.id,
+      workflowName: workflow.name,
+      executionId: `exec-${workflowId}-${Date.now()}`,
+      status: executionResults.every(r => r.status === 'passed' || r.status === 'warning') ? 'completed' : 'failed',
+      results: executionResults,
+      executedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error executing workflow:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get industry templates
 router.get('/templates', async (req, res) => {
   try {
@@ -349,6 +512,70 @@ router.get('/templates', async (req, res) => {
     res.json(templates);
   } catch (error) {
     console.error('Error fetching templates:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Environment switching
+router.post('/environment/switch', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const { apiKeyId, environment } = req.body;
+    if (!apiKeyId || !['sandbox', 'production'].includes(environment)) {
+      return res.status(400).json({ error: 'Invalid apiKeyId or environment' });
+    }
+
+    // Verify API key belongs to developer
+    const allApiKeys = await storage.getApiKeysByDeveloperId(account.id);
+    const apiKey = allApiKeys.find(k => k.id === apiKeyId);
+    if (!apiKey) {
+      return res.status(403).json({ error: 'API key not found or access denied' });
+    }
+
+    const { environmentService } = await import('../services/environment-service');
+    await environmentService.switchEnvironment(apiKeyId, environment);
+
+    res.json({
+      success: true,
+      message: `Environment switched to ${environment}`,
+      environment,
+    });
+  } catch (error) {
+    console.error('Error switching environment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get environment configuration
+router.get('/environment/config', async (req, res) => {
+  try {
+    const account = await storage.getDeveloperAccountByUserId(req.user!.id);
+    if (!account) {
+      return res.status(404).json({ error: 'Developer account not found' });
+    }
+
+    const { apiKeyId } = req.query;
+    if (!apiKeyId) {
+      return res.status(400).json({ error: 'apiKeyId is required' });
+    }
+
+    // Verify API key belongs to developer
+    const allApiKeys = await storage.getApiKeysByDeveloperId(account.id);
+    const apiKey = allApiKeys.find(k => k.id === parseInt(apiKeyId as string));
+    if (!apiKey) {
+      return res.status(403).json({ error: 'API key not found or access denied' });
+    }
+
+    const { environmentService } = await import('../services/environment-service');
+    const config = await environmentService.getEnvironmentConfig(parseInt(apiKeyId as string));
+
+    res.json(config);
+  } catch (error) {
+    console.error('Error getting environment config:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

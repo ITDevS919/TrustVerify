@@ -1106,6 +1106,27 @@ import {
         })
         .where(eq(kycVerifications.id, id))
         .returning();
+      
+      // Trigger webhook event if KYC is approved
+      if (kyc && status === 'approved') {
+        try {
+          const { webhookService } = await import('./services/webhook-service');
+          const account = await this.getDeveloperAccountByUserId(kyc.userId);
+          if (account) {
+            await webhookService.triggerWebhookEvent('verification.completed', {
+              verificationId: id,
+              userId: kyc.userId,
+              status: 'approved',
+              type: 'kyc',
+              timestamp: new Date().toISOString(),
+            }, account.id);
+          }
+        } catch (error) {
+          // Don't fail the update if webhook fails
+          console.error('Failed to trigger verification.completed webhook:', error);
+        }
+      }
+      
       return kyc || undefined;
     }
   
@@ -1580,6 +1601,10 @@ import {
 
     async listWebhookConfigurations(developerId: number): Promise<any[]> {
       return await db.select().from(webhookConfigurations).where(eq(webhookConfigurations.developerId, developerId));
+    }
+
+    async listAllWebhookConfigurations(): Promise<any[]> {
+      return await db.select().from(webhookConfigurations);
     }
 
     async updateWebhookConfiguration(id: number, updates: Partial<any>): Promise<any | undefined> {

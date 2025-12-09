@@ -261,6 +261,29 @@ export class EscrowService {
     // Update transaction status
     if (releaseResult.status === 'completed') {
       await storage.updateTransactionStatus(transactionId, 'completed');
+      
+      // Trigger webhook event
+      try {
+        const { webhookService } = await import('./webhook-service');
+        const transaction = await storage.getTransaction(transactionId);
+        if (transaction) {
+          const buyerAccount = await storage.getDeveloperAccountByUserId(transaction.buyerId);
+          const sellerAccount = await storage.getDeveloperAccountByUserId(transaction.sellerId);
+          const developerIds = [buyerAccount?.id, sellerAccount?.id].filter(Boolean) as number[];
+          
+          for (const devId of developerIds) {
+            await webhookService.triggerWebhookEvent('escrow.released', {
+              transactionId,
+              escrowId: releaseResult.id,
+              amount: releaseResult.amount,
+              status: 'completed',
+              timestamp: new Date().toISOString(),
+            }, devId);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to trigger escrow.released webhook:', error);
+      }
     }
 
     return releaseResult;

@@ -270,7 +270,7 @@ export const Dashboard = (): JSX.Element => {
                     className="w-[74px] h-[74px] flex-shrink-0"
                     alt="Completed Transactions"
                     src="/completed_transaction.png"
-                  />
+                          />
                   <div className="flex flex-col items-start gap-5 flex-1">
                     <div className="flex flex-col items-start gap-[5px] w-full">
                       <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg leading-[normal] tracking-[0]">
@@ -317,21 +317,21 @@ export const Dashboard = (): JSX.Element => {
                         {stats.totalEscrow}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <img
-                        className="w-[22px] h-[21px]"
-                        alt="Trend"
+                        <div className="flex items-center gap-2">
+                          <img
+                            className="w-[22px] h-[21px]"
+                            alt="Trend"
                         src="/fi-5592519.svg"
-                      />
-                      <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm tracking-[0] leading-[normal]">
+                          />
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm tracking-[0] leading-[normal]">
                         <span className={transactions.length ? "text-[#d094dd]" : "text-[#808080]"}>
                           {transactions.length ? "Realtime" : "Sample"}
-                        </span>
-                        <span className="text-[#808080]">
+                            </span>
+                            <span className="text-[#808080]">
                           {" "}data
-                        </span>
-                      </div>
-                    </div>
+                            </span>
+                          </div>
+                        </div>
                   </div>
                 </CardContent>
               </Card>
