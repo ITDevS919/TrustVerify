@@ -261,15 +261,15 @@ export const AdminDashboard = (): JSX.Element => {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Database</span>
-                          <Badge variant="default">Healthy</Badge>
+                          <Badge variant="default" className="bg-[#27Ae60] text-white">Healthy</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">API Status</span>
-                          <Badge variant="default">Operational</Badge>
+                          <Badge variant="default" className="bg-[#27Ae60] text-white">Operational</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Storage</span>
-                          <Badge variant="default">Normal</Badge>
+                          <Badge variant="default" className="bg-[#27Ae60] text-white">Normal</Badge>
                         </div>
                       </div>
                     </CardContent>
@@ -314,24 +314,12 @@ export const AdminDashboard = (): JSX.Element => {
             {activeTab === "security" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Security Monitoring</CardTitle>
+                  <CardTitle>Security Dashboard</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">Failed Login Attempts</span>
-                        <Badge variant="destructive">High</Badge>
-                      </div>
-                      <p className="text-sm text-gray-600">24 attempts in the last hour</p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">API Rate Limit Violations</span>
-                        <Badge variant="default">Low</Badge>
-                      </div>
-                      <p className="text-sm text-gray-600">3 violations in the last 24 hours</p>
-                    </div>
+                  <div className="p-8 text-center text-gray-500">
+                    <Shield className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <p>Security monitoring dashboard</p>
                   </div>
                 </CardContent>
               </Card>

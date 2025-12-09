@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useId } from "react";
+import { useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,17 +9,11 @@ import { Card, CardContent } from "../../components/ui/card";
 import {
   ChevronLeft,
   Plus,
-  User2,
   ArrowRightLeft,
   Zap,
   Upload,
   MessageSquare,
   OctagonAlert,
-  BadgeCheck,
-  CheckCircle,
-  Shield,
-  Users,
-  Star,
   ShieldCheck,
   Eye,
 } from "lucide-react";
@@ -100,124 +94,6 @@ type RecentTransactionUI = {
   id?: number;
 };
 
-// Circular Progress Component
-const CircularProgress = ({ 
-  score, 
-  maxScore = 10, 
-  size = 200, 
-  strokeWidth = 12, 
-  starRating = 0
-}: { 
-  score: number; 
-  maxScore?: number; 
-  size?: number; 
-  strokeWidth?: number;
-  starRating?: number;
-}) => {
-  const [animatedScore, setAnimatedScore] = useState(0);
-  const gradientId = useId();
-  const radius = (size - strokeWidth) / 2;
-  const fullCircumference = 2 * Math.PI * radius;
-  // Show only 3/4 of the circle (270 degrees)
-  const visibleCircumference = 0.75 * fullCircumference;
-  const  gapLength = fullCircumference - visibleCircumference ;
-
-  useEffect(() => {
-    const duration = 1500;
-    const startTime = Date.now();
-    const startScore = 0;
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      setAnimatedScore(startScore + (score - startScore) * easeOutQuart);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    animate();
-  }, [score]);
-
-  const currentPercentage = (animatedScore / maxScore) * 100;
-  // Calculate offset for 3/4 circle: show progress within visible portion
-  const currentProgress = (currentPercentage / 100) * visibleCircumference;
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg
-        width={size}
-        height={size}
-        className="transform rotate-[135deg]"
-      >
-        {/* Background circle - showing 3/4 */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#e4e4e4"
-          strokeLinecap="round"
-          strokeWidth={strokeWidth}
-          strokeDasharray={fullCircumference}
-          strokeDashoffset={gapLength}
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={`url(#${gradientId})`}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={currentProgress}
-          className="transition-all duration-300"
-        />
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(39,174,96,1)" />
-            <stop offset="100%" stopColor="rgba(0,82,204,1)" />
-          </linearGradient>
-        </defs>
-      </svg>
-      {/* Center content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="bg-[linear-gradient(117deg,rgba(39,174,96,1)_0%,rgba(0,82,204,0.5)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent] [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-transparent text-4xl text-center leading-[normal] tracking-[0]">
-          {animatedScore.toFixed(1)}
-        </div>
-        <StarRating rating={starRating} />
-      </div>
-    </div>
-  );
-};
-
-// Star Rating Component
-const StarRating = ({ rating, maxRating = 5 }: { rating: number; maxRating?: number }) => {
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
-  const emptyStars = maxRating - fullStars - (hasHalfStar ? 1 : 0);
-
-  return (
-    <div className="flex items-center gap-0.5">
-      {[...Array(fullStars)].map((_, i) => (
-        <Star key={`full-${i}`} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-      ))}
-      {hasHalfStar && (
-        <div className="relative w-4 h-4">
-          <Star className="absolute w-4 h-4 fill-gray-300 text-gray-300" />
-          <div className="absolute overflow-hidden w-1/2">
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-          </div>
-        </div>
-      )}
-      {[...Array(emptyStars)].map((_, i) => (
-        <Star key={`empty-${i}`} className="w-4 h-4 fill-gray-300 text-gray-300" />
-      ))}
-    </div>
-  );
-};
 
 export const Dashboard = (): JSX.Element => {
   const navigate = useNavigate();
@@ -247,10 +123,10 @@ export const Dashboard = (): JSX.Element => {
   const stats = useMemo(() => {
     if (!transactions.length) {
       return {
-        activeTransactions: 3,
-        completedTransactions: 15,
-        totalEscrow: "£5,687.50",
-        trustScore: Number(user?.trustScore ?? 9.5),
+        activeTransactions: 0,
+        completedTransactions: 0,
+        totalEscrow: "£0.00",
+        trustScore: Number(user?.trustScore ?? 0),
       };
     }
 
@@ -270,55 +146,9 @@ export const Dashboard = (): JSX.Element => {
       activeTransactions: active,
       completedTransactions: completed,
       totalEscrow: formatCurrency(totalEscrowValue),
-      trustScore: Number(user?.trustScore ?? 9.5),
+      trustScore: Number(user?.trustScore ?? 0),
     };
   }, [transactions, user?.trustScore]);
-
-  const metricCards = [
-    {
-      icon: "/active_transaction.png",
-      label: "Active Transactions",
-      value: stats.activeTransactions.toString().padStart(2, "0"),
-      badge: {
-        text: "Live Processing",
-        color: "bg-[#436cc8]",
-        textColor: "text-[#436cc8]",
-      },
-    },
-    {
-      icon: "/completed_transaction.png",
-      label: "Completed Transactions",
-      value: stats.completedTransactions.toString().padStart(2, "0"),
-      trend: {
-        icon: "/fi-5592518.svg",
-        text: stats.completedTransactions ? "Completed" : "Pending",
-        textColor: stats.completedTransactions ? "text-[#27ae60]" : "text-[#808080]",
-        suffix: stats.completedTransactions ? " Total completions" : " awaiting activity",
-      },
-    },
-    {
-      icon: "/total_escrow.png",
-      label: "Total In Escrow",
-      value: stats.totalEscrow,
-      trend: {
-        icon: "/fi-5592519.svg",
-        text: transactions.length ? "Realtime" : "Sample",
-        textColor: transactions.length ? "text-[#d094dd]" : "text-[#808080]",
-        suffix: " data",
-      },
-    },
-    {
-      icon: "/trust_score.png",
-      label: "Trust Score",
-      value: (stats.trustScore ?? 0).toFixed(2),
-      badge: {
-        text: stats.trustScore >= 8 ? "Excellent Score" : "Building Trust",
-        color: "bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)]",
-        textColor:
-          "bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent]",
-      },
-    },
-  ];
 
   const recentTransactions: RecentTransactionUI[] = useMemo(() => {
     if (!transactions.length) {
@@ -373,9 +203,6 @@ export const Dashboard = (): JSX.Element => {
     });
   }, [transactions]);
 
-  const trustScore = typeof stats.trustScore === "number" ? stats.trustScore : Number(stats.trustScore ?? 0);
-  const starRating = Math.round((trustScore / 10) * 5 * 10) / 10;
-  const profileCompletion = Math.min(100, Math.max(30, Math.round((trustScore / 10) * 100)));
 
   return (
     <main className="bg-white overflow-hidden w-full relative">
@@ -407,59 +234,139 @@ export const Dashboard = (): JSX.Element => {
 
           <div className="flex flex-col items-start gap-6 w-full">
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-[37px] w-full">
-              {metricCards.map((card, index) => (
                 <Card
-                  key={index}
                   className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] flex items-center justify-center border-solid border-[#e4e4e4]"
                 >
                   <CardContent className="p-[31px] w-full h-full flex items-start justify-center gap-5">
                     <img
                       className="w-[74px] h-[74px] flex-shrink-0"
-                      alt={card.label}
-                      src={card.icon}
+                    alt="Active Transactions"
+                    src="/active_transaction.png"
                     />
                     <div className="flex flex-col items-start gap-5 flex-1">
                       <div className="flex flex-col items-start gap-[5px] w-full">
                         <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg leading-[normal] tracking-[0]">
-                          {card.label}
+                        Active Transactions
                         </div>
                         <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl tracking-[0] leading-[38.6px]">
-                          {card.value}
+                          {stats.activeTransactions.toString().padStart(2, "0")}
                         </div>
+                    </div>
+                    <div className="inline-flex items-center gap-[5px]">
+                      <div className="w-[7px] h-[7px] rounded-[3.5px] bg-[#436cc8]" />
+                      <div className="flex items-center justify-center [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm text-center tracking-[0] leading-[14px] whitespace-nowrap text-[#436cc8]">
+                        Live Processing
                       </div>
-                      {card.badge && (
-                        <div className="inline-flex items-center gap-[5px]">
-                          <div
-                            className={`w-[7px] h-[7px] rounded-[3.5px] ${card.badge.color}`}
-                          />
-                          <div
-                            className={`flex items-center justify-center [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm text-center tracking-[0] leading-[14px] whitespace-nowrap ${card.badge.textColor}`}
-                          >
-                            {card.badge.text}
-                          </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] flex items-center justify-center border-solid border-[#e4e4e4]"
+              >
+                <CardContent className="p-[31px] w-full h-full flex items-start justify-center gap-5">
+                  <img
+                    className="w-[74px] h-[74px] flex-shrink-0"
+                    alt="Completed Transactions"
+                    src="/completed_transaction.png"
+                  />
+                  <div className="flex flex-col items-start gap-5 flex-1">
+                    <div className="flex flex-col items-start gap-[5px] w-full">
+                      <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg leading-[normal] tracking-[0]">
+                        Completed Transactions
                         </div>
-                      )}
-                      {card.trend && (
-                        <div className="flex items-center gap-2">
-                          <img
-                            className="w-[22px] h-[21px]"
-                            alt="Trend"
-                            src={card.trend.icon}
-                          />
-                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm tracking-[0] leading-[normal]">
-                            <span className={card.trend.textColor}>
-                              {card.trend.text}
-                            </span>
-                            <span className="text-[#808080]">
-                              {card.trend.suffix}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl tracking-[0] leading-[38.6px]">
+                        {stats.completedTransactions.toString().padStart(2, "0")}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <img
+                        className="w-[22px] h-[21px]"
+                        alt="Trend"
+                        src="/fi-5592518.svg"
+                      />
+                      <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm tracking-[0] leading-[normal]">
+                        <span className={stats.completedTransactions ? "text-[#27ae60]" : "text-[#808080]"}>
+                          {stats.completedTransactions ? "Completed" : "Pending"}
+                        </span>
+                        <span className="text-[#808080]">
+                          {stats.completedTransactions ? " Total completions" : " awaiting activity"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] flex items-center justify-center border-solid border-[#e4e4e4]"
+              >
+                <CardContent className="p-[31px] w-full h-full flex items-start justify-center gap-5">
+                  <img
+                    className="w-[74px] h-[74px] flex-shrink-0"
+                    alt="Total In Escrow"
+                    src="/total_escrow.png"
+                  />
+                  <div className="flex flex-col items-start gap-5 flex-1">
+                    <div className="flex flex-col items-start gap-[5px] w-full">
+                      <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg leading-[normal] tracking-[0]">
+                        Total In Escrow
+                      </div>
+                      <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl tracking-[0] leading-[38.6px]">
+                        {stats.totalEscrow}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <img
+                        className="w-[22px] h-[21px]"
+                        alt="Trend"
+                        src="/fi-5592519.svg"
+                      />
+                      <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm tracking-[0] leading-[normal]">
+                        <span className={transactions.length ? "text-[#d094dd]" : "text-[#808080]"}>
+                          {transactions.length ? "Realtime" : "Sample"}
+                        </span>
+                        <span className="text-[#808080]">
+                          {" "}data
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] flex items-center justify-center border-solid border-[#e4e4e4]"
+              >
+                <CardContent className="p-[31px] w-full h-full flex items-start justify-center gap-5">
+                  <img
+                    className="w-[74px] h-[74px] flex-shrink-0"
+                    alt="Trust Score"
+                    src="/trust_score.png"
+                  />
+                  <div className="flex flex-col items-start gap-5 flex-1">
+                    <div className="flex flex-col items-start gap-[5px] w-full">
+                      <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg leading-[normal] tracking-[0]">
+                        Trust Score
+                      </div>
+                      <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-4xl tracking-[0] leading-[38.6px]">
+                        {(stats.trustScore ?? 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="inline-flex items-center gap-[5px]">
+                      <div className="w-[7px] h-[7px] rounded-[3.5px] bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)]" />
+                      <div className={`flex items-center justify-center [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-sm text-center tracking-[0] leading-[14px] whitespace-nowrap ${
+                        stats.trustScore >= 8
+                          ? "bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent]"
+                          : "text-[#808080]"
+                      }`}>
+                        {stats.trustScore >= 8 ? "Excellent Score" : "Building Trust"}
+                      </div>
+                    </div>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
             </div>
 
             <div className="flex flex-col lg:flex-row items-center lg:items-start gap-[23px] w-full">
@@ -619,64 +526,6 @@ export const Dashboard = (): JSX.Element => {
 
               <div className="w-full flex flex-col lg:w-[542px] items-start gap-6">
                 <Card className="bg-[#fcfcfc] rounded-[20px] overflow-hidden border-[0.8px] border-solid border-[#e4e4e4] w-full">
-                  <CardContent className="p-6 flex flex-col items-start gap-5">
-                    <div className="inline-flex items-center gap-2.5">
-                      <div className="w-11 h-11 flex justify-center items-center rounded-xl bg-[#0052CC24]">
-                        <User2 className="w-5 h-5 text-[#27AE60]"/>
-                      </div>
-                      <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl tracking-[0] leading-6 whitespace-nowrap">
-                        Account Status
-                      </h2>
-                    </div>
-
-                    <div className="flex flex-col items-start gap-4 w-full">
-                      <div className="flex items-center justify-between w-full">
-                        <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
-                          Verification Level
-                        </div>
-                        <Badge className={`rounded-[50px] overflow-hidden border-[0.8px] border-solid border-transparent ${
-                          (user?.verificationLevel ?? "none") === "full"
-                            ? "bg-[linear-gradient(90deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] text-white"
-                            : "bg-[#f6f6f6] text-[#003d2b]"
-                        } px-3 py-1`}>
-                          <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-xs tracking-[0] leading-4 whitespace-nowrap">
-                            {user?.verificationLevel
-                              ? `${user.verificationLevel.charAt(0).toUpperCase()}${user.verificationLevel.slice(1)} Verified`
-                              : "Not Verified"}
-                          </span>
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center justify-between w-full">
-                        <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
-                          Trust Score
-                        </div>
-                        <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#808080] text-sm leading-5 whitespace-nowrap tracking-[0]">
-                          {(trustScore || 0).toFixed(1)} / 10
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col items-start gap-1.5 w-full">
-                        <div className="flex items-center justify-between w-full">
-                          <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
-                            Profile Completion
-                          </div>
-                          <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#808080] text-sm tracking-[0] leading-5 whitespace-nowrap">
-                            {profileCompletion}%
-                          </div>
-                        </div>
-                        <div className="relative w-full h-2 bg-[#d8d8d8] rounded-[26843500px] overflow-hidden">
-                          <div
-                            className="absolute left-0 top-0 h-2 bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)]"
-                            style={{ width: `${profileCompletion}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#fcfcfc] rounded-[20px] overflow-hidden border-[0.8px] border-solid border-[#e4e4e4] w-full">
                   <CardContent className="p-6 flex flex-col items-start gap-[30px]">
                     <div className="inline-flex items-center gap-2.5">
                       <div className="w-11 h-11 flex justify-center items-center rounded-xl bg-[#0052CC24]">
@@ -710,79 +559,6 @@ export const Dashboard = (): JSX.Element => {
                           </div>
                         </div>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#fcfcfc] rounded-[20px] overflow-hidden border-[0.8px] border-solid border-[#e4e4e4] w-full">
-                  <CardContent className="p-6 flex flex-col items-start gap-6">
-                    <div className="inline-flex items-center gap-2.5">
-                      <div className="w-11 h-11 flex justify-center items-center rounded-xl bg-[#0052CC24]">
-                          <BadgeCheck className="w-5 h-5 text-[#0052CC]"/>
-                      </div>
-                      <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl tracking-[0] leading-6 whitespace-nowrap">
-                        Your Trust Score
-                      </h2>
-                    </div>
-
-                    <div className="flex items-center justify-around gap-5 w-full mt-5">
-                      <CircularProgress score={trustScore} size={140} strokeWidth={8} starRating = {starRating}/>
-                      <div className="flex flex-col items-start gap-[15px] pt-3">
-                        <Badge className="rounded-[50px] overflow-hidden border-[0.8px] border-solid border-transparent bg-[linear-gradient(137deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] px-3 py-1">
-                          <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-xs leading-4 tracking-[0] whitespace-nowrap">
-                            Excellent Rating
-                          </span>
-                        </Badge>
-
-                        <div className="flex flex-col items-start gap-[15px] w-full">
-                            <div className="flex items-center gap-0.5 sm:gap-[5px]">
-                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-[#00AD69]" />
-                              <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-tight leading-4 whitespace-nowrap">
-                                15 completed transactions
-                              </div>
-                            </div> 
-                            <div className="flex items-center gap-0.5 sm:gap-[5px]">
-                              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-[#00AD69]" />
-                              <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-tight leading-4 whitespace-nowrap">
-                                Verified Account
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-0.5 sm:gap-[5px]">
-                              <Users className="w-3 h-3 sm:w-4 sm:h-4 text-[#00AD69]" />
-                              <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-tight leading-4 whitespace-nowrap">
-                                Member since 2024
-                              </div>
-                            </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-start gap-4 w-full">
-                      <div className="w-full h-px bg-slate-200 object-cover"></div>
-
-
-                      <div className="flex flex-col items-center gap-3.5 w-full">
-                        <div className="flex flex-col items-start gap-1.5 w-full">
-                          <div className="flex items-center justify-between w-full">
-                          <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
-                            Progress to Elite Status
-                          </div>
-                          <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#808080] text-sm tracking-[0] leading-5 whitespace-nowrap">
-                            {profileCompletion}%
-                          </div>
-                          </div>
-                          <div className="relative w-full h-2 bg-[#d8d8d8] rounded-[26843500px] overflow-hidden">
-                            <div
-                              className="absolute left-0 top-0 h-2 bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)]"
-                              style={{ width: `${profileCompletion}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs text-center tracking-[0] leading-[normal] w-full">
-                          Complete {Math.max(1, 15 - stats.completedTransactions)} more transactions
-                        </div>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>

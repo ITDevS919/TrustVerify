@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Download, Eye, AlertCircle, Search } from "lucide-react";
+import { ChevronLeft, Download, Eye, AlertCircle, Search } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface KycSubmission {
@@ -212,15 +212,18 @@ export const AdminReview = () => {
       
       <section className="flex flex-col items-start gap-6 w-full px-6 sm:px-8 xl:px-[107px] py-[72px]">
         {/* Header */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="p-0 h-auto hover:bg-transparent"
+        >
+          <ChevronLeft className="w-6 h-6" />
+          <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-[22px] tracking-[0] leading-[normal]">
+            Back
+          </span>
+        </Button>
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/dashboard")}
-              className="p-0 h-auto hover:bg-transparent"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
             <div>
               <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-3xl sm:text-4xl">
                 KYC Admin Review
