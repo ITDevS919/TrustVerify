@@ -259,10 +259,12 @@ export const IndustrySolutions = (): JSX.Element => {
       <section className="w-full relative overflow-hidden">
         <img
           className="absolute bottom-16 left-28 w-[30px] h-[30px]"
+          alt="Icon star"
           src="/icon-star.svg"
         />
         <img
           className="absolute top-28 right-28 w-[30px] h-[30px]"
+          alt="Icon star"
           src="/icon-star-1.svg"
         />
         <div className="flex flex-col xl:flex-row items-center justify-center gap-[50px] w-full max-w-[1401px] mx-auto px-6 md:px-10 pt-20 pb-24">
