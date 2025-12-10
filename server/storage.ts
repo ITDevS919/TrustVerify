@@ -1018,9 +1018,16 @@ import {
     }
   
     async createUser(insertUser: InsertUser): Promise<User> {
+      // For OAuth users (google, facebook, github, apple), password should be null
+      // For local users, password should be provided (hashed)
+      const userData = {
+        ...insertUser,
+        password: insertUser.password || null, // Explicitly set to null if not provided
+      };
+      
       const [user] = await db
         .insert(users)
-        .values(insertUser)
+        .values(userData)
         .returning();
       return user;
     }

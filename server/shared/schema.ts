@@ -496,12 +496,14 @@ export const insertUserSchema = createInsertSchema(users).pick({
     .min(12, "Password must be at least 12 characters long")
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
       "Password must contain uppercase, lowercase, number, and special character")
+    .nullable()
     .optional(),
 }).partial({ username: true }).refine((data) => {
   // Either password auth (local) or OAuth
   if (data.authProvider === 'local') {
     return data.password && data.username;
   }
+  // For OAuth, password should be null or undefined
   return true;
 }, {
   message: "Username and password required for local authentication",
@@ -741,6 +743,25 @@ export const subscriptionInvoices = pgTable("subscription_invoices", {
 });
 
 // Subscription Usage Tracking table
+// File Storage table for KYC/KYB documents
+export const fileStorage = pgTable("file_storage", {
+  id: serial("id").primaryKey(),
+  fileId: text("file_id").notNull().unique(), // Unique file identifier
+  userId: integer("user_id").references(() => users.id).notNull(),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(), // Size in bytes
+  storageProvider: text("storage_provider").notNull(), // 's3', 'azure', 'local'
+  storageKey: text("storage_key").notNull(), // S3 key, Azure blob name, or local path
+  fileType: text("file_type").notNull(), // 'kyc', 'kyb', 'document'
+  checksum: text("checksum"), // SHA-256 hash for integrity verification
+  encrypted: boolean("encrypted").default(false),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // For temporary files
+  deletedAt: timestamp("deleted_at"), // Soft delete
+});
+
 export const subscriptionUsage = pgTable("subscription_usage", {
   id: serial("id").primaryKey(),
   subscriptionId: integer("subscription_id").references(() => userSubscriptions.id).notNull(),
