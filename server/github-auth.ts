@@ -2,6 +2,9 @@ import passport from "passport";
 import { Strategy as GitHubStrategy, StrategyOptionsWithRequest } from "passport-github2";
 import { Express } from "express";
 import { storage } from "./storage";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export function setupGitHubAuth(app: Express) {
   // Only setup GitHub OAuth if credentials are provided
@@ -10,11 +13,23 @@ export function setupGitHubAuth(app: Express) {
     return;
   }
 
+  // Determine the callback URL based on environment
+  // Priority: GITHUB_CALLBACK_URL > FRONTEND_URL > SERVER_URL > relative path
+  const callbackPath = '/auth/github/callback';
+  let callbackURL: string;
+  const baseUrl = process.env.FRONTEND_URL || process.env.SERVER_URL || '';
+  callbackURL = baseUrl 
+    ? `${baseUrl}${callbackPath}` 
+    : callbackPath; // Relative path if no base URL is set
+
+  console.log(`GitHub OAuth callback URL: ${callbackURL}`);
+  console.log(`⚠️  Make sure this exact URL is added to GitHub OAuth App → Settings → Authorization callback URL`);
+
   // GitHub OAuth Strategy
   passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: "/auth/github/callback",
+    callbackURL: callbackURL,
     scope: ['user:email']
   } as StrategyOptionsWithRequest,
   async (
@@ -25,12 +40,29 @@ export function setupGitHubAuth(app: Express) {
   ) => {
     try {
       const email = profile.emails?.[0]?.value;
-      const firstName = profile.displayName?.split(' ')[0];
-      const lastName = profile.displayName?.split(' ').slice(1).join(' ');
-      const profileImage = profile.photos?.[0]?.value;
+      
+      // GitHub profile structure: 
+      // - profile.displayName (if set in GitHub profile)
+      // - profile.name (from GitHub API)
+      // - profile.username (always available)
+      // - profile._json contains raw GitHub API response
+      const displayName = profile.displayName || profile.name || '';
+      const firstName = displayName ? displayName.split(' ')[0] : null;
+      const lastName = displayName ? displayName.split(' ').slice(1).join(' ') : null;
+      
+      // Try multiple sources for profile image
+      const profileImage = profile.photos?.[0]?.value || 
+                          profile._json?.avatar_url || 
+                          null;
       
       if (!email) {
-        return done(new Error("No email found in GitHub profile"));
+        console.error('GitHub OAuth: No email found in profile', { 
+          profileId: profile.id, 
+          username: profile.username,
+          hasEmails: !!profile.emails,
+          emailCount: profile.emails?.length 
+        });
+        return done(new Error("No email found in GitHub profile. Please ensure your GitHub account has a verified email address."));
       }
 
       // Check if user already exists
@@ -40,7 +72,7 @@ export function setupGitHubAuth(app: Express) {
         // Update existing user with GitHub info if they signed up locally
         if (!user.githubId) {
           user = await storage.updateUser(user.id, {
-            githubId: profile.id,
+            githubId: profile.id.toString(),
             authProvider: 'github',
             profileImage: profileImage || user.profileImage,
             firstName: firstName || user.firstName,
@@ -60,7 +92,7 @@ export function setupGitHubAuth(app: Express) {
         lastName: lastName || null,
         profileImage: profileImage || null,
         authProvider: 'github',
-        githubId: profile.id,
+        githubId: profile.id.toString(),
         isVerified: true,
       });
 
