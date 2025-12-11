@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -53,6 +54,7 @@ interface Usage {
 }
 
 export const SubscriptionManagement = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -222,7 +224,7 @@ export const SubscriptionManagement = () => {
               </CardHeader>
               <CardContent>
                 <Button
-                  onClick={() => (window.location.href = "/pricing")}
+                  onClick={() => navigate("/pricing")}
                   className="bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
                 >
                   View Plans
@@ -319,7 +321,7 @@ export const SubscriptionManagement = () => {
                         )}
                       </Button>
                       <Button
-                        onClick={() => (window.location.href = "/pricing")}
+                        onClick={() => navigate("/pricing")}
                         className="flex-1 bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
                       >
                         Change Plan

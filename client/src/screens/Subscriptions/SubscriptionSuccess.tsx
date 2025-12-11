@@ -1,18 +1,21 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { HeaderDemo } from "../../components/HeaderDemo";
 
 export const SubscriptionSuccess = () => {
+  const navigate = useNavigate();
+  
   useEffect(() => {
     // Redirect to management page after 3 seconds
     const timer = setTimeout(() => {
-      window.location.href = "/subscription/manage";
+      navigate("/subscription/manage");
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
@@ -30,7 +33,7 @@ export const SubscriptionSuccess = () => {
               Your subscription has been successfully activated. You'll be redirected to the management page shortly.
             </p>
             <Button
-              onClick={() => (window.location.href = "/subscription/manage")}
+              onClick={() => navigate("/subscription/manage")}
               className="w-full bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
             >
               Go to Subscription Management

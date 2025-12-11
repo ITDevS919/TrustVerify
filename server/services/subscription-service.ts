@@ -268,8 +268,38 @@ export class SubscriptionService {
    */
   async createCheckoutSession(userId: number, planId: number, successUrl: string, cancelUrl: string): Promise<string> {
     const plan = await storage.getSubscriptionPlan(planId);
-    if (!plan || !plan.stripePriceId) {
-      throw new Error('Subscription plan not found or does not have a Stripe price ID');
+    if (!plan) {
+      throw new Error('Subscription plan not found');
+    }
+
+    // If the plan has no Stripe price (e.g., free tier or Stripe not configured),
+    // create the subscription locally and return the success URL so the client
+    // can continue without redirecting to Stripe Checkout.
+    if (!plan.stripePriceId) {
+      const now = new Date();
+      const oneMonthFromNow = new Date(now);
+      oneMonthFromNow.setMonth(now.getMonth() + 1);
+
+      await storage.createUserSubscription({
+        userId,
+        planId,
+        status: 'active',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+        currentPeriodStart: now,
+        currentPeriodEnd: oneMonthFromNow,
+        cancelAtPeriodEnd: false,
+        canceledAt: null,
+        trialStart: null,
+        trialEnd: null,
+        quantity: 1,
+        metadata: {
+          note: 'Local subscription created without Stripe price ID',
+        },
+      });
+
+      // No external checkout needed; return a URL the client can navigate to.
+      return successUrl;
     }
 
     const user = await storage.getUser(userId);
