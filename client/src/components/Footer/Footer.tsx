@@ -7,7 +7,7 @@ const companyLinks = [
   { label: "Home", path: "/" },
   { label: "About Us", path: "/about" },
   { label: "Our Mission", path: "/our-mission" },
-  { label: "Press & Media", path: "/press-media" },
+  { label: "Press & Media", path: "/media" },
 ];
 
 const fraudDetectionLinks = [
@@ -19,7 +19,6 @@ const fraudDetectionLinks = [
 const supportLinks = [
   { label: "Help Center", path: "/help" },
   { label: "Contact Us", path: "/contact" },
-  { label: "Training", path: "/training" },
 ];
 
 const legalLinks = [

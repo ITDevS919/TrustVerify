@@ -63,7 +63,7 @@ const navigationItems: NavigationItem[] = [
   { 
     label: "Solutions", 
     hasDropdown: true, 
-    path: "/solutions",
+    path: "/industry",
     subItems: [
       { label: "Industry Solutions", path: "/industry", description: "Tailored solutions for every industry" },
       { label: "Regulatory Compliances", path: "/compliances", description: "Marketplace protection" },
@@ -72,9 +72,8 @@ const navigationItems: NavigationItem[] = [
   { 
     label: "Enterprises", 
     hasDropdown: true, 
-    path: "/Enterprises",
+    path: "/contact",
     subItems: [
-      { label: "Training", path: "/training", description: "Training" },
       { label: "Help Center", path: "/help", description: "Help Center" },
       { label: "Contact Us", path: "/contact", description: "Contact US" },
     ]

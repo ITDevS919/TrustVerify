@@ -5,6 +5,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
+import { useNavigate } from "react-router-dom";
 import { TrendingUp, ArrowRightIcon } from "lucide-react";
 
 const contactCards = [
@@ -416,7 +417,9 @@ export const ContactUS = (): JSX.Element => {
                     Make a claim, manage your security concerns or ask a question.
                   </p>
 
-                  <Button className="w-full h-[50px] bg-[#003d2b] hover:bg-[#003d2b]/90 rounded-[10px] text-white">
+                  <Button 
+                    onClick={() => navigate("/login")}
+                    className="w-full h-[50px] bg-[#003d2b] hover:bg-[#003d2b]/90 rounded-[10px] text-white">
                     <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-lg tracking-[-0.20px] leading-[18px]">
                       Log In
                     </span>
