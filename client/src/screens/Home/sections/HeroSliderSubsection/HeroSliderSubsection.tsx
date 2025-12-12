@@ -207,7 +207,7 @@ export const HeroSliderSubsection = (): JSX.Element => {
                   onClick={() => navigate("/dashboard")}
                   className="flex-1 sm:flex-none sm:w-[180px] md:w-[200px] lg:w-[223px] h-10 sm:h-11 md:h-12 lg:h-14 bg-app-secondary hover:bg-app-secondary/90 rounded-[10px] [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-xs sm:text-sm md:text-base lg:text-lg tracking-[-0.20px] leading-[14px] sm:leading-[16px] md:leading-[17px] lg:leading-[18px]"
                 >
-                  Get Started Free
+                  Get Verified
                   <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-[30px] lg:h-[30px] ml-1.5 sm:ml-2 lg:ml-2 flex-shrink-0" />
                 </Button>
 
@@ -216,7 +216,7 @@ export const HeroSliderSubsection = (): JSX.Element => {
                   onClick={() => navigate("/live-demo")}
                   className="flex-1 sm:flex-none sm:w-[160px] md:w-[180px] lg:w-[198px] h-10 sm:h-11 md:h-12 lg:h-14 border-app-secondary text-app-secondary bg-transparent hover:bg-app-secondary/10 rounded-[10px] [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-xs sm:text-sm md:text-base lg:text-lg tracking-[-0.20px] leading-[14px] sm:leading-[16px] md:leading-[17px] lg:leading-[18px]"
                 >
-                  Learn More
+                  How It Works
                 </Button>
               </div>
             </div>
