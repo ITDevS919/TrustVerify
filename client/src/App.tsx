@@ -54,7 +54,9 @@ import { Solutions } from "./screens/solutions";
 import { ApiKeysPage } from "./screens/ApiKeys";
 import { ApiDocPage } from "./screens/ApiDoc";
 import CategoryPage from "./screens/solutions/[Category]";
-
+import { SDKDocumentation } from "./screens/SDK-Documentation";
+import { EnterpriseContact } from "./screens/EnterpriseContact";
+import { WebsiteIntegrityPage } from "./screens/WebsiteIntegrity";
 
 function App() {
   return (
@@ -90,6 +92,7 @@ function App() {
               <Route path="/api-pricing" element={<ApiPricing />} />
               <Route path="/api-keys" element={<ApiKeysPage />} />
               <Route path="/api-docs" element={<ApiDocPage />} />
+              <Route path="/sdk-documentation" element={<SDKDocumentation />} />
               <Route path="/fraud-prevention" element={<FraudPrevention />} />
               <Route path="/live-demo" element={<LiveDemo />} />
               
@@ -101,10 +104,12 @@ function App() {
               <Route path="/onboarding-demo" element={<OnboardingDemo />} />
               <Route path="/integration-examples" element={<IntegrationExamples />} />
               <Route path="/enterprise/features" element={<Features />} />
+              <Route path="/enterprise-contact" element={<EnterpriseContact />} />
               <Route path="/demo" element={<DemoPage />} />
               <Route path="/solutions" element={<Solutions />} />
               <Route path="/solutions/:category" element={<CategoryPage />} />
 
+              <Route path="/website-integrity" element={<WebsiteIntegrityPage />} />
               
               {/* Protected Routes */}
               <Route  

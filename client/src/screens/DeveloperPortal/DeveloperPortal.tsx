@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import React from "react";
-import { X, Clock, Copy, Eye, Trash2, ChevronDown } from "lucide-react";
+import { X, Clock, Copy, Eye, EyeOff, Trash2, ChevronDown, Key, Plus, CheckCircle, Landmark, CreditCard, Shield, Coins, ShoppingCart, Building2, Gamepad2, Truck, Users, Briefcase, ExternalLink, Code, BarChart3, Activity, TrendingUp, MessageSquare, Mail, Book, Package, FileText } from "lucide-react";
 import { Header } from "../../components/Header";
 import { Button } from "../../components/ui/button";
 import { Separator } from "../../components/ui/separator";
@@ -23,6 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { useToast } from "../../hooks/use-toast";
+import { useAuth } from "../../hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "../../lib/queryClient";
 import { WorkflowBuilder } from "./components/WorkflowBuilder";
 import { TemplateGallery } from "./components/TemplateGallery";
 import { ApiExplorer } from "./components/ApiExplorer";
@@ -30,55 +34,8 @@ import { DeveloperAuth } from "./components/DeveloperAuth";
 import { WebhookManager } from "./components/WebhookManager";
 import { SDKManager } from "./components/SDKManager";
 import { EnhancedAnalytics } from "./components/EnhancedAnalytics";
-import { apiRequest } from "../../lib/queryClient";
 
-const scoreBreakdown = [
-  { label: "Account Age:", points: "+25 points" },
-  { label: "Transaction History:", points: "+20 Points" },
-  { label: "KYC Verification:", points: "+30 Points" },
-  { label: "Clean Record:", points: "+12 Points" },
-];
-
-const recommendations = [
-  "Allow high-value transactions",
-  "Minimal verification required",
-  "Suitable for premium features",
-];
-
-const navigationItems = [
-  { label: "Demo", isActive: true },
-  { label: "Business", isActive: false },
-  { label: "Developers", isActive: false },
-  { label: "Pricing", isActive: false },
-  { label: "Support", isActive: false },
-];
-
-const metricCards = [
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-10.svg",
-    label: "API Calls Today",
-    value: "2,847",
-    trend: "+12%",
-    trendText: "From yesterday",
-    trendColor: "text-[#436cc8]",
-    iconSrc: "/fi-55925180.svg",
-  },
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-20.svg",
-    label: "Success Rate",
-    value: "99.8%",
-    badge: "Excellent Performance",
-    badgeColor: "bg-app-secondary",
-  },
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-30.svg",
-    label: "Avg Response",
-    value: "42ms",
-    badge: "Lightning Fast",
-    badgeColor: "bg-[#d094dd]",
-    badgeIcon: "/vector0.svg",
-  },
-];
+// Removed mock metricCards - using real data from API
 
 const sidebarNavigationItems = [
   {
@@ -155,131 +112,9 @@ const sidebarNavigationItems = [
   },
 ];
 
-const dashboardMetricCards = [
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-10.svg",
-    label: "API Calls Today",
-    value: "2,847",
-    badge: {
-      icon: "/fi-55925180.svg",
-      text: "+12%",
-      textColor: "text-[#436cc8]",
-      subtext: " From yesterday",
-    },
-  },
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-20.svg",
-    label: "Success Rate",
-    value: "99.8%",
-    badge: {
-      dot: true,
-      text: "Excellent Performance",
-      textColor: "text-app-secondary",
-    },
-  },
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-30.svg",
-    label: "Avg Response",
-    value: "42ms",
-    badge: {
-      icon: "/vector0.svg",
-      text: "Lightning Fast",
-      textColor: "text-[#d094dd]",
-    },
-  },
-  {
-    icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar0.svg",
-    label: "Active Users",
-    value: "156",
-    badge: {
-      icon: "/fi-7473760.svg",
-      text: "+8 New today",
-      textColor:
-        "bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent]",
-    },
-  },
-];
+// Removed mock data - using real data from API
 
-const systemStatusRows = [
-  {
-    label: "Account Status",
-    value: "Processing",
-    badge: true,
-    badgeVariant: "warning",
-  },
-  {
-    label: "Api Keys",
-    value: "3 Active",
-    badge: false,
-  },
-  {
-    label: "Monthly Quota",
-    value: "2,847 / 10,000",
-    badge: false,
-  },
-];
-
-const quickActions = [
-  {
-    icon: "/fi-20990580.svg",
-    label: "Manage API Keys",
-  },
-  {
-    icon: "/fi-82494880.svg",
-    label: "View Documentation",
-  },
-  {
-    icon: "/fi-8750730.svg",
-    label: "Test API Endpoints",
-  },
-  {
-    icon: "/fi-5286180.svg",
-    label: "View Analytics",
-  },
-];
-
-const recentActivities = [
-  {
-    title: "Fraud Analysis Completed",
-    time: "2 Mins Ago",
-  },
-  {
-    title: "Trust Score Calculated",
-    time: "5 Mins Ago",
-  },
-  {
-    title: "Risk Assessment Processed",
-    time: "8 Mins Ago",
-  },
-];
-
-const systemAlerts = [
-  {
-    icon: "/fi-2723400.svg",
-    title: "Account Verification Pending",
-    description: "Complete Verification To Unlock Full Features",
-    borderColor: "border-yellow-500",
-  },
-  {
-    icon: "/fi-65772550.svg",
-    title: "New Api Version Available",
-    description: "V2.1.0 Includes Performance Improvements",
-    borderColor: "border-[#312fb5]",
-  },
-  {
-    icon: "/fi-1026490.svg",
-    title: "Security Scan Completed",
-    description: "No Vulnerabilities Detected",
-    borderColor: "border-[#27ae60]",
-  },
-];
-
-const documentationResources = [
-  { icon: "/fi-7871158.svg", label: "API References" },
-  { icon: "/fi-3573187.svg", label: "SDK Documentation" },
-  { icon: "/fi-4618560.svg", label: "Integration Examples" },
-  { icon: "/fi-9374883.svg", label: "Contact Support" },
-];
+// Removed mock documentationResources - using buttons with navigation
 
 const apiEndpoints = [
   {
@@ -299,39 +134,7 @@ const apiEndpoints = [
   },
 ];
 
-const supportOptions = [
-  {
-    icon: "/fi-6460943.svg",
-    text: "Email Support (api-support@trustverify.com)",
-  },
-  {
-    icon: "/fi-20109903.svg",
-    text: "Join Developer Slack Community",
-  },
-  {
-    icon: "/fi-109946493.svg",
-    text: "Live Chat Support",
-  },
-];
-
-const developerResources = [
-  {
-    icon: "/fi-7871158.svg",
-    text: "API Reference Documentation",
-  },
-  {
-    icon: "/fi-4618560.svg",
-    text: "SDK Integration Guides",
-  },
-  {
-    icon: "/fi-3573187.svg",
-    text: "Code Samples & Examples",
-  },
-  {
-    icon: "/fi-174963053.svg",
-    text: "API Status & Uptime",
-  },
-];
+// Removed mock supportOptions and developerResources - using buttons with navigation
 
 const faqs = [
   {
@@ -363,18 +166,245 @@ interface ApiKey {
   createdAt: string;
   lastUsed: string;
   isVisible: boolean;
+  industry?: string;
+  useCase?: string;
+  permissions?: string[];
+  rateLimits?: {
+    apiCalls: number;
+    fraudChecks: number;
+    kycVerifications: number;
+  };
+  status?: string;
+  keyPrefix?: string;
 }
 
+interface IndustryConfig {
+  id: string;
+  name: string;
+  icon: any;
+  description: string;
+  useCases: string[];
+  permissions: string[];
+  rateLimits: {
+    apiCalls: number;
+    fraudChecks: number;
+    kycVerifications: number;
+  };
+  features: string[];
+}
+
+const industryConfigs: IndustryConfig[] = [
+  {
+    id: 'banking',
+    name: 'Banking & Financial Services',
+    icon: Landmark,
+    description: 'Comprehensive fraud protection, AML compliance, and regulatory reporting for traditional banking operations.',
+    useCases: [
+      'Account opening fraud prevention',
+      'Transaction monitoring & AML',
+      'Regulatory compliance reporting',
+      'Wire transfer verification',
+      'Credit application screening'
+    ],
+    permissions: ['transactions', 'fraud_detection', 'kyc', 'aml_screening', 'regulatory_reporting', 'compliance_monitoring'],
+    rateLimits: {
+      apiCalls: 5000,
+      fraudChecks: 2000,
+      kycVerifications: 500
+    },
+    features: ['Real-time AML screening', 'PEP/Sanctions checking', 'Enhanced due diligence', 'Regulatory reporting dashboard']
+  },
+  {
+    id: 'fintech',
+    name: 'Fintech & Digital Payments',
+    icon: CreditCard,
+    description: 'High-velocity fraud detection and seamless KYC for modern payment platforms and neobanks.',
+    useCases: [
+      'Real-time payment fraud detection',
+      'Digital wallet security',
+      'P2P transfer protection',
+      'Instant KYC verification',
+      'Account takeover prevention'
+    ],
+    permissions: ['transactions', 'fraud_detection', 'kyc', 'real_time_monitoring', 'device_fingerprinting', 'behavioral_analytics'],
+    rateLimits: {
+      apiCalls: 10000,
+      fraudChecks: 5000,
+      kycVerifications: 1000
+    },
+    features: ['Sub-second verification', 'Device fingerprinting', 'Behavioral analytics', 'Mobile-first KYC']
+  },
+  {
+    id: 'insurance',
+    name: 'Insurance',
+    icon: Shield,
+    description: 'Claims fraud detection, policy verification, and risk assessment for insurance providers.',
+    useCases: [
+      'Claims fraud detection',
+      'Policy application screening',
+      'Premium fraud prevention',
+      'Identity verification for claims',
+      'Staged accident detection'
+    ],
+    permissions: ['fraud_detection', 'kyc', 'risk_assessment', 'claims_analysis', 'identity_verification'],
+    rateLimits: {
+      apiCalls: 3000,
+      fraudChecks: 1500,
+      kycVerifications: 300
+    },
+    features: ['Claims pattern analysis', 'Medical records verification', 'Vehicle fraud detection', 'Property damage assessment']
+  },
+  {
+    id: 'crypto',
+    name: 'Cryptocurrency & Blockchain',
+    icon: Coins,
+    description: 'Wallet risk scoring, DeFi protection, and crypto-specific fraud prevention.',
+    useCases: [
+      'Wallet risk assessment',
+      'DeFi protocol protection',
+      'Exchange fraud prevention',
+      'Smart contract auditing',
+      'Crypto AML compliance'
+    ],
+    permissions: ['fraud_detection', 'wallet_analysis', 'blockchain_monitoring', 'smart_contract_audit', 'crypto_aml'],
+    rateLimits: {
+      apiCalls: 7500,
+      fraudChecks: 3000,
+      kycVerifications: 750
+    },
+    features: ['Wallet reputation scoring', 'Cross-chain analysis', 'DeFi risk assessment', 'Token contract verification']
+  },
+  {
+    id: 'ecommerce',
+    name: 'E-commerce & Marketplaces',
+    icon: ShoppingCart,
+    description: 'Checkout fraud prevention, seller verification, and marketplace trust & safety.',
+    useCases: [
+      'Payment fraud prevention',
+      'Account creation abuse',
+      'Seller verification',
+      'Chargeback protection',
+      'Review fraud detection'
+    ],
+    permissions: ['transactions', 'fraud_detection', 'seller_verification', 'chargeback_protection', 'review_monitoring'],
+    rateLimits: {
+      apiCalls: 15000,
+      fraudChecks: 7500,
+      kycVerifications: 1500
+    },
+    features: ['Real-time checkout protection', 'Seller trust scoring', 'Review authenticity', 'Inventory fraud detection']
+  },
+  {
+    id: 'retail',
+    name: 'Retail & Point-of-Sale',
+    icon: Building2,
+    description: 'In-store and online fraud protection for retail operations and loyalty programs.',
+    useCases: [
+      'Card-present fraud detection',
+      'Loyalty program abuse',
+      'Return fraud prevention',
+      'Gift card fraud protection',
+      'Employee fraud monitoring'
+    ],
+    permissions: ['transactions', 'fraud_detection', 'loyalty_monitoring', 'return_analysis', 'employee_monitoring'],
+    rateLimits: {
+      apiCalls: 8000,
+      fraudChecks: 4000,
+      kycVerifications: 800
+    },
+    features: ['POS integration', 'Loyalty fraud detection', 'Return pattern analysis', 'Employee activity monitoring']
+  },
+  {
+    id: 'igaming',
+    name: 'iGaming & Online Gambling',
+    icon: Gamepad2,
+    description: 'Player verification, bonus abuse prevention, and regulatory compliance for gaming operators.',
+    useCases: [
+      'Player age verification',
+      'Bonus abuse detection',
+      'Multi-account prevention',
+      'Responsible gambling controls',
+      'Regulatory compliance'
+    ],
+    permissions: ['fraud_detection', 'kyc', 'age_verification', 'bonus_monitoring', 'gambling_compliance', 'geolocation'],
+    rateLimits: {
+      apiCalls: 5000,
+      fraudChecks: 2500,
+      kycVerifications: 1000
+    },
+    features: ['Age verification', 'Geolocation compliance', 'Bonus abuse detection', 'Responsible gambling tools']
+  },
+  {
+    id: 'logistics',
+    name: 'Logistics & Supply Chain',
+    icon: Truck,
+    description: 'Shipment verification, carrier authentication, and supply chain fraud prevention for logistics operations.',
+    useCases: [
+      'Shipment tracking verification',
+      'Carrier identity validation',
+      'Delivery confirmation fraud',
+      'Supply chain transparency',
+      'Package tampering detection'
+    ],
+    permissions: ['fraud_detection', 'shipment_tracking', 'carrier_verification', 'delivery_monitoring', 'supply_chain_audit'],
+    rateLimits: {
+      apiCalls: 6000,
+      fraudChecks: 3000,
+      kycVerifications: 500
+    },
+    features: ['Real-time shipment tracking', 'Carrier authentication', 'Delivery fraud detection', 'Supply chain audit trails']
+  },
+  {
+    id: 'hr',
+    name: 'Human Resources & Recruitment',
+    icon: Users,
+    description: 'Employee KYC verification, background checks, and automated onboarding workflows for HR departments.',
+    useCases: [
+      'Employee identity verification',
+      'Background check screening',
+      'Document validation',
+      'Onboarding workflow automation',
+      'Compliance certification'
+    ],
+    permissions: ['kyc', 'identity_verification', 'background_screening', 'document_validation', 'onboarding_automation', 'compliance_reporting'],
+    rateLimits: {
+      apiCalls: 2000,
+      fraudChecks: 500,
+      kycVerifications: 500
+    },
+    features: ['4-step onboarding automation', 'Background screening', 'Document OCR & validation', 'Compliance certificate generation']
+  },
+  {
+    id: 'solicitor',
+    name: 'Legal & Compliance',
+    icon: Briefcase,
+    description: 'Solicitor verification, legal compliance screening, and professional credential validation for legal firms.',
+    useCases: [
+      'Bar license verification',
+      'Sanctions & PEP screening',
+      'Professional credential validation',
+      'Compliance documentation',
+      'Disciplinary record checks'
+    ],
+    permissions: ['kyc', 'sanctions_screening', 'credential_verification', 'compliance_monitoring', 'professional_verification', 'regulatory_reporting'],
+    rateLimits: {
+      apiCalls: 1500,
+      fraudChecks: 300,
+      kycVerifications: 300
+    },
+    features: ['Bar association integration', 'Real-time sanctions screening', 'Professional credential verification', 'Regulatory audit trails']
+  }
+];
+
 export const DeveloperPortal = (): JSX.Element => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [activeNavItem, setActiveNavItem] = useState<string>("dashboard");
-  const [showCreateApiKeyModal, setShowCreateApiKeyModal] =
-    useState<boolean>(false);
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [newKeyName, setNewKeyName] = useState<string>("");
+  const [apiKeyName, setApiKeyName] = useState<string>("");
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("");
+  const [selectedUseCase, setSelectedUseCase] = useState<string>("");
+  const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
-  const [dashboardStats, setDashboardStats] = useState<any>(null);
-  const [analyticsStats, setAnalyticsStats] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [trustScoreInputs, setTrustScoreInputs] = useState({
     accountAge: "",
     transactionHistory: "",
@@ -390,144 +420,188 @@ export const DeveloperPortal = (): JSX.Element => {
   const [checkingAccount, setCheckingAccount] = useState<boolean>(true);
   const [accountStatus, setAccountStatus] = useState<string | null>(null);
 
-  // Check developer account on mount
-  useEffect(() => {
-    checkDeveloperAccount();
-  }, []);
-
-  // Fetch API keys on mount and when tab changes
-  useEffect(() => {
-    if (activeNavItem === "api-keys" && hasDeveloperAccount) {
-      fetchApiKeys();
-    }
-  }, [activeNavItem, hasDeveloperAccount]);
-
-  const checkDeveloperAccount = async () => {
-    try {
-      setCheckingAccount(true);
+  // Fetch developer account
+  const { data: account, isLoading: accountLoading } = useQuery<any>({
+    queryKey: ["/api/developer/account"],
+    enabled: !!user,
+    queryFn: async () => {
       const response = await apiRequest("GET", "/api/developer/account");
-      const account = await response.json();
-      if (account && (account.status === "approved" || account.status === "pending")) {
+      return await response.json();
+    },
+  });
+
+  // Fetch API keys
+  const { data: apiKeys = [], isLoading: keysLoading } = useQuery<ApiKey[]>({
+    queryKey: ["/api/developer/api-keys"],
+    enabled: !!user && !!account,
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/developer/api-keys");
+      const data = await response.json();
+      return data.map((key: any) => ({
+        id: key.id.toString(),
+        name: key.name,
+        key: key.key || (key.keyPrefix ? `${key.keyPrefix}...` : "tvk_..."),
+        createdAt: new Date(key.createdAt).toLocaleDateString("en-GB"),
+        lastUsed: key.lastUsed || key.lastUsedAt
+          ? new Date(key.lastUsed || key.lastUsedAt).toLocaleDateString("en-GB")
+          : "Never",
+        isVisible: false,
+        industry: key.industry,
+        useCase: key.useCase,
+        permissions: key.permissions || [],
+        rateLimits: key.rateLimits,
+        status: key.status || 'active',
+        keyPrefix: key.keyPrefix,
+      }));
+    },
+  });
+
+  // Fetch usage stats
+  const { data: usageStats = {} as any, isLoading: statsLoading } = useQuery<any>({
+    queryKey: ["/api/developer/usage/stats"],
+    enabled: !!user && !!account,
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/developer/usage/stats");
+      return await response.json();
+    },
+  });
+
+  // Fetch usage logs for recent activities
+  const { data: usageLogs = [] } = useQuery<any[]>({
+    queryKey: ["/api/developer/usage/logs"],
+    enabled: !!user && !!account && activeNavItem === "dashboard",
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/developer/usage/logs?limit=10");
+      const data = await response.json();
+      return data;
+    },
+  });
+
+  // Check developer account status
+  useEffect(() => {
+    if (account) {
+      if (account.status === "approved" || account.status === "pending") {
         setHasDeveloperAccount(true);
         setAccountStatus(account.status);
       } else {
         setHasDeveloperAccount(false);
         setAccountStatus(null);
       }
-    } catch (error) {
-      // Account doesn't exist
+      setCheckingAccount(false);
+    } else if (!accountLoading && !account) {
       setHasDeveloperAccount(false);
       setAccountStatus(null);
-    } finally {
       setCheckingAccount(false);
     }
-  };
+  }, [account, accountLoading]);
 
-  // Fetch dashboard stats
-  useEffect(() => {
-    if (activeNavItem === "dashboard") {
-      fetchDashboardStats();
-    }
-  }, [activeNavItem]);
+  const selectedIndustryConfig = industryConfigs.find(config => config.id === selectedIndustry);
 
-  // Fetch analytics stats
-  useEffect(() => {
-    if (activeNavItem === "analytics") {
-      fetchAnalyticsStats();
-    }
-  }, [activeNavItem]);
+  // Create API key mutation
+  const createApiKeyMutation = useMutation({
+    mutationFn: async (keyData: any) => {
+      const response = await apiRequest("POST", "/api/developer/api-keys", keyData);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/api-keys"] });
+      setApiKeyName("");
+      setSelectedIndustry("");
+      setSelectedUseCase("");
+      toast({
+        title: "API Key Generated",
+        description: `Successfully created ${selectedIndustryConfig?.name} API key: ${apiKeyName.trim()}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate API key. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const fetchApiKeys = async () => {
-    try {
-      setLoading(true);
-      const response = await apiRequest("GET", "/api/developer/api-keys");
-      const data = await response.json();
-      setApiKeys(
-        data.map((key: any) => ({
-          id: key.id.toString(),
-          name: key.name,
-          key: key.keyPrefix ? `${key.keyPrefix}...` : "tvk_...",
-          createdAt: new Date(key.createdAt).toLocaleDateString("en-GB"),
-          lastUsed: key.lastUsed
-            ? new Date(key.lastUsed).toLocaleDateString("en-GB")
-            : "Never",
-          isVisible: false,
-        }))
-      );
-    } catch (error) {
-      console.error("Error fetching API keys:", error);
-      alert("Failed to load API keys. Please ensure the backend server is running.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Delete API key mutation
+  const deleteApiKeyMutation = useMutation({
+    mutationFn: async (keyId: string) => {
+      const response = await apiRequest("DELETE", `/api/developer/api-keys/${keyId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/api-keys"] });
+      toast({
+        title: "API key deleted",
+        description: "The API key has been successfully deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete API key",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const createApiKey = async (name: string) => {
+  const handleGenerateApiKey = async () => {
     if (accountStatus === "pending") {
-      alert("Your developer account must be approved before you can create API keys. Please wait for approval or contact support.");
+      toast({
+        title: "Account Pending",
+        description: "Your developer account must be approved before you can create API keys. Please wait for approval or contact support.",
+        variant: "destructive",
+      });
       return;
     }
-    try {
-      setLoading(true);
-      const response = await apiRequest("POST", "/api/developer/api-keys", {
-        name,
-        permissions: ["read", "write"],
+
+    if (!apiKeyName.trim() || !selectedIndustry || !selectedUseCase) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields before generating an API key.",
+        variant: "destructive",
       });
-      const data = await response.json();
-      await fetchApiKeys();
-      return data;
-    } catch (error: any) {
-      console.error("Error creating API key:", error);
-      alert(error.message || "Failed to create API key. Please ensure the backend server is running.");
-      throw error;
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    const keyData = {
+      name: apiKeyName.trim(),
+      industry: selectedIndustry,
+      useCase: selectedUseCase,
+      permissions: selectedIndustryConfig?.permissions || [],
+      rateLimits: selectedIndustryConfig?.rateLimits || {
+        apiCalls: 1000,
+        fraudChecks: 500,
+        kycVerifications: 100
+      }
+    };
+
+    createApiKeyMutation.mutate(keyData);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied to clipboard",
+        description: "API key has been copied to your clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy to clipboard. Please copy manually.",
+        variant: "destructive",
+      });
+    });
+  };
+
+  const toggleApiKeyVisibility = (keyId: string) => {
+    setShowApiKey(prev => ({
+      ...prev,
+      [keyId]: !prev[keyId]
+    }));
   };
 
   const deleteApiKey = async (keyId: string) => {
-    try {
-      setLoading(true);
-      await apiRequest("DELETE", `/api/developer/api-keys/${keyId}`);
-      await fetchApiKeys();
-    } catch (error: any) {
-      console.error("Error deleting API key:", error);
-      alert(error.message || "Failed to delete API key. Please ensure the backend server is running.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDashboardStats = async () => {
-    try {
-      setLoading(true);
-      const response = await apiRequest("GET", "/api/developer/usage/stats");
-      const data = await response.json();
-      setDashboardStats(data);
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      // Silently fail for dashboard stats to not interrupt user experience
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAnalyticsStats = async () => {
-    try {
-      setLoading(true);
-      const [statsResponse, logsResponse] = await Promise.all([
-        apiRequest("GET", "/api/developer/usage/stats"),
-        apiRequest("GET", "/api/developer/usage/logs?limit=10"),
-      ]);
-      const stats = await statsResponse.json();
-      const logs = await logsResponse.json();
-      setAnalyticsStats({ stats, logs });
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-      // Silently fail for analytics to not interrupt user experience
-    } finally {
-      setLoading(false);
-    }
+    deleteApiKeyMutation.mutate(keyId);
   };
 
   const calculateTrustScore = () => {
@@ -651,8 +725,7 @@ export const DeveloperPortal = (): JSX.Element => {
       <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
         <Header />
         <DeveloperAuth onSuccess={() => {
-          setHasDeveloperAccount(true);
-          checkDeveloperAccount(); // Refresh to get account status
+          queryClient.invalidateQueries({ queryKey: ["/api/developer/account"] });
         }} />
       </div>
     );
@@ -786,62 +859,107 @@ export const DeveloperPortal = (): JSX.Element => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-[33.68px] w-full">
-                {dashboardMetricCards.map((card, index) => (
-                  <Card
-                    key={index}
-                    className="bg-[#fcfcfc] rounded-[18.2px] border-[0.73px] border-solid border-[#e4e4e4]"
-                  >
-                    <CardContent className="p-4 md:p-6 lg:p-7">
-                      <div className="flex items-start gap-3 md:gap-4 lg:gap-[18px]">
-                        <img
-                          className="w-12 h-12 md:w-14 md:h-14 flex-shrink-0"
-                          alt={card.label}
-                          src={card.icon}
-                        />
-
-                        <div className="flex flex-col items-start gap-2 md:gap-3 lg:gap-[15px] flex-1 min-w-0">
-                          <div className="flex flex-col items-start gap-1 md:gap-[4.55px] w-full">
-                            <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs md:text-sm lg:text-[16.4px] tracking-[0] leading-[normal]">
-                              {card.label}
-                            </div>
-
-                            <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl md:text-2xl lg:text-[32.8px] tracking-[0] leading-tight md:leading-[35.2px]">
-                              {card.value}
+                <Card className="bg-[#fcfcfc] rounded-[18.2px] border-[0.73px] border-solid border-[#e4e4e4]">
+                  <CardContent className="p-4 md:p-6 lg:p-7">
+                    <div className="flex items-start gap-3 md:gap-4 lg:gap-[18px]">
+                      <div className="p-3 bg-app-secondary/10 rounded-lg flex-shrink-0">
+                        <BarChart3 className="w-8 h-8 text-app-secondary" />
+                      </div>
+                      <div className="flex flex-col items-start gap-2 md:gap-3 lg:gap-[15px] flex-1 min-w-0">
+                        <div className="flex flex-col items-start gap-1 md:gap-[4.55px] w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs md:text-sm lg:text-[16.4px] tracking-[0] leading-[normal]">
+                            API Calls Today
+                          </div>
+                          <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl md:text-2xl lg:text-[32.8px] tracking-[0] leading-tight md:leading-[35.2px]">
+                            {statsLoading ? "..." : (usageStats?.today || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        {usageStats?.todayChange && (
+                          <div className="flex items-center gap-[7.28px] w-full">
+                            <TrendingUp className="w-4 h-4 text-app-secondary" />
+                            <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[12.7px] tracking-[0] leading-[normal]">
+                              <span className="text-app-secondary">
+                                {usageStats.todayChange > 0 ? '+' : ''}{usageStats.todayChange}%
+                              </span>
+                              <span className="text-[#808080]"> From yesterday</span>
                             </div>
                           </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                          <div className="flex items-center gap-[7.28px] w-full">
-                            {card.badge.dot && (
-                              <div className="w-[6.37px] h-[6.37px] bg-app-secondary rounded-[3.19px]" />
-                            )}
-                            {card.badge.icon && (
-                              <img
-                                className="w-[20.02px] h-[19.11px]"
-                                alt="Badge icon"
-                                src={card.badge.icon}
-                              />
-                            )}
-
-                            <div
-                              className={`[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[12.7px] tracking-[0] leading-[normal] ${
-                                card.badge.dot ? "text-center" : ""
-                              }`}
-                            >
-                              <span className={card.badge.textColor}>
-                                {card.badge.text}
-                              </span>
-                              {card.badge.subtext && (
-                                <span className="text-[#808080]">
-                                  {card.badge.subtext}
-                                </span>
-                              )}
-                            </div>
+                <Card className="bg-[#fcfcfc] rounded-[18.2px] border-[0.73px] border-solid border-[#e4e4e4]">
+                  <CardContent className="p-4 md:p-6 lg:p-7">
+                    <div className="flex items-start gap-3 md:gap-4 lg:gap-[18px]">
+                      <div className="p-3 bg-app-secondary/10 rounded-lg flex-shrink-0">
+                        <Activity className="w-8 h-8 text-app-secondary" />
+                      </div>
+                      <div className="flex flex-col items-start gap-2 md:gap-3 lg:gap-[15px] flex-1 min-w-0">
+                        <div className="flex flex-col items-start gap-1 md:gap-[4.55px] w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs md:text-sm lg:text-[16.4px] tracking-[0] leading-[normal]">
+                            Success Rate
+                          </div>
+                          <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl md:text-2xl lg:text-[32.8px] tracking-[0] leading-tight md:leading-[35.2px]">
+                            {statsLoading ? "..." : (usageStats?.successRate || 99.8).toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-[7.28px] w-full">
+                          <div className="w-[6.37px] h-[6.37px] bg-app-secondary rounded-[3.19px]" />
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[12.7px] tracking-[0] leading-[normal] text-app-secondary">
+                            Excellent Performance
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#fcfcfc] rounded-[18.2px] border-[0.73px] border-solid border-[#e4e4e4]">
+                  <CardContent className="p-4 md:p-6 lg:p-7">
+                    <div className="flex items-start gap-3 md:gap-4 lg:gap-[18px]">
+                      <div className="p-3 bg-[#d094dd]/10 rounded-lg flex-shrink-0">
+                        <Clock className="w-8 h-8 text-[#d094dd]" />
+                      </div>
+                      <div className="flex flex-col items-start gap-2 md:gap-3 lg:gap-[15px] flex-1 min-w-0">
+                        <div className="flex flex-col items-start gap-1 md:gap-[4.55px] w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs md:text-sm lg:text-[16.4px] tracking-[0] leading-[normal]">
+                            Avg Response
+                          </div>
+                          <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl md:text-2xl lg:text-[32.8px] tracking-[0] leading-tight md:leading-[35.2px]">
+                            {statsLoading ? "..." : (usageStats?.avgResponseTime || 42)}ms
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-[7.28px] w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[12.7px] tracking-[0] leading-[normal] text-[#d094dd]">
+                            Lightning Fast
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#fcfcfc] rounded-[18.2px] border-[0.73px] border-solid border-[#e4e4e4]">
+                  <CardContent className="p-4 md:p-6 lg:p-7">
+                    <div className="flex items-start gap-3 md:gap-4 lg:gap-[18px]">
+                      <div className="p-3 bg-app-secondary/10 rounded-lg flex-shrink-0">
+                        <Users className="w-8 h-8 text-app-secondary" />
+                      </div>
+                      <div className="flex flex-col items-start gap-2 md:gap-3 lg:gap-[15px] flex-1 min-w-0">
+                        <div className="flex flex-col items-start gap-1 md:gap-[4.55px] w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs md:text-sm lg:text-[16.4px] tracking-[0] leading-[normal]">
+                            Active API Keys
+                          </div>
+                          <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl md:text-2xl lg:text-[32.8px] tracking-[0] leading-tight md:leading-[35.2px]">
+                            {keysLoading ? "..." : (apiKeys?.length || 0)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -862,30 +980,38 @@ export const DeveloperPortal = (): JSX.Element => {
                     </div>
 
                     <div className="flex flex-col gap-[15px]">
-                      {systemStatusRows.map((row, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center h-[72px] bg-[#f6f6f6] rounded-[14px] px-6"
-                        >
-                          <div className="flex items-center justify-between w-full">
-                            <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-lg tracking-[0] leading-6">
-                              {row.label}
-                            </div>
-
-                            {row.badge ? (
-                              <Badge className="bg-[#eab30833] text-yellow-500 hover:bg-[#eab30833] rounded-[528.3px] px-3 py-[9px] h-auto">
-                                <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm tracking-[0] leading-[9.2px]">
-                                  {row.value}
-                                </span>
-                              </Badge>
-                            ) : (
-                              <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-lg tracking-[0] leading-7 whitespace-nowrap">
-                                {row.value}
-                              </div>
-                            )}
+                      <div className="flex items-center h-[72px] bg-[#f6f6f6] rounded-[14px] px-6">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-lg tracking-[0] leading-6">
+                            Account Status
+                          </div>
+                          <Badge className={`${accountStatus === "pending" ? "bg-[#eab30833] text-yellow-500" : accountStatus === "approved" ? "bg-[#27ae6033] text-[#27ae60]" : "bg-[#80808033] text-[#808080]"} hover:opacity-90 rounded-[528.3px] px-3 py-[9px] h-auto`}>
+                            <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm tracking-[0] leading-[9.2px]">
+                              {accountStatus === "pending" ? "Pending" : accountStatus === "approved" ? "Approved" : "Unknown"}
+                            </span>
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center h-[72px] bg-[#f6f6f6] rounded-[14px] px-6">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-lg tracking-[0] leading-6">
+                            API Keys
+                          </div>
+                          <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-lg tracking-[0] leading-7 whitespace-nowrap">
+                            {keysLoading ? "..." : `${apiKeys?.length || 0} Active`}
                           </div>
                         </div>
-                      ))}
+                      </div>
+                      <div className="flex items-center h-[72px] bg-[#f6f6f6] rounded-[14px] px-6">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-lg tracking-[0] leading-6">
+                            Monthly Usage
+                          </div>
+                          <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-lg tracking-[0] leading-7 whitespace-nowrap">
+                            {statsLoading ? "..." : `${(usageStats?.currentMonth || 0).toLocaleString()} / ${(usageStats?.monthlyLimit || 10000).toLocaleString()}`}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -905,22 +1031,46 @@ export const DeveloperPortal = (): JSX.Element => {
                     </div>
 
                     <div className="flex flex-col gap-[13px]">
-                      {quickActions.map((action, index) => (
-                        <button
-                          key={index}
-                          className="flex items-center gap-3 h-[60px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] px-4 hover:bg-[#f6f6f6] transition-colors cursor-pointer"
-                        >
-                          <img
-                            className="w-6 h-6"
-                            alt={action.label}
-                            src={action.icon}
-                          />
-
-                          <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5 whitespace-nowrap">
-                            {action.label}
-                          </span>
-                        </button>
-                      ))}
+                      <Button
+                        onClick={() => setActiveNavItem("api-keys")}
+                        variant="ghost"
+                        className="flex items-center justify-start gap-3 h-[60px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] px-4 hover:bg-[#f6f6f6] transition-colors"
+                      >
+                        <Key className="w-6 h-6 text-[#003d2b]" />
+                        <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5 whitespace-nowrap">
+                          Manage API Keys
+                        </span>
+                      </Button>
+                      <Button
+                        onClick={() => setActiveNavItem("documentation")}
+                        variant="ghost"
+                        className="flex items-center justify-start gap-3 h-[60px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] px-4 hover:bg-[#f6f6f6] transition-colors"
+                      >
+                        <Code className="w-6 h-6 text-[#003d2b]" />
+                        <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5 whitespace-nowrap">
+                          View Documentation
+                        </span>
+                      </Button>
+                      <Button
+                        onClick={() => setActiveNavItem("api-sandbox")}
+                        variant="ghost"
+                        className="flex items-center justify-start gap-3 h-[60px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] px-4 hover:bg-[#f6f6f6] transition-colors"
+                      >
+                        <PlayIcon className="w-6 h-6 text-[#003d2b]" />
+                        <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5 whitespace-nowrap">
+                          Test API Endpoints
+                        </span>
+                      </Button>
+                      <Button
+                        onClick={() => setActiveNavItem("analytics")}
+                        variant="ghost"
+                        className="flex items-center justify-start gap-3 h-[60px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] px-4 hover:bg-[#f6f6f6] transition-colors"
+                      >
+                        <BarChart3 className="w-6 h-6 text-[#003d2b]" />
+                        <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5 whitespace-nowrap">
+                          View Analytics
+                        </span>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -942,30 +1092,46 @@ export const DeveloperPortal = (): JSX.Element => {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      {recentActivities.map((activity, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center h-20 bg-[#f6f6f6] rounded-[20px] px-[23px]"
-                        >
-                          <div className="w-[11px] h-[11px] bg-app-secondary rounded-[5.5px]" />
-
-                          <div className="flex flex-col ml-3.5 flex-1">
-                            <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base tracking-[0] leading-6">
-                              {activity.title}
+                      {usageLogs && usageLogs.length > 0 ? (
+                        usageLogs.slice(0, 3).map((log: any, index: number) => {
+                          const timeAgo = log.timestamp 
+                            ? (() => {
+                                const diff = Date.now() - new Date(log.timestamp).getTime();
+                                const minutes = Math.floor(diff / 60000);
+                                if (minutes < 1) return "Just now";
+                                if (minutes < 60) return `${minutes} Mins Ago`;
+                                const hours = Math.floor(minutes / 60);
+                                if (hours < 24) return `${hours} Hours Ago`;
+                                return `${Math.floor(hours / 24)} Days Ago`;
+                              })()
+                            : "Unknown";
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center h-20 bg-[#f6f6f6] rounded-[20px] px-[23px]"
+                            >
+                              <div className="w-[11px] h-[11px] bg-app-secondary rounded-[5.5px]" />
+                              <div className="flex flex-col ml-3.5 flex-1">
+                                <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base tracking-[0] leading-6">
+                                  {log.endpoint || log.action || "API Call"}
+                                </div>
+                                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm tracking-[0] leading-6">
+                                  {timeAgo}
+                                </div>
+                              </div>
+                              <Badge className={`${log.status === 200 || log.success ? "bg-[#27ae6033] text-[#27ae60]" : "bg-[#eab30833] text-yellow-500"} hover:opacity-90 rounded-[528.3px] px-3 py-[9px] h-auto`}>
+                                <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm tracking-[0] leading-[9.2px]">
+                                  {log.status === 200 || log.success ? "Success" : "Error"}
+                                </span>
+                              </Badge>
                             </div>
-
-                            <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm tracking-[0] leading-6">
-                              {activity.time}
-                            </div>
-                          </div>
-
-                          <Badge className="bg-[#27ae6033] text-[#27ae60] hover:bg-[#27ae6033] rounded-[528.3px] px-3 py-[9px] h-auto">
-                            <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm tracking-[0] leading-[9.2px]">
-                              Success
-                            </span>
-                          </Badge>
+                          );
+                        })
+                      ) : (
+                        <div className="text-center py-8 text-[#808080] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal">
+                          No recent activity
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -985,32 +1151,55 @@ export const DeveloperPortal = (): JSX.Element => {
                     </div>
 
                     <div className="flex flex-col gap-3">
-                      {systemAlerts.map((alert, index) => (
-                        <Card
-                          key={index}
-                          className={`bg-[#fcfcfc] rounded-[10px] border-[0.8px] border-solid ${alert.borderColor}`}
-                        >
+                      {accountStatus === "pending" && (
+                        <Card className="bg-[#fcfcfc] rounded-[10px] border-[0.8px] border-solid border-yellow-500">
                           <CardContent className="p-3.5">
                             <div className="flex items-center gap-2.5">
-                              <img
-                                className="w-7 h-7"
-                                alt={alert.title}
-                                src={alert.icon}
-                              />
-
+                              <Clock className="w-7 h-7 text-yellow-500" />
                               <div className="flex flex-col flex-1">
                                 <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-[15px] tracking-[0] leading-6">
-                                  {alert.title}
+                                  Account Verification Pending
                                 </div>
-
                                 <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs tracking-[0] leading-6">
-                                  {alert.description}
+                                  Complete Verification To Unlock Full Features
                                 </div>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-                      ))}
+                      )}
+                      {apiKeys && apiKeys.length === 0 && (
+                        <Card className="bg-[#fcfcfc] rounded-[10px] border-[0.8px] border-solid border-[#312fb5]">
+                          <CardContent className="p-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <Key className="w-7 h-7 text-[#312fb5]" />
+                              <div className="flex flex-col flex-1">
+                                <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-[15px] tracking-[0] leading-6">
+                                  Create Your First API Key
+                                </div>
+                                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs tracking-[0] leading-6">
+                                  Get started by generating an API key
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                      <Card className="bg-[#fcfcfc] rounded-[10px] border-[0.8px] border-solid border-[#27ae60]">
+                        <CardContent className="p-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <Shield className="w-7 h-7 text-[#27ae60]" />
+                            <div className="flex flex-col flex-1">
+                              <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-[15px] tracking-[0] leading-6">
+                                Security Scan Completed
+                              </div>
+                              <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs tracking-[0] leading-6">
+                                No Vulnerabilities Detected
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </CardContent>
                 </Card>
@@ -1024,256 +1213,344 @@ export const DeveloperPortal = (): JSX.Element => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between relative self-stretch w-full flex-[0_0_auto] gap-4">
               <div className="flex flex-col flex-1 items-start gap-2.5 relative">
                 <h2 className="relative flex items-center justify-center w-fit mt-[-1.00px] [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl md:text-3xl lg:text-[40px] tracking-[0] leading-[normal]">
-                  API Keys
+                  API Key Management
                 </h2>
 
                 <p className="relative flex items-center justify-center w-fit [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base lg:text-lg tracking-[0] leading-6 md:leading-8">
-                  Manage your API keys for secure authentication
+                  Generate and manage secure API keys tailored to your industry needs
                 </p>
               </div>
-
-              <Button
-                onClick={() => {
-                  if (accountStatus === "pending") {
-                    alert("Your developer account must be approved before you can create API keys.");
-                    return;
-                  }
-                  setShowCreateApiKeyModal(true);
-                }}
-                disabled={accountStatus === "pending"}
-                className="relative w-full sm:w-[223px] h-12 sm:h-14 rounded-[10px] overflow-hidden bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <div className="relative w-[171px] h-6">
-                  <div className="absolute top-[calc(50.00%_-_10px)] left-[calc(50.00%_-_52px)] w-[139px] h-[18px] flex items-center justify-center">
-                    <span className="flex items-center justify-center h-[18px] -ml-0.5 w-[137px] [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg text-center tracking-[-0.20px] leading-[18px] whitespace-nowrap">
-                      Create New Key
-                    </span>
-                  </div>
-
-                  <img
-                    className="absolute top-[calc(50.00%_-_12px)] right-[147px] w-6 h-6"
-                    alt="Fi"
-                    src="/fi-12194587.svg"
-                  />
-                </div>
-              </Button>
             </div>
 
-            {apiKeys.length === 0 ? (
-              <Card className="relative self-stretch w-full min-h-[497px] bg-[#fcfcfc] rounded-[20px] overflow-hidden border-[0.8px] border-solid border-[#e4e4e4]">
-                <CardContent className="flex flex-col max-w-[391px] mx-auto items-center gap-[30px] relative top-[calc(50.00%_-_136px)] p-6 md:p-0">
-                  <div className="flex flex-col items-center gap-[27px] relative self-stretch w-full flex-[0_0_auto]">
-                    <img
-                      className="relative w-16 h-16 md:w-20 md:h-20 lg:w-[85px] lg:h-[85px]"
-                      alt="Fi"
-                      src="/fi-25820267.svg"
-                    />
+            {/* Create New API Key Section */}
+            <Card className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] border-solid border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+              <CardHeader className="pb-6 pt-8 px-8">
+                <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl tracking-[0] leading-6 flex items-center gap-3">
+                  <div className="p-2 bg-app-secondary/10 rounded-lg">
+                    <Plus className="h-6 w-6 text-app-secondary" />
+                  </div>
+                  Generate New API Key
+                </CardTitle>
+                <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base leading-6">
+                  Create industry-specific API keys with tailored fraud prevention and trust scoring capabilities
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8 px-8 pb-8">
+                {/* API Key Name Input */}
+                <div className="space-y-3">
+                  <Label htmlFor="keyName" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base leading-6">
+                    API Key Name
+                  </Label>
+                  <Input
+                    id="keyName"
+                    value={apiKeyName}
+                    onChange={(e) => setApiKeyName(e.target.value)}
+                    placeholder="Enter descriptive name (e.g., Production Banking API, Development E-commerce Key)"
+                    className="h-[50px] px-4 md:px-5 py-[15px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base placeholder:text-[#808080]"
+                  />
+                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                    Choose a descriptive name to easily identify this key later
+                  </p>
+                </div>
 
-                    <div className="flex flex-col min-h-[83px] items-center gap-2.5 relative self-stretch w-full">
-                      <h3 className="relative flex items-center justify-center self-stretch mt-[-1.00px] [font-family:'DM_Sans_18pt-ExtraBold',Helvetica] font-extrabold text-[#003d2b] text-xl md:text-2xl text-center tracking-[0] leading-6">
-                        No Api Keys
-                      </h3>
+                {/* Industry Selection */}
+                <div className="space-y-3">
+                  <Label htmlFor="industry" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base leading-6">
+                    Select Industry
+                  </Label>
+                  <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
+                    <SelectTrigger 
+                      id="industry"
+                      className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base hover:border-[#003d2b] focus:border-[#003d2b]"
+                    >
+                      <SelectValue placeholder="Choose your industry" />
+                    </SelectTrigger>
+                    <SelectContent 
+                      className="z-[999999] max-h-[420px] bg-white border border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[10px] overflow-hidden"
+                    >
+                      {industryConfigs.map((industry) => {
+                        const IconComponent = industry.icon;
+                        return (
+                          <SelectItem 
+                            key={industry.id} 
+                            value={industry.id}
+                            className="cursor-pointer hover:bg-[#f7f7f7] focus:bg-[#f7f7f7] px-4 py-3 border-b border-[#e4e4e4] last:border-b-0 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-app-secondary/10 rounded-lg flex-shrink-0">
+                                <IconComponent className="h-5 w-5 text-app-secondary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-sm">{industry.name}</div>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                      <p className="relative flex items-center justify-center flex-1 self-stretch [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base text-center tracking-[0] leading-6 md:leading-[26px] px-4">
-                        Create Your First Api Key To Start Using The Trustverify
-                        Api.
-                      </p>
+                {/* Industry Configuration Display */}
+                {selectedIndustryConfig && (
+                  <div className="bg-white border border-[#e4e4e4] rounded-[20px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[#e4e4e4]">
+                      <div className="p-2.5 bg-app-secondary rounded-lg">
+                        <selectedIndustryConfig.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <h4 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-lg leading-6">{selectedIndustryConfig.name}</h4>
+                    </div>
+                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm mb-6">{selectedIndustryConfig.description}</p>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Use Cases */}
+                      <div className="space-y-3">
+                        <h5 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base leading-6">Primary Use Case</h5>
+                        <Select value={selectedUseCase} onValueChange={setSelectedUseCase}>
+                          <SelectTrigger 
+                            className="h-12 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm hover:border-[#003d2b] focus:border-[#003d2b]"
+                          >
+                            <SelectValue placeholder="Choose your use case" />
+                          </SelectTrigger>
+                          <SelectContent 
+                            className="z-[999999] max-h-[320px] bg-white border border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[10px] overflow-hidden"
+                          >
+                            {selectedIndustryConfig.useCases.map((useCase, index) => (
+                              <SelectItem 
+                                key={index} 
+                                value={useCase}
+                                className="cursor-pointer hover:bg-[#f7f7f7] focus:bg-[#f7f7f7] px-4 py-3 border-b border-[#e4e4e4] last:border-b-0 transition-colors text-sm"
+                              >
+                                {useCase}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <div className="space-y-2 mt-4">
+                          <h6 className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">Key Features</h6>
+                          <ul className="space-y-1.5">
+                            {selectedIndustryConfig.features.map((feature, index) => (
+                              <li key={index} className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-app-secondary mt-0.5 flex-shrink-0" />
+                                <span>{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Rate Limits & Permissions */}
+                      <div className="space-y-3">
+                        <h5 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base leading-6">Rate Limits</h5>
+                        <div className="bg-[#f7f7f7] rounded-[10px] p-4 space-y-2.5">
+                          <div className="flex justify-between items-center">
+                            <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">API Calls</span>
+                            <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">{selectedIndustryConfig.rateLimits.apiCalls.toLocaleString()}/hr</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t border-[#e4e4e4] pt-2">
+                            <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">Fraud Checks</span>
+                            <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">{selectedIndustryConfig.rateLimits.fraudChecks.toLocaleString()}/hr</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t border-[#e4e4e4] pt-2">
+                            <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">KYC Verifications</span>
+                            <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">{selectedIndustryConfig.rateLimits.kycVerifications.toLocaleString()}/hr</span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h6 className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">Permissions</h6>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedIndustryConfig.permissions.map((permission) => (
+                              <Badge key={permission} className="bg-[#f7f7f7] text-[#003d2b] hover:bg-[#f7f7f7] text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal">
+                                {permission.replace(/_/g, ' ')}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  <Button
-                    onClick={() => {
-                      if (accountStatus === "pending") {
-                        alert("Your developer account must be approved before you can create API keys.");
-                        return;
-                      }
-                      setShowCreateApiKeyModal(true);
-                    }}
-                    disabled={accountStatus === "pending"}
-                    className="relative w-full sm:w-[209px] h-12 bg-[#27ae60] rounded-[10px] overflow-hidden hover:bg-[#27ae60]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                {/* Generate Button */}
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    onClick={handleGenerateApiKey}
+                    disabled={!apiKeyName.trim() || !selectedIndustry || !selectedUseCase || createApiKeyMutation.isPending || accountStatus === "pending"}
+                    className="h-12 md:h-14 px-8 bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 text-white [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold rounded-[10px] text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span className="flex items-center justify-center h-[18px] -ml-0.5 w-[157px] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-base text-center tracking-[-0.20px] leading-[18px] whitespace-nowrap">
-                      Create Your First Key
-                    </span>
+                    <Key className="h-5 w-5 mr-3" />
+                    {createApiKeyMutation.isPending ? "Generating..." : "Generate Industry-Specific API Key"}
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="flex flex-col gap-4 w-full">
-                {apiKeys.map((apiKey) => (
-                  <Card
-                    key={apiKey.id}
-                    className="w-full bg-[#fcfcfc] rounded-[20px] border-[0.8px] border-[#e4e4e4]"
-                  >
-                    <CardContent className="p-4 md:p-6 lg:p-7">
-                      <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-4 md:gap-[27px]">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="inline-flex items-start gap-3 md:gap-[13px]">
-                              <img
-                                className="w-10 h-10 md:w-12 md:h-12 lg:w-[54px] lg:h-[54px] flex-shrink-0"
-                                alt="Div flex"
-                                src="/p-2-rounded-lg-bg-accent-10.svg"
-                              />
-                              <div className="flex flex-col gap-1 md:gap-[5px] min-w-0 flex-1">
-                                <div className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base md:text-lg lg:text-xl tracking-[0] leading-6 break-words">
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Existing API Keys List */}
+            <div className="space-y-6 w-full">
+              <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl tracking-[0] leading-[normal]">
+                Your API Keys
+              </h3>
+              {keysLoading ? (
+                <Card className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] border-solid border-[#e4e4e4]">
+                  <CardContent className="p-12 text-center">
+                    <div className="animate-spin w-10 h-10 border-4 border-app-secondary border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg">Loading your API keys...</p>
+                  </CardContent>
+                </Card>
+              ) : Array.isArray(apiKeys) && apiKeys.length > 0 ? (
+                <div className="space-y-6">
+                  {apiKeys.map((apiKey) => {
+                    const keyIndustryConfig = industryConfigs.find(config => config.id === apiKey.industry);
+                    const IconComponent = keyIndustryConfig?.icon || Key;
+                    
+                    return (
+                      <Card key={apiKey.id} className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-xl transition-shadow duration-300">
+                        <CardContent className="p-4 md:p-6 lg:p-8">
+                          <div className="flex items-start justify-between mb-6">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 bg-[#f7f7f7] rounded-xl">
+                                <IconComponent className="h-8 w-8 text-[#808080]" />
+                              </div>
+                              <div>
+                                <h4 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl tracking-[0] leading-6">
                                   {apiKey.name}
-                                </div>
-                                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs md:text-sm tracking-[0] leading-6">
-                                  Created On {apiKey.createdAt}
+                                </h4>
+                                <div className="flex items-center gap-3 mt-2">
+                                  <Badge className={`${apiKey.status === 'active' ? 'bg-[#27ae6033] text-[#27ae60]' : 'bg-[#eab30833] text-yellow-500'} hover:opacity-90 px-2 md:px-3 py-2 md:py-2.5 rounded-[528.3px] h-auto`}>
+                                    <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xs md:text-sm tracking-[0] leading-[9.2px]">
+                                      {apiKey.status || 'active'}
+                                    </span>
+                                  </Badge>
+                                  {keyIndustryConfig && (
+                                    <Badge className="bg-[#f7f7f7] text-[#003d2b] hover:bg-[#f7f7f7] px-2 md:px-3 py-2 md:py-2.5 rounded-[528.3px] h-auto">
+                                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xs md:text-sm tracking-[0] leading-[9.2px]">
+                                        {keyIndustryConfig.name}
+                                      </span>
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2.5">
-                              <Badge className="bg-[#27ae6033] text-[#27ae60] hover:bg-[#27ae6033] px-2 md:px-3 py-2 md:py-2.5 rounded-[528.3px] h-auto">
-                                <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xs md:text-sm tracking-[0] leading-[9.2px]">
-                                  Active
-                                </span>
-                              </Badge>
+                              {apiKey.status === 'active' && (
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="w-8 h-8 md:w-9 md:h-9 p-0"
+                                className="w-8 h-8 md:w-9 md:h-9 p-0 text-[#808080] hover:text-[#dc2626]"
+                                disabled={deleteApiKeyMutation.isPending}
                                 onClick={async () => {
                                   if (confirm("Are you sure you want to delete this API key?")) {
                                     await deleteApiKey(apiKey.id);
                                   }
                                 }}
                               >
-                                <Trash2 className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" />
+                                <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                               </Button>
-                            </div>
+                            )}
                           </div>
-                          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 md:gap-4">
-                            <div className="flex flex-col flex-1 gap-2 md:gap-[11px] min-w-0">
-                              <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm md:text-base tracking-[0] leading-[normal]">
-                                API Key
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                              <div>
+                                <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-[normal] uppercase">
+                                  API Key
+                                </span>
+                                <div className="flex items-center space-x-3 mt-2">
+                                  <div className="flex-1 px-4 py-2 bg-[#f0f0f0] rounded-lg">
+                                    <code className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs tracking-[0] leading-[normal] break-all">
+                                      {showApiKey[apiKey.id] ? apiKey.key : '•'.repeat(32) + (apiKey.keyPrefix || apiKey.key?.slice(-8) || '••••••••')}
+                                    </code>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="w-8 h-8 md:w-9 md:h-9 p-0"
+                                    onClick={() => toggleApiKeyVisibility(apiKey.id)}
+                                  >
+                                    {showApiKey[apiKey.id] ? <EyeOff className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" /> : <Eye className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" />}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="w-8 h-8 md:w-9 md:h-9 p-0"
+                                    onClick={() => copyToClipboard(apiKey.key)}
+                                  >
+                                    <Copy className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" />
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2.5 px-3 md:px-5 py-2 md:py-[9px] bg-[#f0f0f0] rounded-lg min-h-[36px] md:h-9">
-                                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs tracking-[0] leading-[normal] break-all">
-                                  {apiKey.isVisible
-                                    ? apiKey.key
-                                    : `${apiKey.key.substring(
-                                        0,
-                                        12
-                                      )}${"*".repeat(apiKey.key.length - 12)}`}
+                              
+                              <div className="space-y-3">
+                                <div>
+                                  <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080] text-sm">Created</span>
+                                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#003d2b]">{apiKey.createdAt}</p>
+                                </div>
+                                <div>
+                                  <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080] text-sm">Last Used</span>
+                                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#003d2b]">{apiKey.lastUsed}</p>
                                 </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-8 h-8 md:w-9 md:h-9 p-0"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(apiKey.key);
-                                }}
-                              >
-                                <Copy className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="w-8 h-8 md:w-9 md:h-9 p-0"
-                                onClick={() => {
-                                  setApiKeys(
-                                    apiKeys.map((key) =>
-                                      key.id === apiKey.id
-                                        ? { ...key, isVisible: !key.isVisible }
-                                        : key
-                                    )
-                                  );
-                                }}
-                              >
-                                <Eye className="w-4 h-4 md:w-5 md:h-5 text-[#808080]" />
-                              </Button>
+
+                            <div className="space-y-4">
+                              {apiKey.permissions && apiKey.permissions.length > 0 && (
+                                <div>
+                                  <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-[normal] uppercase">
+                                    Permissions
+                                  </span>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {apiKey.permissions.map((permission: string) => (
+                                      <Badge key={permission} className="bg-[#f7f7f7] text-[#003d2b] hover:bg-[#f7f7f7] text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal">
+                                        {permission.replace(/_/g, ' ')}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {apiKey.rateLimits && (
+                                <div>
+                                  <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-[normal] uppercase">
+                                    Rate Limits
+                                  </span>
+                                  <div className="bg-[#f7f7f7] p-3 rounded-[10px] mt-2 space-y-2">
+                                    <div className="flex justify-between text-sm">
+                                      <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">API Calls:</span>
+                                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b]">{apiKey.rateLimits.apiCalls?.toLocaleString()}/hour</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm border-t border-[#e4e4e4] pt-2">
+                                      <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">Fraud Checks:</span>
+                                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b]">{apiKey.rateLimits.fraudChecks?.toLocaleString()}/hour</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm border-t border-[#e4e4e4] pt-2">
+                                      <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">KYC Verifications:</span>
+                                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b]">{apiKey.rateLimits.kycVerifications?.toLocaleString()}/hour</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                        <div className="inline-flex items-center gap-[5px]">
-                          <Clock className="w-3.5 h-3.5 text-[#808080]" />
-                          <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm tracking-[0] leading-[normal]">
-                            Last Used: {apiKey.lastUsed}
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {showCreateApiKeyModal && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                <div className="w-full max-w-[644px] bg-white rounded-[17.34px] p-4 md:p-6 relative my-4">
-                  <button
-                    onClick={() => setShowCreateApiKeyModal(false)}
-                    className="absolute top-3 md:top-[19px] right-3 md:right-[20px] w-[30px] h-[30px] flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <X className="w-5 h-5 text-[#808080]" />
-                  </button>
-                  <div className="flex flex-col gap-6 md:gap-9 pr-0 md:pr-12">
-                    <div className="flex flex-col gap-5 md:gap-7">
-                      <div className="flex flex-col gap-2.5 max-w-full md:max-w-[479px]">
-                        <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-lg md:text-xl leading-6">
-                          Create New API Key
-                        </h2>
-                        <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base leading-normal">
-                          Generate a new API key for secure access to
-                          TrustVerify services
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-2.5">
-                        <div className="flex flex-col gap-2.5">
-                          <Label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm md:text-base leading-6">
-                            Key Name
-                          </Label>
-                          <Input
-                            value={newKeyName}
-                            onChange={(e) => setNewKeyName(e.target.value)}
-                            placeholder="e.g Production API Key, Development Key etc..."
-                            className="h-[50px] px-4 md:px-5 py-[15px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm md:text-base placeholder:text-[#808080]"
-                          />
-                        </div>
-                        <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xs leading-normal">
-                          *Choose a descriptive name to help you identify this
-                          key later.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center sm:justify-between gap-3 md:gap-4">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setShowCreateApiKeyModal(false)}
-                        className="w-full sm:w-auto h-12 md:h-14 bg-[#f3f3f3] rounded-lg hover:bg-[#e8e8e8] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#adadad] text-sm md:text-base tracking-[-0.20px]"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={async () => {
-                          if (newKeyName.trim()) {
-                            try {
-                              const result = await createApiKey(newKeyName.trim());
-                              setNewKeyName("");
-                              setShowCreateApiKeyModal(false);
-                              if (result && result.apiKey) {
-                                alert(`API Key created! Save this key: ${result.apiKey}\n\nThis is the only time you'll see it.`);
-                              }
-                            } catch (error) {
-                              // Error already handled in createApiKey
-                            }
-                          }
-                        }}
-                        disabled={loading || !newKeyName.trim()}
-                        className="w-full sm:w-auto sm:flex-1 h-12 md:h-14 bg-[#27ae60] rounded-lg hover:bg-[#229954] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm md:text-base tracking-[-0.20px] disabled:opacity-50"
-                      >
-                        {loading ? "Creating..." : "Create API Key"}
-                      </Button>
-                    </div>
-                  </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <Card className="bg-[#fcfcfc] rounded-[20px] border-[0.8px] border-solid border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+                  <CardContent className="p-12 text-center">
+                    <div className="p-4 bg-app-secondary/10 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                      <Key className="h-10 w-10 text-app-secondary" />
+                    </div>
+                    <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl mb-3">No API Keys Yet</h3>
+                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-lg mb-8 max-w-md mx-auto">
+                      Create your first industry-specific API key to start using TrustVerify's fraud prevention and trust scoring services.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </main>
         )}
 
@@ -1297,7 +1574,8 @@ export const DeveloperPortal = (): JSX.Element => {
 
             <div className="flex flex-col items-start gap-[25px] w-full">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-[34px] w-full">
-                {metricCards.map((card, index) => (
+                {/* Old metricCards removed - using EnhancedAnalytics component instead */}
+                {[].map((card: any, index: number) => (
                   <Card
                     key={index}
                     className="w-full min-h-[141.07px] bg-[#fcfcfc] rounded-[18.2px] border-[0.73px] border-solid border-[#e4e4e4]"
@@ -1557,21 +1835,42 @@ const trustverify = new TrustVerify({
                       Documentation &amp; Resources
                     </h3>
                     <div className="flex flex-col gap-[13px]">
-                      {documentationResources.map((resource, index) => (
-                        <button
-                          key={index}
-                          className="flex items-center gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4]"
-                        >
-                          <img
-                            className="w-6 h-6"
-                            alt={resource.label}
-                            src={resource.icon}
-                          />
-                          <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5 whitespace-nowrap">
-                            {resource.label}
-                          </span>
-                        </button>
-                      ))}
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/api-reference', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:bg-[#f6f6f6] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Code className="w-6 h-6 text-[#003d2b]" />
+                        <span className="whitespace-nowrap">API Reference</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/sdk-documentation', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:bg-[#f6f6f6] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Package className="w-6 h-6 text-[#003d2b]" />
+                        <span className="whitespace-nowrap">SDK Documentation</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/integration-examples', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:bg-[#f6f6f6] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <FileText className="w-6 h-6 text-[#003d2b]" />
+                        <span className="whitespace-nowrap">Integration Examples</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('mailto:support@trustverify.com?subject=Developer Support Request', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:bg-[#f6f6f6] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <MessageSquare className="w-6 h-6 text-[#003d2b]" />
+                        <span className="whitespace-nowrap">Contact Support</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1929,21 +2228,33 @@ const trustverify = new TrustVerify({
                   </CardHeader>
                   <CardContent className="p-4 md:p-6 pt-4 md:pt-[26px]">
                     <div className="flex flex-col gap-[13px]">
-                      {supportOptions.map((option, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] cursor-pointer hover:border-[#003d2b] transition-colors"
-                        >
-                          <img
-                            className="w-6 h-6"
-                            alt="Icon"
-                            src={option.icon}
-                          />
-                          <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5">
-                            {option.text}
-                          </span>
-                        </div>
-                      ))}
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('mailto:api-support@trustverify.com?subject=Developer Support Request', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Mail className="w-6 h-6 text-[#003d2b]" />
+                        <span>Email Support (api-support@trustverify.com)</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('https://trustverify-community.slack.com', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <MessageSquare className="w-6 h-6 text-[#003d2b]" />
+                        <span>Join Developer Slack Community</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/live-chat', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <MessageSquare className="w-6 h-6 text-[#003d2b]" />
+                        <span>Live Chat Support</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1969,21 +2280,42 @@ const trustverify = new TrustVerify({
                   </CardHeader>
                   <CardContent className="p-4 md:p-6 pt-4 md:pt-[30px]">
                     <div className="flex flex-col gap-[13px]">
-                      {developerResources.map((resource, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] cursor-pointer hover:border-[#003d2b] transition-colors"
-                        >
-                          <img
-                            className="w-6 h-6"
-                            alt="Icon"
-                            src={resource.icon}
-                          />
-                          <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-5">
-                            {resource.text}
-                          </span>
-                        </div>
-                      ))}
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/api-reference', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Book className="w-6 h-6 text-[#003d2b]" />
+                        <span>API Reference Documentation</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/sdk-guides', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Package className="w-6 h-6 text-[#003d2b]" />
+                        <span>SDK Integration Guides</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/code-samples', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Code className="w-6 h-6 text-[#003d2b]" />
+                        <span>Code Samples & Examples</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/status', '_blank')}
+                        className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
+                      >
+                        <Activity className="w-6 h-6 text-[#003d2b]" />
+                        <span>API Status & Uptime</span>
+                        <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

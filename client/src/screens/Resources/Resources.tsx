@@ -82,7 +82,7 @@ export default function Resources() {
             </Card>
           </Link>
 
-          <Link to="/help-center">
+          <Link to="/help">
             <Card className="shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow cursor-pointer border border-[#e4e4e4] rounded-[20px] bg-white">
               <CardContent className="p-6 text-center">
                 <div className="h-12 w-12 bg-[#27ae6b] rounded-full flex items-center justify-center mx-auto mb-4">
