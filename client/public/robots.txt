@@ -1,18 +1,23 @@
 User-agent: *
 Allow: /
+
+# Protected/Private Routes
 Disallow: /admin/
-Disallow: /dashboard/
-Disallow: /messages/
-Disallow: /messages-chat/
-Disallow: /support-center/
-Disallow: /report-scam/
-Disallow: /secure-transaction/
-Disallow: /kyc-verification/
+Disallow: /dashboard
+Disallow: /messages
+Disallow: /messages-chat
+Disallow: /support-center
+Disallow: /report-scam
+Disallow: /secure-transaction
+Disallow: /kyc-verification
 Disallow: /transactions/
-Disallow: /secure-escrow/
-Disallow: /developer-portal/
+Disallow: /secure-escrow
+Disallow: /developer-portal
 Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /subscription/
 
 # Sitemap
-Sitemap: https://trustverify.online/sitemap.xml
+Sitemap: https://www.trustverify.co.uk/sitemap.xml
 

@@ -1,5 +1,16 @@
 import { useEffect } from "react";
 
+interface Breadcrumb {
+  name: string;
+  url: string;
+}
+
+interface StructuredData {
+  "@context"?: string;
+  "@type"?: string;
+  [key: string]: any;
+}
+
 interface SEOProps {
   title?: string;
   description?: string;
@@ -9,17 +20,21 @@ interface SEOProps {
   canonicalUrl?: string;
   noindex?: boolean;
   nofollow?: boolean;
+  breadcrumbs?: Breadcrumb[];
+  structuredData?: StructuredData[];
 }
 
 export const SEO = ({
   title = "TrustVerify - Secure Fraud Prevention & Identity Verification Platform",
   description = "TrustVerify provides comprehensive fraud prevention, identity verification (KYC/AML), trust scoring, and secure escrow services. Protect your business with advanced cybersecurity solutions.",
   keywords = "fraud prevention, identity verification, KYC, AML, trust scoring, escrow services, cybersecurity, fintech, secure transactions",
-  ogImage = "https://trustverify.online/logo.png",
+  ogImage = "https://www.trustverify.co.uk/logo.png",
   ogType = "website",
   canonicalUrl,
   noindex = false,
   nofollow = false,
+  breadcrumbs,
+  structuredData,
 }: SEOProps) => {
   useEffect(() => {
     // Update document title
@@ -82,8 +97,8 @@ export const SEO = ({
       "@context": "https://schema.org",
       "@type": "Organization",
       name: "TrustVerify",
-      url: "https://trustverify.online",
-      logo: "https://trustverify.online/logo.png",
+      url: "https://www.trustverify.co.uk",
+      logo: "https://www.trustverify.co.uk/logo.png",
       description: description,
       contactPoint: {
         "@type": "ContactPoint",
@@ -142,6 +157,21 @@ export const SEO = ({
       },
     };
 
+    // Breadcrumbs Structured Data
+    let breadcrumbData = null;
+    if (breadcrumbs && breadcrumbs.length > 0) {
+      breadcrumbData = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbs.map((crumb, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: crumb.name,
+          item: crumb.url,
+        })),
+      };
+    }
+
     // Remove existing structured data
     const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
     existingScripts.forEach((script) => script.remove());
@@ -163,7 +193,25 @@ export const SEO = ({
     serviceScript.type = "application/ld+json";
     serviceScript.text = JSON.stringify(serviceData);
     document.head.appendChild(serviceScript);
-  }, [title, description, keywords, ogImage, ogType, canonicalUrl, noindex, nofollow]);
+
+    // Add Breadcrumbs structured data if provided
+    if (breadcrumbData) {
+      const breadcrumbScript = document.createElement("script");
+      breadcrumbScript.type = "application/ld+json";
+      breadcrumbScript.text = JSON.stringify(breadcrumbData);
+      document.head.appendChild(breadcrumbScript);
+    }
+
+    // Add custom structured data if provided
+    if (structuredData && structuredData.length > 0) {
+      structuredData.forEach((data) => {
+        const customScript = document.createElement("script");
+        customScript.type = "application/ld+json";
+        customScript.text = JSON.stringify(data);
+        document.head.appendChild(customScript);
+      });
+    }
+  }, [title, description, keywords, ogImage, ogType, canonicalUrl, noindex, nofollow, breadcrumbs, structuredData]);
 
   return null;
 };
