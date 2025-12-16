@@ -650,7 +650,7 @@ export const ApiReferences = (): JSX.Element => {
                                         }',Helvetica] ${
                                         isActive ? "font-semibold" : "font-normal"
                                         } ${
-                                        isActive ? "text-white" : "text-[#b4b4b4]"
+                                        isActive ? "text-white" : "text-[#696969]"
                                         } text-xs sm:text-sm tracking-[0] leading-5 whitespace-nowrap`}
                                     >
                                         {endpoint.label}

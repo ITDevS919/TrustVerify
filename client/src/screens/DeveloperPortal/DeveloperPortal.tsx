@@ -828,7 +828,7 @@ export const DeveloperPortal = (): JSX.Element => {
                         className={`mt-[-1.00px] text-sm md:text-base tracking-[-0.32px] leading-[30px] whitespace-nowrap ${
                           isActive
                             ? "[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white"
-                            : "[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#c4c4c4]"
+                            : "[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#696969]"
                         }`}
                       >
                         {item.label}

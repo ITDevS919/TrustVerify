@@ -11,11 +11,8 @@ import {
   Users, 
   Shield, 
   FileText, 
-  BarChart3, 
-  Settings, 
   AlertTriangle,
   Activity,
-  Search,
   Download,
   Eye
 } from "lucide-react";
