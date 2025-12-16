@@ -250,22 +250,18 @@ export function Features() {
     <div className="min-h-screen bg-white">
       <Header />
       {/* Header */}
-      <section className="relative overflow-hidden px-6 pt-24 pb-20 bg-gradient-to-br from-[#0A3778] to-[#1DBF73]">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -left-24 -top-32 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute right-[-120px] top-6 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-        </div>
-        <div className="relative max-w-[1270px] mx-auto text-center">
-          <Badge className="h-[30px] bg-white/15 text-white rounded-[800px] px-4 mb-6 border-0">
+      <section className="px-6 pt-24 pb-16 bg-white">
+        <div className="max-w-[1270px] mx-auto text-center">
+          <Badge className="h-[30px] bg-[#003d2b1a] text-[#003d2b] rounded-[800px] px-4 mb-6 border-0">
             <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm leading-[14px] tracking-[0]">
               TRUSTVERIFY FEATURES
             </span>
           </Badge>
           <div className="space-y-4 max-w-4xl mx-auto">
-            <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[42px] sm:text-[48px] lg:text-[54px] leading-[110%] text-white tracking-[-0.8px]">
+            <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[42px] sm:text-[48px] lg:text-[54px] leading-[110%] text-[#003d2b] tracking-[-0.8px]">
               TrustVerify Features
             </h1>
-            <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-lg sm:text-xl text-white/90 leading-[27px]">
+            <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-lg sm:text-xl text-[#808080] leading-[27px]">
               Comprehensive fraud prevention platform with enterprise-grade security analysis, 
               embeddable widgets, and developer-friendly APIs
             </p>
@@ -273,15 +269,15 @@ export function Features() {
             
           {/* Language Selector */}
           <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-[#f4f4f4] rounded-lg p-1">
               {(['en', 'es', 'fr'] as const).map((lang) => (
                 <button
                   key={lang}
                   onClick={() => setLanguage(lang)}
                   className={`px-3 py-2 rounded text-sm transition-colors [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium ${
                     language === lang 
-                      ? 'bg-white text-[#0A3778]' 
-                      : 'text-white hover:bg-white/20'
+                      ? 'bg-app-secondary text-white' 
+                      : 'text-[#003d2b] hover:bg-white'
                   }`}
                 >
                   {lang === 'en' ? '🇺🇸 English' : lang === 'es' ? '🇪🇸 Español' : '🇫🇷 Français'}
@@ -294,7 +290,7 @@ export function Features() {
           <div className="flex flex-wrap justify-center gap-4">
             <Button
               onClick={() => handleNavigate('/website-integrity')}
-              className="bg-white text-[#0A3778] hover:bg-gray-100 rounded-[10px] min-h-[46px]"
+              className="bg-app-primary text-white hover:bg-app-primary/90 rounded-[10px] min-h-[46px]"
             >
               <Shield className="h-4 w-4 mr-2" />
               <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold">Check Website Security</span>
@@ -302,7 +298,7 @@ export function Features() {
             <Button
               onClick={() => handleNavigate('/fraud-prevention')}
               variant="outline"
-              className="border-white text-white hover:bg-white/10 rounded-[10px] min-h-[46px]"
+              className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] rounded-[10px] min-h-[46px]"
             >
               <Search className="h-4 w-4 mr-2" />
               <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium">Fraud Prevention</span>
@@ -310,7 +306,7 @@ export function Features() {
             <Button
               onClick={() => handleNavigate('/api-reference')}
               variant="outline"
-              className="border-white text-white hover:bg-white/10 rounded-[10px] min-h-[46px]"
+              className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] rounded-[10px] min-h-[46px]"
             >
               <Code className="h-4 w-4 mr-2" />
               <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium">Developer API</span>
@@ -415,43 +411,44 @@ export function Features() {
       </div>
 
       {/* Feature Discovery CTA */}
-      <section className="bg-gradient-to-br from-[#0A3778] to-[#1DBF73] py-16">
-        <div className="max-w-4xl mx-auto px-6 md:px-10 text-center">
-          <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[34px] sm:text-[40px] text-white mb-4">
+      <section className="bg-[#f7f7f7] py-16">
+        <div className="max-w-7xl mx-auto px-6 md:px-10">
+          <div className="bg-white border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)] text-center py-12 px-6 md:px-12 space-y-6">
+          <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[34px] sm:text-[40px] text-[#003d2b] mb-2">
             Ready to Explore TrustVerify?
           </h2>
-          <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xl text-white/90 mb-8">
+          <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-lg sm:text-xl text-[#808080] mb-6">
             Start with our most popular features or dive into the full platform
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button
               onClick={() => handleNavigate('/website-integrity')}
-              className="bg-white text-[#0A3778] hover:bg-gray-100 h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
+              className="bg-app-primary text-white hover:bg-app-primary/90 h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
             >
               <Shield className="h-8 w-8" />
               <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold">Security Check</span>
-              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs opacity-70">Most Popular</span>
+              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs text-white/80">Most Popular</span>
             </Button>
             
             <Button
               onClick={() => handleNavigate('/fraud-prevention')}
               variant="outline"
-              className="border-white text-white hover:bg-white/10 h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
+              className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
             >
               <Search className="h-8 w-8" />
               <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold">Fraud Prevention</span>
-              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs opacity-70">Comprehensive</span>
+              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs text-[#808080]">Comprehensive</span>
             </Button>
             
             <Button
               onClick={() => handleNavigate('/api-reference')}
               variant="outline"
-              className="border-white text-white hover:bg-white/10 h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
+              className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
             >
               <Code className="h-8 w-8" />
               <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold">Developer API</span>
-              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs opacity-70">Enterprise</span>
+              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs text-[#808080]">Enterprise</span>
             </Button>
             
             <Button
@@ -460,8 +457,9 @@ export function Features() {
             >
               <ArrowRight className="h-8 w-8" />
               <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold">Get Started</span>
-              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs opacity-70">Start Now</span>
+              <span className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-xs text-white/80">Start Now</span>
             </Button>
+          </div>
           </div>
         </div>
         

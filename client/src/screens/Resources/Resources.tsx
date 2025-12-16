@@ -24,22 +24,18 @@ export default function Resources() {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden px-6 pt-24 pb-20 bg-gradient-to-br from-[#0A3778] to-[#1DBF73]">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -left-24 -top-32 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute right-[-120px] top-6 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-        </div>
-        <div className="relative max-w-[1270px] mx-auto text-center">
-          <Badge className="h-[30px] bg-white/15 text-white rounded-[800px] px-4 mb-6 border-0">
+  <section className="px-6 pt-24 pb-16 bg-white">
+        <div className="max-w-[1270px] mx-auto text-center">
+          <Badge className="h-[30px] bg-[#003d2b1a] text-[#003d2b] rounded-[800px] px-4 mb-6 border-0">
             <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm leading-[14px] tracking-[0]">
               DEVELOPER RESOURCES
             </span>
           </Badge>
           <div className="space-y-4 max-w-4xl mx-auto">
-            <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[42px] sm:text-[48px] lg:text-[54px] leading-[110%] text-white tracking-[-0.8px]">
+            <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[42px] sm:text-[48px] lg:text-[54px] leading-[110%] text-[#003d2b] tracking-[-0.8px]">
               Developer Resources
             </h1>
-            <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xl text-white/90 leading-[27px]">
+            <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xl text-[#808080] leading-[27px]">
               Everything you need to integrate TrustVerify into your applications. 
               Documentation, guides, SDKs, and community support.
             </p>
@@ -53,7 +49,7 @@ export default function Resources() {
           <Link to="/api-reference">
             <Card className="shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow cursor-pointer border border-[#e4e4e4] rounded-[20px] bg-white">
               <CardContent className="p-6 text-center">
-                <div className="h-12 w-12 bg-gradient-to-br from-[#0b3a78] to-[#1DBF73] rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="h-12 w-12 bg-[#27ae6b] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Code className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-lg font-semibold text-[#003d2b] mb-2">API Reference</h3>
@@ -65,7 +61,7 @@ export default function Resources() {
           <Link to="/sdk-documentation">
             <Card className="shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow cursor-pointer border border-[#e4e4e4] rounded-[20px] bg-white">
               <CardContent className="p-6 text-center">
-                <div className="h-12 w-12 bg-gradient-to-br from-[#1DBF73] to-[#0b3a78] rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="h-12 w-12 bg-[#27ae6b] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Download className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-lg font-semibold text-[#003d2b] mb-2">SDKs</h3>
@@ -77,7 +73,7 @@ export default function Resources() {
           <Link to="/integration-examples">
             <Card className="shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow cursor-pointer border border-[#e4e4e4] rounded-[20px] bg-white">
               <CardContent className="p-6 text-center">
-                <div className="h-12 w-12 bg-gradient-to-br from-[#0A3778] to-[#1DBF73] rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="h-12 w-12 bg-[#27ae6b] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Lightbulb className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-lg font-semibold text-[#003d2b] mb-2">Examples</h3>
@@ -89,7 +85,7 @@ export default function Resources() {
           <Link to="/help-center">
             <Card className="shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow cursor-pointer border border-[#e4e4e4] rounded-[20px] bg-white">
               <CardContent className="p-6 text-center">
-                <div className="h-12 w-12 bg-gradient-to-br from-[#0b3a78] to-[#1DBF73] rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="h-12 w-12 bg-[#27ae6b] rounded-full flex items-center justify-center mx-auto mb-4">
                   <MessageSquare className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-lg font-semibold text-[#003d2b] mb-2">Support</h3>
@@ -220,7 +216,7 @@ export default function Resources() {
               <Link to="/integration-examples">
                 <div className="p-4 rounded-[18px] border border-[#e4e4e4] hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow cursor-pointer">
                   <div className="flex items-center space-x-3 mb-3">
-                    <div className="w-8 h-8 rounded bg-gradient-to-br from-[#0b3a78] to-[#1DBF73] flex items-center justify-center">
+                    <div className="w-8 h-8 rounded bg-[#27ae6b] flex items-center justify-center">
                       <Code className="h-4 w-4 text-white" />
                     </div>
                     <h4 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">E-commerce Integration</h4>
@@ -237,7 +233,7 @@ export default function Resources() {
 
               <div className="p-4 rounded-[18px] border border-[#e4e4e4] hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow cursor-pointer">
                 <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 rounded bg-gradient-to-br from-[#1DBF73] to-[#0b3a78] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded  bg-[#27ae6b] flex items-center justify-center">
                     <Shield className="h-4 w-4 text-white" />
                   </div>
                   <h4 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">Banking API</h4>
@@ -253,7 +249,7 @@ export default function Resources() {
 
               <div className="p-4 rounded-[18px] border border-[#e4e4e4] hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow cursor-pointer">
                 <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 rounded bg-gradient-to-br from-[#0A3778] to-[#1DBF73] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded bg-[#27ae6b] flex items-center justify-center">
                     <Search className="h-4 w-4 text-white" />
                   </div>
                   <h4 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">Domain Verification</h4>

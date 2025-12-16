@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import pino from 'pino';
-import { config } from '../config';
+// Config is not directly used, but FILE_STORAGE_PROVIDER is read from process.env
 
 const logger = pino({ name: 'file-storage' });
 
@@ -75,12 +75,25 @@ export class FileStorageService {
 
     // Setup local storage directory
     this.localStorageDir = path.join(process.cwd(), 'secure_uploads');
-    if (this.provider === 'local' && !fs.existsSync(this.localStorageDir)) {
-      fs.mkdirSync(this.localStorageDir, { recursive: true });
-      // Create subdirectories for organization
-      fs.mkdirSync(path.join(this.localStorageDir, 'kyc'), { recursive: true });
-      fs.mkdirSync(path.join(this.localStorageDir, 'kyb'), { recursive: true });
-      fs.mkdirSync(path.join(this.localStorageDir, 'documents'), { recursive: true });
+    if (this.provider === 'local') {
+      try {
+        if (!fs.existsSync(this.localStorageDir)) {
+          fs.mkdirSync(this.localStorageDir, { recursive: true });
+          logger.info({ path: this.localStorageDir }, 'Created secure_uploads directory');
+        }
+        // Create subdirectories for organization
+        const subdirs = ['kyc', 'kyb', 'documents'];
+        for (const subdir of subdirs) {
+          const subdirPath = path.join(this.localStorageDir, subdir);
+          if (!fs.existsSync(subdirPath)) {
+            fs.mkdirSync(subdirPath, { recursive: true });
+          }
+        }
+        logger.info({ path: this.localStorageDir }, 'Local storage directories initialized');
+      } catch (error: any) {
+        logger.error({ error, path: this.localStorageDir }, 'Failed to create local storage directories');
+        throw new Error(`Failed to initialize local storage: ${error.message}`);
+      }
     }
   }
 
@@ -153,13 +166,26 @@ export class FileStorageService {
       const storageKey = this.generateStorageKey(fileType, userId, originalName);
       const checksum = this.calculateChecksum(fileBuffer);
 
-      // Encrypt if requested
+      // Encrypt if requested and encryption key is available
       let finalBuffer = fileBuffer;
       let encrypted = false;
-      if (options?.encrypt && process.env.FILE_ENCRYPTION_KEY) {
-        const { encrypted: encryptedBuffer } = this.encryptBuffer(fileBuffer, process.env.FILE_ENCRYPTION_KEY);
-        finalBuffer = encryptedBuffer;
-        encrypted = true;
+      if (options?.encrypt) {
+        const encryptionKey = process.env.FILE_ENCRYPTION_KEY;
+        if (encryptionKey && encryptionKey.length >= 32) {
+          try {
+            const { encrypted: encryptedBuffer } = this.encryptBuffer(fileBuffer, encryptionKey);
+            finalBuffer = encryptedBuffer;
+            encrypted = true;
+            logger.debug({ fileId, originalName }, 'File encrypted successfully');
+          } catch (encryptError: any) {
+            logger.warn({ error: encryptError, fileId, originalName }, 'Encryption failed, storing file unencrypted');
+            // Continue without encryption if it fails
+            encrypted = false;
+          }
+        } else {
+          logger.debug({ fileId, originalName }, 'Encryption requested but FILE_ENCRYPTION_KEY not set or too short, storing unencrypted');
+          encrypted = false;
+        }
       }
 
       if (this.provider === 's3' && this.s3Client && this.s3Bucket) {
@@ -193,20 +219,39 @@ export class FileStorageService {
         const filePath = path.join(this.localStorageDir, storageKey);
         const dir = path.dirname(filePath);
         
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
+        try {
+          // Ensure directory exists
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+            logger.debug({ dir }, 'Created directory for file upload');
+          }
+
+          // Write file
+          fs.writeFileSync(filePath, finalBuffer);
+          
+          // Verify file was written
+          if (!fs.existsSync(filePath)) {
+            throw new Error('File was not written successfully');
+          }
+
+          logger.info({ fileId, storageKey, provider: 'local', size: finalBuffer.length }, 'File uploaded to local storage');
+
+          return {
+            success: true,
+            fileId,
+            storageKey,
+            url: `/api/files/${fileId}`, // Local access URL
+          };
+        } catch (writeError: any) {
+          logger.error({ 
+            error: writeError, 
+            filePath, 
+            dir, 
+            originalName,
+            storageKey 
+          }, 'Failed to write file to local storage');
+          throw writeError; // Re-throw to be caught by outer try-catch
         }
-
-        fs.writeFileSync(filePath, finalBuffer);
-
-        logger.info({ fileId, storageKey, provider: 'local' }, 'File uploaded to local storage');
-
-        return {
-          success: true,
-          fileId,
-          storageKey,
-          url: `/api/files/${fileId}`, // Local access URL
-        };
       }
     } catch (error: any) {
       logger.error({ error, originalName }, 'Failed to upload file');

@@ -222,6 +222,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Store file metadata in database
+      // Note: encrypted flag should match actual encryption status
+      const isEncrypted = !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32;
       await db.insert(fileStorageTable).values({
         fileId: frontUpload.fileId,
         userId: req.user.id,
@@ -232,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storageProvider: fileStorageService.getProvider(),
         storageKey: frontUpload.storageKey,
         fileType: 'kyc',
-        encrypted: true,
+        encrypted: isEncrypted,
       });
 
       // Upload back image if provided
@@ -259,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             storageProvider: fileStorageService.getProvider(),
             storageKey: backUpload.storageKey,
             fileType: 'kyc',
-            encrypted: true,
+            encrypted: !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32,
           });
         }
       }
@@ -288,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storageProvider: fileStorageService.getProvider(),
         storageKey: selfieUpload.storageKey,
         fileType: 'kyc',
-        encrypted: true,
+        encrypted: !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32,
       });
 
       // Create submission with storage keys instead of file paths

@@ -503,16 +503,10 @@ async function handleHighRiskFraud(fraudData) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {integrationScenarios.map((scenario) => {
               const IconComponent = scenario.icon;
-              const colorMap: Record<string, string> = {
-                blue: 'from-[#0b3a78] to-[#1DBF73]',
-                green: 'from-[#1DBF73] to-[#0b3a78]',
-                purple: 'from-[#0A3778] to-[#1DBF73]',
-                orange: 'from-[#0b3a78] to-[#1DBF73]'
-              };
               return (
                 <Card key={scenario.id} className="bg-white border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow">
                   <CardHeader className="text-center">
-                    <div className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br ${colorMap[scenario.color] || colorMap.blue} flex items-center justify-center`}>
+                    <div className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-[#27ae60] flex items-center justify-center`}>
                       <IconComponent className="h-6 w-6 text-white" />
                     </div>
                     <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-lg font-semibold text-[#003d2b]">{scenario.title}</CardTitle>
