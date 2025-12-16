@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Link } from "react-router-dom";
+import { Label } from "@radix-ui/react-label";
 
 const companyLinks = [
   { label: "Home", path: "/" },
@@ -13,6 +14,7 @@ const companyLinks = [
 const fraudDetectionLinks = [
   { label: "Identity Verification", path: "/kyc-verification" },
   { label: "Escrow Services", path: "/secure-escrow" },
+  { label: "KYB Services", path: "/solutions/kyb" },
   { label: "API Documentation", path: "/api-reference" },
 ];
 

@@ -38,7 +38,7 @@ const navigationItems: NavigationItem[] = [
     subItems: [
       { label: "Developer Portal", path: "/developer-portal", description: "Access developer portal" },
       { label: "Developer Center", path: "/developer-center", description: "Developer resources and tools" },
-      { label: "API Documentation", path: "/api-documentation", description: "Complete API documentation" },
+      { label: "API Documentation", path: "/api-docs", description: "Complete API documentation" },
     ]
   },
   { label: "Pricing", hasDropdown: false, path: "/pricing" },

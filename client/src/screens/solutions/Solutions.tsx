@@ -18,7 +18,7 @@ export default function Solutions() {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden px-6 pt-24 pb-20">
+      <section className="relative overflow-hidden px-6 pt-24">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -left-24 -top-32 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute right-[-120px] top-6 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
@@ -61,19 +61,19 @@ export default function Solutions() {
       <section className="py-16 bg-white">
         <div className="max-w-[1270px] mx-auto px-6 md:px-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 bg-[#f7f7f7] px-3 py-6 rounded-lg">
               <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-3xl text-[#003d2b]">AI-Powered</div>
               <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">Fraud Detection</div>
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 bg-[#f7f7f7] px-3 py-6 rounded-lg">
               <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-3xl text-[#003d2b]">72hrs</div>
               <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">Resolution Time</div>
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 bg-[#f7f7f7] px-3 py-6 rounded-lg">
               <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-3xl text-[#003d2b]">Enterprise</div>
               <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">Grade Security</div>
             </div>
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 bg-[#f7f7f7] px-3 py-6 rounded-lg">
               <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-3xl text-[#003d2b]">24/7</div>
               <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">Support Available</div>
             </div>

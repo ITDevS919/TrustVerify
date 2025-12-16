@@ -43,7 +43,6 @@ import { ApiPricing } from "./screens/ApiPricing";
 import { SubscriptionManagement, SubscriptionSuccess, SubscriptionCancel } from "./screens/Subscriptions";
 import ZendeskChat from "./components/ChatBot/ZendeskChat";
 import { Business } from "./screens/Business";
-import { Developers } from "./screens/Developers";
 import { Resources } from "./screens/Resources";
 import { SecurityDashboard } from "./screens/SecurityDashboard";
 import { Webhook } from "./screens/Webhook";
@@ -52,6 +51,8 @@ import { IntegrationExamples } from "./screens/IntegrationExample";
 import { Features } from "./screens/EnterpriseFeatures";
 import DemoPage from "./screens/DemoPage/DemoPage";
 import { Solutions } from "./screens/solutions";
+import { ApiKeysPage } from "./screens/ApiKeys";
+import { ApiDocPage } from "./screens/ApiDoc";
 import CategoryPage from "./screens/solutions/[Category]";
 
 
@@ -84,16 +85,16 @@ function App() {
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/training" element={<Training />} />
               <Route path="/consumer-protection" element={<ConsumerProtection />} />
-              <Route path="/developer-center" element={<DeveloperCenter />} />
+              <Route path="/developers" element={<DeveloperCenter />} />
               <Route path="/api-reference" element={<ApiReferences />} />
               <Route path="/api-pricing" element={<ApiPricing />} />
-
+              <Route path="/api-keys" element={<ApiKeysPage />} />
+              <Route path="/api-docs" element={<ApiDocPage />} />
               <Route path="/fraud-prevention" element={<FraudPrevention />} />
               <Route path="/live-demo" element={<LiveDemo />} />
               
               {/* New Routes for Updated Pages */}
               <Route path="/business" element={<Business />} />
-              <Route path="/developers" element={<Developers />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/security-dashboard" element={<SecurityDashboard />} />
               <Route path="/webhooks" element={<Webhook />} />
