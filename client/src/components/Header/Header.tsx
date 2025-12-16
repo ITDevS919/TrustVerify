@@ -80,7 +80,7 @@ const navigationItems: NavigationItem[] = [
     path: "/developer-center",
     subItems: [
       { label: "Quick Start", path: "/developers", description: "Get started in minutes" },
-      { label: "API Reference / SDKs", path: "/api-reference", description: "Complete API documentation" },
+      { label: "API Reference / SDKs", path: "/reference-api", description: "Complete API documentation" },
       { label: "Webhooks & Events", path: "/webhooks", description: "Real-time event notifications" },
       { label: "Workflow / Orchestration", path: "/onboarding-demo", description: "Build custom verification workflows" },
       { label: "Sandbox / Demo", path: "/demo", description: "Test in our sandbox environment" },

@@ -1837,7 +1837,7 @@ const trustverify = new TrustVerify({
                     <div className="flex flex-col gap-[13px]">
                       <Button
                         variant="outline"
-                        onClick={() => window.open('/api-reference', '_blank')}
+                        onClick={() => window.open('/reference-api', '_blank')}
                         className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:bg-[#f6f6f6] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
                       >
                         <Code className="w-6 h-6 text-[#003d2b]" />
@@ -2282,7 +2282,7 @@ const trustverify = new TrustVerify({
                     <div className="flex flex-col gap-[13px]">
                       <Button
                         variant="outline"
-                        onClick={() => window.open('/api-reference', '_blank')}
+                        onClick={() => window.open('/reference-api', '_blank')}
                         className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
                       >
                         <Book className="w-6 h-6 text-[#003d2b]" />

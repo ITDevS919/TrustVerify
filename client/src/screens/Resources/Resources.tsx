@@ -46,7 +46,7 @@ export default function Resources() {
       <div className="max-w-[1270px] mx-auto px-6 md:px-10 py-16">
         {/* Quick Access */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
-          <Link to="/api-reference">
+          <Link to="/reference-api">
             <Card className="shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_14px_50px_rgba(0,0,0,0.05)] transition-shadow cursor-pointer border border-[#e4e4e4] rounded-[20px] bg-white">
               <CardContent className="p-6 text-center">
                 <div className="h-12 w-12 bg-[#27ae6b] rounded-full flex items-center justify-center mx-auto mb-4">
@@ -110,7 +110,7 @@ export default function Resources() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <Link to="/api-reference">
+                <Link to="/reference-api">
                   <div className="flex items-center justify-between p-3 rounded-lg hover:bg-[#f4f4f4] cursor-pointer">
                     <div>
                       <h4 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b]">API Reference</h4>

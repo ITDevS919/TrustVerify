@@ -88,7 +88,7 @@ function App() {
               <Route path="/training" element={<Training />} />
               <Route path="/consumer-protection" element={<ConsumerProtection />} />
               <Route path="/developers" element={<DeveloperCenter />} />
-              <Route path="/api-reference" element={<ApiReferences />} />
+              <Route path="/reference-api" element={<ApiReferences />} />
               <Route path="/api-pricing" element={<ApiPricing />} />
               <Route path="/api-keys" element={<ApiKeysPage />} />
               <Route path="/api-docs" element={<ApiDocPage />} />
@@ -110,7 +110,7 @@ function App() {
               <Route path="/solutions/:category" element={<CategoryPage />} />
 
               <Route path="/website-integrity" element={<WebsiteIntegrityPage />} />
-              
+
               {/* Protected Routes */}
               <Route  
                 path="/dashboard" 

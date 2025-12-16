@@ -380,7 +380,7 @@ $trustVerify = new Client([
                     <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080]">Check out our API reference or contact our developer support team.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                    <Button variant="outline" className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] rounded-[10px] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium" onClick={() => window.open('/api-reference', '_blank')}>
+                    <Button variant="outline" className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] rounded-[10px] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium" onClick={() => window.open('/reference-api', '_blank')}>
                       <ExternalLink className="h-4 w-4 mr-2" />
                       API Reference
                     </Button>

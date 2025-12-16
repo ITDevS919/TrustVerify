@@ -15,7 +15,7 @@ const fraudDetectionLinks = [
   { label: "Identity Verification", path: "/kyc-verification" },
   { label: "Escrow Services", path: "/secure-escrow" },
   { label: "KYB Services", path: "/solutions/kyb" },
-  { label: "API Documentation", path: "/api-reference" },
+  { label: "API Documentation", path: "/reference-api" },
 ];
 
 const supportLinks = [
