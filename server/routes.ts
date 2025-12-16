@@ -16,19 +16,12 @@ import supportRoutes from "./routes/support";
 import subscriptionRoutes from "./routes/subscriptions";
 import { validateApiKey, logApiUsage } from "./middleware/apiAuth";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { z } from "zod";
 import { GDPRService } from "./security/compliance.js";
 
-// Set up multer for file uploads
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
+// Set up multer for file uploads (in-memory for cloud storage)
 const upload = multer({
-  dest: uploadDir,
+  storage: multer.memoryStorage(), // Store in memory, then upload to cloud
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
@@ -49,20 +42,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register arbitration routes
   const { registerArbitrationRoutes } = await import('./routes/arbitration');
   registerArbitrationRoutes(app);
-  
-  // Serve uploaded files
-  app.use('/api/uploads', (req, res, _next) => {
-    const filename = req.path.split('/').pop();
-    if (!filename) {
-      return res.status(404).json({ message: 'File not found' });
-    }
-    const filePath = path.join(uploadDir, filename);
-    if (fs.existsSync(filePath)) {
-      res.sendFile(path.resolve(filePath));
-    } else {
-      res.status(404).json({ message: 'File not found' });
-    }
-  });
   
   // Security functionality - implemented with try-catch for graceful degradation
   let securityModules;
@@ -217,14 +196,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Import KYC storage service
+      // Import services
       const { kycStorage } = await import("./services/kyc-storage");
+      const { fileStorageService } = await import("./services/file-storage");
+      const { db } = await import("./db");
+      const { fileStorage: fileStorageTable } = await import("./shared/schema");
 
-      // Save files and create submission
-      const frontImagePath = files.frontImage[0].path;
-      const backImagePath = files.backImage?.[0]?.path;
-      const selfieImagePath = files.selfieImage[0].path;
+      // Upload files to cloud storage
+      const frontImageFile = files.frontImage[0];
+      const backImageFile = files.backImage?.[0];
+      const selfieImageFile = files.selfieImage[0];
 
+      // Upload front image
+      const frontUpload = await fileStorageService.uploadFile(
+        frontImageFile.buffer,
+        frontImageFile.originalname,
+        frontImageFile.mimetype,
+        req.user.id,
+        'kyc',
+        { encrypt: true } // Encrypt sensitive KYC documents
+      );
+
+      if (!frontUpload.success) {
+        return res.status(500).json({ message: 'Failed to upload front image' });
+      }
+
+      // Store file metadata in database
+      await db.insert(fileStorageTable).values({
+        fileId: frontUpload.fileId,
+        userId: req.user.id,
+        fileName: frontImageFile.originalname,
+        originalName: frontImageFile.originalname,
+        mimeType: frontImageFile.mimetype,
+        size: frontImageFile.size,
+        storageProvider: fileStorageService.getProvider(),
+        storageKey: frontUpload.storageKey,
+        fileType: 'kyc',
+        encrypted: true,
+      });
+
+      // Upload back image if provided
+      let backImageStorageKey: string | undefined;
+      if (backImageFile) {
+        const backUpload = await fileStorageService.uploadFile(
+          backImageFile.buffer,
+          backImageFile.originalname,
+          backImageFile.mimetype,
+          req.user.id,
+          'kyc',
+          { encrypt: true }
+        );
+
+        if (backUpload.success) {
+          backImageStorageKey = backUpload.storageKey;
+          await db.insert(fileStorageTable).values({
+            fileId: backUpload.fileId,
+            userId: req.user.id,
+            fileName: backImageFile.originalname,
+            originalName: backImageFile.originalname,
+            mimeType: backImageFile.mimetype,
+            size: backImageFile.size,
+            storageProvider: fileStorageService.getProvider(),
+            storageKey: backUpload.storageKey,
+            fileType: 'kyc',
+            encrypted: true,
+          });
+        }
+      }
+
+      // Upload selfie
+      const selfieUpload = await fileStorageService.uploadFile(
+        selfieImageFile.buffer,
+        selfieImageFile.originalname,
+        selfieImageFile.mimetype,
+        req.user.id,
+        'kyc',
+        { encrypt: true }
+      );
+
+      if (!selfieUpload.success) {
+        return res.status(500).json({ message: 'Failed to upload selfie image' });
+      }
+
+      await db.insert(fileStorageTable).values({
+        fileId: selfieUpload.fileId,
+        userId: req.user.id,
+        fileName: selfieImageFile.originalname,
+        originalName: selfieImageFile.originalname,
+        mimeType: selfieImageFile.mimetype,
+        size: selfieImageFile.size,
+        storageProvider: fileStorageService.getProvider(),
+        storageKey: selfieUpload.storageKey,
+        fileType: 'kyc',
+        encrypted: true,
+      });
+
+      // Create submission with storage keys instead of file paths
       const submission = await kycStorage.createSubmission({
         userId: req.user.id,
         userEmail: email || user.email,
@@ -232,9 +299,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userPhone: phone,
         documentType,
         documentNumber,
-        frontImagePath,
-        backImagePath,
-        selfieImagePath,
+        frontImagePath: frontUpload.storageKey, // Store storage key
+        backImagePath: backImageStorageKey,
+        selfieImagePath: selfieUpload.storageKey,
         userType,
       });
 
@@ -533,27 +600,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Review Routes
   app.get("/api/admin/kyc/submissions", requireAuth, requireAdminAccess, async (req, res) => {
     try {
-
       const { kycStorage } = await import("./services/kyc-storage");
       const { status, userType } = req.query;
       
-      let submissions = await kycStorage.getAllSubmissions();
+      // Get submissions from file-based storage
+      let fileSubmissions = await kycStorage.getAllSubmissions();
       
-      if (status) {
-        submissions = submissions.filter(s => s.status === status);
+      // Also get KYC verifications from database
+      const dbKycVerifications = await storage.getPendingKycVerifications();
+      
+      // Merge data: prioritize file-based submissions, but include DB records that don't have file submissions
+      const fileSubmissionUserIds = new Set(fileSubmissions.map(s => s.userId));
+      
+      // Convert DB KYC records to submission format for records not in file storage
+      const dbSubmissionsPromises = dbKycVerifications
+        .filter(kyc => !fileSubmissionUserIds.has(kyc.userId))
+        .map(async (kyc) => {
+          // Get user info for the KYC record
+          let user;
+          try {
+            user = await storage.getUser(kyc.userId);
+          } catch {
+            user = null;
+          }
+          
+          return {
+            submissionId: `KYC-DB-${kyc.id}`,
+            userId: kyc.userId,
+            userEmail: user?.email || 'unknown@example.com',
+            userName: user?.username || user?.firstName || `User ${kyc.userId}`,
+            userPhone: undefined, // Phone not available in user schema
+            documentType: kyc.documentType || 'unknown',
+            documentNumber: kyc.documentNumber || undefined,
+            frontImagePath: '', // No image path for DB-only records
+            backImagePath: undefined,
+            selfieImagePath: '',
+            submittedAt: kyc.submittedAt?.toISOString() || new Date().toISOString(),
+            status: kyc.status === 'approved' ? 'approved' : 
+                   kyc.status === 'rejected' ? 'rejected' : 
+                   kyc.status === 'pending' ? 'pending' : 'pending',
+            userType: undefined,
+          };
+        });
+      
+      const dbSubmissions = await Promise.all(dbSubmissionsPromises);
+      
+      // Combine both sources
+      let allSubmissions = [...fileSubmissions, ...dbSubmissions];
+      
+      // Apply filters
+      if (status && status !== 'all') {
+        allSubmissions = allSubmissions.filter(s => s.status === status);
       }
       
-      if (userType) {
-        submissions = submissions.filter(s => s.userType === userType);
+      if (userType && userType !== 'all') {
+        allSubmissions = allSubmissions.filter(s => s.userType === userType);
       }
 
       // Sort by submitted date (newest first)
-      submissions.sort((a, b) => 
+      allSubmissions.sort((a, b) => 
         new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
       );
 
-      res.json(submissions);
+      res.json(allSubmissions);
     } catch (error: any) {
+      console.error('Error fetching KYC submissions:', error);
       res.status(500).json({ message: error.message });
     }
   });

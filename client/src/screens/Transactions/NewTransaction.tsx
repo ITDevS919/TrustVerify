@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, FileCheck, Shield, UploadCloud, RefreshCw } from "lucide-react";
 
-import { HeaderDemo } from "@/components/HeaderDemo";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -220,7 +220,7 @@ export const NewTransaction = (): JSX.Element => {
 
   return (
     <div className="bg-[#f6f6f6] overflow-hidden w-full flex flex-col">
-      <HeaderDemo />
+      <Header />
       <section className="flex flex-col items-start gap-6 w-full max-w-[1703px] mx-auto px-6 py-[72px]">
         <header className="flex flex-col items-start gap-6 w-full">
           <button

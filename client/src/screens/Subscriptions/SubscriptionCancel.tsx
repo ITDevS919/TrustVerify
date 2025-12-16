@@ -2,13 +2,13 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { XCircle } from "lucide-react";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 
 export const SubscriptionCancel = () => {
   const navigate = useNavigate();
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-      <HeaderDemo />
+      <Header />
       <div className="flex items-center justify-center flex-1">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">

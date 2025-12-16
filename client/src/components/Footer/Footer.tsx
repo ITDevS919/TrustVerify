@@ -11,9 +11,9 @@ const companyLinks = [
 ];
 
 const fraudDetectionLinks = [
-  { label: "Identity Verification", path: "/id-verification" },
+  { label: "Identity Verification", path: "/kyc-verification" },
   { label: "Escrow Services", path: "/secure-escrow" },
-  { label: "API Documentation", path: "/api-documentation" },
+  { label: "API Documentation", path: "/api-reference" },
 ];
 
 const supportLinks = [
@@ -26,7 +26,7 @@ const legalLinks = [
   { label: "Legal Disclaimer", path: "/legal" },
   { label: "Terms of Service", path: "/terms" },
   { label: "Cookie Policy", path: "/cookie-policy" },
-  { label: "Regulatory Compliances", path: "/compliances" },
+  { label: "Regulatory Compliances", path: "/regulatory-compliance" },
 ];
 
 const socialLinks = [
@@ -286,7 +286,7 @@ export const Footer = (): JSX.Element => {
                   Need help!
                 </p>
                 <p className="text-lg sm:text-xl leading-6 [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white break-all sm:break-normal">
-                      0204542723
+                      +44 02 0454 2723
                 </p>
               </div>
               <div className="w-px h-[61px] bg-[#ffffff1a]" />

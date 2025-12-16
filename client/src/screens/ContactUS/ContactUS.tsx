@@ -15,7 +15,7 @@ const contactCards = [
     icon: "/call.png",
     title: "Call Us Any Time!",
     description: "Speak directly with our support team for urgent issues!",
-    details: [{ label: "UK:", value: "+44 20 7123 4567" }],
+    details: [{ label: "UK:", value: "+44 02 0454 2723" }],
     footer: "24/7 emergency support available",
   },
   {
@@ -26,8 +26,8 @@ const contactCards = [
     description:
       "Get Help with your account, technical issues, or general inquiries",
     details: [
-      { label: "General:", value: "hello@trustverify.com" },
-      { label: "Sales:", value: "Sales@trustverify.com" },
+      { label: "General:", value: "hello@trustverify.co.uk" },
+      { label: "Sales:", value: "Sales@trustverify.co.uk" },
     ],
     footer: null,
   },

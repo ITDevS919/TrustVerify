@@ -1,4 +1,4 @@
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -72,7 +72,7 @@ export const SupportCenter = (): JSX.Element => {
     const navigate = useNavigate();
     return (
         <div className="bg-[#f6f6f6] overflow-hidden w-full flex flex-col">
-            <HeaderDemo />
+            <Header />
             <section className="flex flex-col items-start gap-4 sm:gap-6 md:gap-[30px] w-full mt-8 sm:mt-10 md:mt-[72px] px-4 sm:px-8 lg:px-[110px] py-4 sm:py-6">
                 <header className="flex flex-col items-start gap-4 sm:gap-6 w-full">
                     <button 

@@ -51,35 +51,63 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
-  { label: "Platform",
-    hasDropdown: true, 
-    path: "/platform",
-    subItems: [
-      { label: "Platform Suite", path: "/platform", description: "Tailored solutions for every industry" },
-      { label: "Consumer Protection Suite", path: "/consumer-protection", description: "training" },
-      { label: "Our Mission", path: "/our-mission", description: "Marketplace protection" },
-    ]
-  },
   { 
     label: "Solutions", 
     hasDropdown: true, 
-    path: "/industry",
+    path: "",
     subItems: [
-      { label: "Industry Solutions", path: "/industry", description: "Tailored solutions for every industry" },
-      { label: "Regulatory Compliances", path: "/compliances", description: "Marketplace protection" },
+      { label: "Identity Verification (KYC)", path: "/kyc-verification", description: "Verify identity with advanced KYC solutions" },
+      { label: "AML & Ongoing Monitoring", path: "/security-dashboard", description: "Comprehensive AML compliance and monitoring" },
+      { label: "Fraud Prevention & Risk Scoring", path: "/fraud-prevention", description: "Advanced fraud detection and risk assessment" },
+      { label: "Business / KYB", path: "/solutions/kyb", description: "Know Your Business verification solutions" },
     ]
   },
   { 
-    label: "Enterprises", 
+    label: "Use Cases / Industries", 
     hasDropdown: true, 
-    path: "/contact",
+    path: "/",
     subItems: [
-      { label: "Help Center", path: "/help", description: "Help Center" },
-      { label: "Contact Us", path: "/contact", description: "Contact US" },
+      { label: "Fintech & Banking", path: "/solutions/fintech", description: "Solutions for financial services" },
+      { label: "Marketplaces & Sharing Economy", path: "/solutions/marketplaces", description: "Trust and safety for platforms" },
+      { label: "eCommerce & Retail", path: "/solutions/ecommerce", description: "Retail fraud prevention" },
+      { label: "Travel & Hospitality", path: "/solutions/travel", description: "Identity verification for travel" },
+      { label: "Crypto / Digital Assets", path: "/solutions/crypto", description: "Compliance for digital assets" },
     ]
   },
-  { label: "Developers", hasDropdown: false, path: "/developer-center" },
-  { label: "Pricing", hasDropdown: false, path: "/pricing" },
+  { 
+    label: "Developers", 
+    hasDropdown: true, 
+    path: "/developer-center",
+    subItems: [
+      { label: "Quick Start", path: "/developers", description: "Get started in minutes" },
+      { label: "API Reference / SDKs", path: "/api-reference", description: "Complete API documentation" },
+      { label: "Webhooks & Events", path: "/webhooks", description: "Real-time event notifications" },
+      { label: "Workflow / Orchestration", path: "/onboarding-demo", description: "Build custom verification workflows" },
+      { label: "Sandbox / Demo", path: "/demo", description: "Test in our sandbox environment" },
+    ]
+  },
+  { 
+    label: "Enterprise", 
+    hasDropdown: true, 
+    path: "/enterprise",
+    subItems: [
+      { label: "Enterprise Features & Benefits", path: "/enterprise/features", description: "Powerful features for large organizations" },
+      { label: "Compliance & Data Security", path: "/regulatory-compliance", description: "Enterprise-grade security and compliance" },
+      { label: "Integration & Onboarding Support", path: "/integration-examples", description: "Dedicated support for seamless integration" },
+      { label: "Case Studies / Testimonials", path: "/resources", description: "Success stories from our customers" },
+      { label: "Contact / Sales / Support", path: "/contact", description: "Get in touch with our team" },
+    ]
+  },
+  { 
+    label: "Pricing & Plans", 
+    hasDropdown: true, 
+    path: "/pricing",
+    subItems: [
+      { label: "Self-Serve / SME", path: "/pricing", description: "Plans for small and medium businesses" },
+      { label: "Volume / Enterprise", path: "/business", description: "Custom pricing for high volume" },
+      { label: "Add-ons & Optional Modules", path: "/api-pricing", description: "Additional features and modules" },
+    ]
+  },
 ];
 
 // Helper function to get width class and style
@@ -211,7 +239,7 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
       style={headerStyle}
     >
       <header className="w-full relative bg-transparent z-10">
-      <div className="max-w-[1488px]  mx-auto relative flex items-center justify-between my-4 px-6 xl:px-10 2xl:px-0 h-16 sm:h-20">
+      <div className="max-w-[1588px]  mx-auto relative flex items-center justify-between my-4 px-6 xl:px-10 h-16 sm:h-20">
 
         <Link to="/">
           <img
@@ -225,7 +253,7 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center justify-center gap-3 xl:gap-8 absolute top-[29px] left-1/2 -translate-x-1/2">
+        <nav className="hidden xl:flex items-center justify-center gap-3 2xl:gap-8 absolute top-[29px] left-1/2 -translate-x-1/2">
           {navigationItems.map((item, index) => (
             <div 
               key={index} 
@@ -308,7 +336,7 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
           ))}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-2.5">
+        <div className="hidden xl:flex items-center gap-2.5">
           {user ? (
             <div 
               className="relative"
@@ -402,7 +430,7 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
         <button
           aria-label="Mobile menu"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="lg:hidden flex items-center justify-center w-10 h-10 rounded-md border border-solid border-white bg-transparent text-white"
+          className="xl:hidden flex items-center justify-center w-10 h-10 rounded-md border border-solid border-white bg-transparent text-white"
         >
           {isMenuOpen ? (
             <XIcon className="w-6 h-6" />

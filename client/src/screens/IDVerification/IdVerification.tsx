@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
@@ -330,7 +330,7 @@ export const IdVerification = (): JSX.Element => {
 
   return (
     <main className="bg-[#fcfcfc] overflow-hidden w-full relative">
-      <HeaderDemo />
+      <Header />
 
       <section className="w-full max-w-[1703px] flex flex-col items-center gap-8 md:gap-[30px] mx-auto px-4 sm:px-6 lg:px-10 py-10 md:py-[72px]">
         {/* Header + Status */}

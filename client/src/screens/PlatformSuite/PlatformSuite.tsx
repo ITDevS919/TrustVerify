@@ -5,6 +5,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { TrendingUp } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import React from "react";
 
 const platformFeatures = [
@@ -119,6 +120,7 @@ const features = [
 ];
 
 export const PlatformSuite = (): JSX.Element => {
+  const navigate = useNavigate();
   return (
     <main className="bg-white overflow-hidden w-full relative">
       <Header 
@@ -200,7 +202,9 @@ export const PlatformSuite = (): JSX.Element => {
                   </div>
                 </div>
 
-                <Button className="w-full h-14 bg-app-primary hover:bg-app-primary/90 rounded-xl text-white [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-lg tracking-[-0.20px] leading-[18px]">
+                <Button 
+                  onClick={() => navigate("/contact")}
+                  className="w-full h-14 bg-app-primary hover:bg-app-primary/90 rounded-xl text-white [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-lg tracking-[-0.20px] leading-[18px]">
                   <span>{feature.buttonText}</span>
                   <img
                     className="w-[30px] h-[30px] ml-2"

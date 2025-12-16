@@ -6,7 +6,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { MessageThread } from "@/components/ui/message-thread";
@@ -216,7 +216,7 @@ export const Messages = (): JSX.Element => {
 
     return (
         <main className="bg-[#f6f6f6] w-full flex flex-col">
-            <HeaderDemo />
+            <Header />
 
             {/* Mobile: Show conversation view when chat is selected */}
             {selectedChat !== null && (

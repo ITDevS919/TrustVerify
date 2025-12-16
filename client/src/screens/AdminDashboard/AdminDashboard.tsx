@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../hooks/use-auth";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header} from "../../components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -77,7 +77,7 @@ export const AdminDashboard = (): JSX.Element => {
 
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-      <HeaderDemo />
+      <Header />
       
       <div className="flex-1 p-6 md:p-8">
         <div className="max-w-7xl mx-auto">

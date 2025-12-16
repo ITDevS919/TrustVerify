@@ -1,32 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from "../../components/ui/navigation-menu";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
-import { CheckCircle2Icon } from "lucide-react";
+import { CheckCircle2Icon, Copy, CheckCircle } from "lucide-react";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "../../components/ui/tabs";
-import { HeaderDemo } from "../../components/HeaderDemo";
-
-const topNavigationItems = [
-  { label: "Demo", isActive: true },
-  { label: "Business", isActive: false },
-  { label: "Developers", isActive: false },
-  { label: "Pricing", isActive: false },
-  { label: "Support", isActive: false },
-];
+import { Header } from "../../components/Header";
+import { useToast } from "../../hooks/use-toast";
 
 const sideNavigationItems = [
   {
@@ -257,20 +244,67 @@ const downloadResources = [
   },
 ];
 
-const codeExample = `const TrustVerify = require('@trustverify/node-sdk');
+const codeExamples = {
+  nodejs: `const TrustVerify = require('@trustverify/node-sdk');
+
 const client = new TrustVerify({
   apiKey: 'your_api_key_here',
   environment: 'sandbox' // or 'production'
 });
+
 // Create a secure transaction
 const transaction = await client.transactions.create({
   amount: 1000.00,
-  currency: 'USD',
+  currency: 'GBP',
   recipient: 'user@example.com',
   description: 'Service payment',
   escrow: true
 });
-console.log('Transaction created:', transaction.id);`;
+
+console.log('Transaction created:', transaction.id);`,
+
+  python: `import trustverify
+
+client = trustverify.Client(
+    api_key='your_api_key_here',
+    environment='sandbox'  # or 'production'
+)
+
+# Perform fraud check
+fraud_check = client.fraud.check({
+    'transaction_data': {
+        'amount': 1000.00,
+        'currency': 'GBP',
+        'payment_method': 'card'
+    },
+    'user_profile': {
+        'user_id': 'user_123',
+        'email': 'user@example.com'
+    }
+})
+
+print(f"Risk score: {fraud_check.risk_score}")`,
+
+  curl: `# Create API Key
+curl -X POST https://api.trustverify.io/v1/auth/keys \\
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Production API Key",
+    "permissions": ["transactions", "fraud_detection"]
+  }'
+
+# Create Transaction
+curl -X POST https://api.trustverify.io/v1/transactions/create \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "amount": 1000.00,
+    "currency": "GBP",
+    "recipient": "user@example.com",
+    "description": "Service payment"
+  }'`
+};
 
 const codeExampleTabs = [
   { value: "nodejs", label: "Node.js" },
@@ -298,11 +332,63 @@ const sandboxFeatures = [
 export const DeveloperCenter = (): JSX.Element => {
   const [activeNav, setActiveNav] = useState("Overview");
   const [activeTab, setActiveTab] = useState("nodejs");
+  const [copiedEndpoint, setCopiedEndpoint] = useState("");
+  const [copiedCode, setCopiedCode] = useState("");
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleCopyEndpoint = (endpoint: string) => {
+    navigator.clipboard.writeText(endpoint);
+    setCopiedEndpoint(endpoint);
+    setTimeout(() => setCopiedEndpoint(""), 2000);
+    toast({
+      title: "Copied!",
+      description: "Endpoint copied to clipboard",
+    });
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(""), 2000);
+    toast({
+      title: "Copied!",
+      description: "Code copied to clipboard",
+    });
+  };
+
+  const handleDownload = async (type: string, filename: string) => {
+    try {
+      const response = await fetch(`/api/developer/download/${type}`);
+      if (!response.ok) throw new Error("Download failed");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Download Started",
+        description: `${filename} is being downloaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <main className="bg-[#f6f6f6] overflow-hidden w-full min-w-full lg:min-w-[1920px] flex flex-col">
-      <HeaderDemo />
+      <Header />
       <section className="flex flex-col items-start gap-[30px] w-full px-4 sm:px-6 lg:px-[110px] py-20">
         <header className="flex flex-col items-start gap-2.5 w-full">
           <h1 className="flex items-center justify-start w-full [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-3xl sm:text-4xl lg:text-5xl tracking-[0] leading-[normal] text-center">
@@ -389,9 +475,11 @@ export const DeveloperCenter = (): JSX.Element => {
 
                         {/* Buttons */}
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full justify-end">
-                          <Button className="w-full sm:w-[143px] h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90">
+                          <Button 
+                            onClick={() => navigate("/api-keys")}
+                            className="w-full sm:w-[143px] h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90">
                             <span className="font-semibold text-white text-sm text-center leading-[18px]">
-                              Get Started
+                              Generate API Key
                             </span>
                           </Button>
 
@@ -542,12 +630,17 @@ export const DeveloperCenter = (): JSX.Element => {
                                     </span>
                                   </div>
                                   <div className="flex justify-end sm:justify-start">
-
-                                    <img
-                                      className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px]"
-                                      alt="Copy endpoint"
-                                      src="/fi-5859289.svg"
-                                    />
+                                    <button
+                                      onClick={() => handleCopyEndpoint(endpoint.endpoint)}
+                                      className="p-1 hover:bg-gray-100 rounded transition-colors"
+                                      aria-label="Copy endpoint"
+                                    >
+                                      {copiedEndpoint === endpoint.endpoint ? (
+                                        <CheckCircle className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] text-[#27ae60]" />
+                                      ) : (
+                                        <Copy className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] text-[#808080]" />
+                                      )}
+                                    </button>
                                   </div>
                                 </div>
 
@@ -675,6 +768,7 @@ export const DeveloperCenter = (): JSX.Element => {
                                 {sdk.installCommand}
                               </p>
                               <Button
+                                onClick={() => !sdk.buttonDisabled && navigate(`/docs/sdk/${sdk.name.toLowerCase().replace('.', '')}`)}
                                 className={`w-full h-[45px] flex items-center justify-center rounded-lg ${sdk.buttonBg} ${sdk.buttonDisabled ? "" : "border border-solid"
                                   } h-auto`}
                                 disabled={sdk.buttonDisabled}
@@ -728,6 +822,7 @@ export const DeveloperCenter = (): JSX.Element => {
                                 {sdk.installCommand}
                               </p>
                               <Button
+                                onClick={() => !sdk.buttonDisabled && navigate(`/docs/sdk/${sdk.name.toLowerCase().replace('.', '')}`)}
                                 className={`w-full h-[45px] flex items-center justify-center rounded-lg ${sdk.buttonBg} ${sdk.buttonDisabled ? "" : "border border-solid"
                                   } h-auto`}
                                 disabled={sdk.buttonDisabled}
@@ -789,26 +884,65 @@ export const DeveloperCenter = (): JSX.Element => {
                       </TabsList>
 
                       <TabsContent value="nodejs" className="mt-4 sm:mt-[25px]">
-                        <div className="flex items-start gap-2.5 px-4 sm:px-[23px] py-4 sm:py-6 w-full min-h-[200px] sm:h-96 bg-[#121728] rounded-[10px] overflow-x-auto">
-                          <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#ffffff] text-sm sm:text-base tracking-[0] leading-6 whitespace-pre-wrap">
-                            {codeExample}
-                          </pre>
+                        <div className="relative">
+                          <div className="flex items-start gap-2.5 px-4 sm:px-[23px] py-4 sm:py-6 w-full min-h-[200px] sm:h-96 bg-[#121728] rounded-[10px] overflow-x-auto">
+                            <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#ffffff] text-sm sm:text-base tracking-[0] leading-6 whitespace-pre-wrap">
+                              {codeExamples.nodejs}
+                            </pre>
+                          </div>
+                          <button
+                            onClick={() => handleCopyCode(codeExamples.nodejs)}
+                            className="absolute top-2 right-2 p-2 hover:bg-gray-800 rounded transition-colors"
+                            aria-label="Copy code"
+                          >
+                            {copiedCode === codeExamples.nodejs ? (
+                              <CheckCircle className="w-4 h-4 text-[#27ae60]" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-[#808080]" />
+                            )}
+                          </button>
                         </div>
                       </TabsContent>
 
                       <TabsContent value="python" className="mt-4 sm:mt-[25px]">
-                        <div className="flex items-start gap-2.5 px-4 sm:px-[23px] py-4 sm:py-6 w-full min-h-[200px] sm:h-96 bg-[#121728] rounded-[10px] overflow-x-auto">
-                          <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#ffffff] text-sm sm:text-base tracking-[0] leading-6 whitespace-pre-wrap">
-                            {codeExample}
-                          </pre>
+                        <div className="relative">
+                          <div className="flex items-start gap-2.5 px-4 sm:px-[23px] py-4 sm:py-6 w-full min-h-[200px] sm:h-96 bg-[#121728] rounded-[10px] overflow-x-auto">
+                            <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#ffffff] text-sm sm:text-base tracking-[0] leading-6 whitespace-pre-wrap">
+                              {codeExamples.python}
+                            </pre>
+                          </div>
+                          <button
+                            onClick={() => handleCopyCode(codeExamples.python)}
+                            className="absolute top-2 right-2 p-2 hover:bg-gray-800 rounded transition-colors"
+                            aria-label="Copy code"
+                          >
+                            {copiedCode === codeExamples.python ? (
+                              <CheckCircle className="w-4 h-4 text-[#27ae60]" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-[#808080]" />
+                            )}
+                          </button>
                         </div>
                       </TabsContent>
 
                       <TabsContent value="curl" className="mt-4 sm:mt-[25px]">
-                        <div className="flex items-start gap-2.5 px-4 sm:px-[23px] py-4 sm:py-6 w-full min-h-[200px] sm:h-96 bg-[#121728] rounded-[10px] overflow-x-auto">
-                          <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#ffffff] text-sm sm:text-base tracking-[0] leading-6 whitespace-pre-wrap">
-                            {codeExample}
-                          </pre>
+                        <div className="relative">
+                          <div className="flex items-start gap-2.5 px-4 sm:px-[23px] py-4 sm:py-6 w-full min-h-[200px] sm:h-96 bg-[#121728] rounded-[10px] overflow-x-auto">
+                            <pre className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#ffffff] text-sm sm:text-base tracking-[0] leading-6 whitespace-pre-wrap">
+                              {codeExamples.curl}
+                            </pre>
+                          </div>
+                          <button
+                            onClick={() => handleCopyCode(codeExamples.curl)}
+                            className="absolute top-2 right-2 p-2 hover:bg-gray-800 rounded transition-colors"
+                            aria-label="Copy code"
+                          >
+                            {copiedCode === codeExamples.curl ? (
+                              <CheckCircle className="w-4 h-4 text-[#27ae60]" />
+                            ) : (
+                              <Copy className="w-4 h-4 text-[#808080]" />
+                            )}
+                          </button>
                         </div>
                       </TabsContent>
                     </Tabs>
@@ -904,7 +1038,9 @@ export const DeveloperCenter = (): JSX.Element => {
                     </div>
 
                     <div className="flex justify-end">
-                      <Button className="w-full sm:w-[197px] h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm tracking-[-0.20px] leading-[18px]">
+                      <Button 
+                        onClick={() => navigate("/developer-portal")}
+                        className="w-full sm:w-[197px] h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm tracking-[-0.20px] leading-[18px]">
                         Configure Webhooks
                       </Button>
                     </div>
@@ -988,7 +1124,9 @@ export const DeveloperCenter = (): JSX.Element => {
                   </div>
 
                   {/* Access Button */}
-                  <Button className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:right-6 sm:left-auto sm:w-[230px] h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] text-white font-semibold text-sm tracking-[-0.2px] leading-[18px] hover:opacity-90 transition-opacity">
+                  <Button 
+                    onClick={() => navigate("/developer-portal")}
+                    className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:right-6 sm:left-auto sm:w-[230px] h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] text-white font-semibold text-sm tracking-[-0.2px] leading-[18px] hover:opacity-90 transition-opacity">
                     Access Sandbox Dashboard
                   </Button>
                 </CardContent>
@@ -1025,6 +1163,7 @@ export const DeveloperCenter = (): JSX.Element => {
                                 {example.description}
                               </p>
                               <Button
+                                onClick={() => navigate("/api-documentation")}
                                 variant="outline"
                                 className="w-full h-[45px] rounded-lg border border-[#27ae60] hover:bg-[#27ae60]/10"
                               >
@@ -1073,6 +1212,19 @@ export const DeveloperCenter = (): JSX.Element => {
                                 {resource.description}
                               </p>
                               <Button
+                                onClick={() => {
+                                  const filenameMap: { [key: string]: string } = {
+                                    "Postman Collection": "trustverify-api-collection.json",
+                                    "OpenAPI Specification": "trustverify-openapi-spec.json",
+                                    "Integration Guide PDF": "trustverify-integration-guide.md"
+                                  };
+                                  const typeMap: { [key: string]: string } = {
+                                    "Postman Collection": "postman",
+                                    "OpenAPI Specification": "openapi",
+                                    "Integration Guide PDF": "integration-guide"
+                                  };
+                                  handleDownload(typeMap[resource.title] || "postman", filenameMap[resource.title] || "download.json");
+                                }}
                                 variant="outline"
                                 className="w-full h-[45px] rounded-lg border border-[#27ae60] hover:bg-[#27ae60]/10"
                               >

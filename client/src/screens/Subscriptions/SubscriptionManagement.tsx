@@ -17,7 +17,7 @@ import {
 import { apiRequest } from "../../lib/queryClient";
 import { useAuth } from "../../hooks/use-auth";
 import { useToast } from "../../hooks/use-toast";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 
 interface Subscription {
   id: number;
@@ -202,7 +202,7 @@ export const SubscriptionManagement = () => {
   if (loading) {
     return (
       <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-        <HeaderDemo />
+        <Header />
         <div className="flex items-center justify-center flex-1">
           <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
         </div>
@@ -213,7 +213,7 @@ export const SubscriptionManagement = () => {
   if (!subscription) {
     return (
       <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-        <HeaderDemo />
+        <Header />
         <div className="container mx-auto px-4 py-12 max-w-4xl">
             <Card>
               <CardHeader>
@@ -238,7 +238,7 @@ export const SubscriptionManagement = () => {
 
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-      <HeaderDemo />
+      <Header />
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         <h1 className="text-3xl font-bold mb-8 bg-[linear-gradient(90deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent]">
           Subscription Management

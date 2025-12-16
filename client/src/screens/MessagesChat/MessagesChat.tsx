@@ -14,7 +14,7 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from "../../components/ui/navigation-menu";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 
 interface MessagesChatProps {
     onBack?: () => void;
@@ -128,7 +128,7 @@ export const MessagesChat = ({ onBack }: MessagesChatProps = {}): JSX.Element =>
 
     return (
         <div className="bg-[#f6f6f6] w-full flex flex-col">
-            <HeaderDemo />
+            <Header />
             
             {/* Mobile: Show chat list view when no chat is selected */}
             <section className={`flex flex-col items-start gap-4 md:gap-6 md:gap-[30px] w-full px-4 md:px-8 md:px-[110px] py-4 md:py-6 ${selectedChatId !== null ? 'hidden lg:flex' : ''}`}>

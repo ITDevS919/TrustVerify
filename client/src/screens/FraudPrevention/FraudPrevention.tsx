@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { X } from "lucide-react";
 
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -399,7 +399,7 @@ export const FraudPrevention = (): JSX.Element => {
 
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col">
-      <HeaderDemo />
+      <Header />
       <section className="flex flex-col items-start gap-[30px] w-full px-[20px] md:px-[50px] py-[40px] md:py-[50px]">
         <header className="flex flex-col items-start gap-2.5 w-full text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2 w-full">

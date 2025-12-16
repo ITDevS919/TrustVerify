@@ -14,7 +14,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { useNavigate } from "react-router-dom";
 const transactions = [
     {
@@ -60,7 +60,7 @@ export const SecureTransactions = (): JSX.Element => {
     const navigate = useNavigate();
     return (
         <main className="bg-[#f6f6f6] w-full flex flex-col">
-           <HeaderDemo />
+           <Header />
             <section className="flex flex-col items-start gap-4 md:gap-[30px] w-full max-w-[1783px] mx-auto px-6 py-[72px] md:px-10">
                 <header className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-4 md:gap-0">
                     <div className="flex flex-col items-start gap-2.5 w-full md:max-w-[601px]">

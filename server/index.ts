@@ -70,6 +70,60 @@ app.use(preventXSS);
 // API versioning - must be before routes
 app.use('/api', extractApiVersion);
 
+// IMPORTANT: Register Stripe webhook route BEFORE body parser
+// Webhook needs raw body for signature verification
+app.post('/api/subscriptions/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const { subscriptionService } = await import('./services/subscription-service');
+  const Stripe = (await import('stripe')).default;
+  
+  const sig = req.headers['stripe-signature'] as string;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig) {
+    console.error('Stripe webhook: Missing signature header');
+    return res.status(400).json({ error: 'Missing stripe-signature header' });
+  }
+
+  if (!webhookSecret) {
+    console.error('Stripe webhook: Missing STRIPE_WEBHOOK_SECRET environment variable');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    // req.body is a Buffer when using express.raw()
+    const body = req.body instanceof Buffer ? req.body : Buffer.from(JSON.stringify(req.body));
+    event = Stripe.webhooks.constructEvent(body, sig, webhookSecret);
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', {
+      error: err.message,
+      type: err.type,
+      path: req.path,
+      ip: req.ip,
+    });
+    return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+  }
+
+  try {
+    await subscriptionService.handleWebhookEvent(event);
+    res.json({ received: true });
+  } catch (error: any) {
+    console.error('Error handling webhook event:', {
+      error: error.message,
+      eventType: event.type,
+      eventId: event.id,
+      stack: error.stack,
+    });
+    // Return 200 to Stripe to prevent retries for application errors
+    // Log the error for manual investigation
+    res.status(200).json({ 
+      received: true, 
+      error: 'Event processed with errors - check logs' 
+    });
+  }
+});
+
 // Body parsing with size limits (using new middleware)
 configureBodyParser(app);
 app.use('/api', validatePayloadSize(config.API_MAX_PAYLOAD_SIZE_MB));

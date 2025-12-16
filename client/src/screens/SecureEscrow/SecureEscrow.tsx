@@ -5,7 +5,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { useNavigate } from "react-router-dom";
 
 const statsData = [
@@ -119,7 +119,7 @@ export const SecureEscrow = (): JSX.Element => {
 
   return (
     <main className="bg-[#f6f6f6] overflow-hidden w-full flex flex-col relative">
-    <HeaderDemo />
+    <Header />
     <section className="flex flex-col items-start gap-[30px] w-full px-4 sm:px-6 md:px-[50px] py-10 md:py-[70px]">
       <div className="flex flex-col items-start gap-6 w-full">
         <button 

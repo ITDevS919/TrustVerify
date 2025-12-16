@@ -17,7 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -670,7 +670,7 @@ export const LiveDemo = (): JSX.Element => {
 
   return (
     <div className="bg-[#f6f6f6] min-h-screen w-full flex flex-col">
-      <HeaderDemo />
+      <Header />
       <section className="flex flex-col gap-6 sm:gap-8 md:gap-10 w-full p-4 sm:p-6 lg:p-12 max-w-full">
         <header className="flex flex-col gap-4">
           <button
@@ -834,10 +834,17 @@ export const LiveDemo = (): JSX.Element => {
                     their transactions and prevent fraud across every channel.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button className="bg-white text-app-primary hover:bg-white/90">
+                    <Button 
+                      onClick={() => navigate("/dashboard")}
+                      className="bg-white text-app-primary hover:bg-white/90"
+                    >
                       Start Free Trial
                     </Button>
-                    <Button variant="outline" className="border-white text-white bg-transparent">
+                    <Button 
+                      onClick={() => navigate("/contact")}
+                      variant="outline" 
+                      className="border-white text-white bg-transparent"
+                    >
                       Contact Sales
                     </Button>
                   </div>

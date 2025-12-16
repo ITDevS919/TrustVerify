@@ -1,7 +1,9 @@
 import { Button } from "../../../../components/ui/button";
 import { Card, CardContent } from "../../../../components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 export const FormSubsection = (): JSX.Element => {
+  const navigate = useNavigate();
   return (
     <div className="z-10 px-6 md:px-10 pb-[120px]">
     <Card className="w-full bg-app-primary rounded-lg md:rounded-xl lg:rounded-2xl xl:rounded-[20px] shadow-[0px_4px_10px_#003d2b1a] border-0 max-w-[1370px] mx-auto mt-24">
@@ -19,14 +21,15 @@ export const FormSubsection = (): JSX.Element => {
 
           <div className="inline-flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5">
             <Button 
+              onClick={() => navigate("/dashboard")}
               size="none"
               className="bg-white rounded-[4px] sm:rounded-[6px] md:rounded-[8px] lg:rounded-[10px] hover:bg-white/90 px-3 py-0 sm:px-6 sm:py-2 md:px-8 md:py-4  lg:px-10 lg:py-5">
               <p className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-app-primary text-[7px] sm:text-[10px] md:text-sm lg:text-lg text-center tracking-[-0.20px]">
                 Start Free Trial
               </p>
             </Button>
-
-            <Button
+            {/* <Button
+              onClick={() => navigate("/developer-center")}
               variant="outline"
               size="none"
               className="rounded-[4px] sm:rounded-[6px] md:rounded-[8px] lg:rounded-[10px] border border-solid border-white bg-transparent hover:bg-white/10 text-white hover:text-white px-3 py-0 sm:px-6 sm:py-1.5 md:px-8 md:py-3 lg:px-10 lg:py-5"
@@ -34,7 +37,7 @@ export const FormSubsection = (): JSX.Element => {
               <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[7px] sm:text-[10px] md:text-sm lg:text-lg text-center tracking-[-0.20px] leading-[18px]">
                 View Documentation
               </span>
-            </Button>
+            </Button> */}
           </div>
         </div>
 

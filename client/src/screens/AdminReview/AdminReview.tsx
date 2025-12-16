@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { HeaderDemo } from "@/components/HeaderDemo";
+import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -182,17 +182,23 @@ export const AdminReview = () => {
     return <Badge className={variant.className}>{risk.toUpperCase()}</Badge>;
   };
 
-  const getImageUrl = (imagePath: string) => {
-    // Convert server path to accessible URL
-    // The path might be absolute or relative
+  const getImageUrl = async (imagePath: string) => {
+    // If it's a storage key (from cloud storage), we need to get the file ID first
+    // For now, if it contains 'kyc/' it's a storage key, otherwise it's a legacy path
+    if (imagePath.includes('kyc/') || imagePath.startsWith('kyc/')) {
+      // This is a storage key - we need to find the file ID from the database
+      // For now, return a placeholder - the backend should handle this
+      return `/api/files/${imagePath}`;
+    }
+    // Legacy path handling
     const filename = imagePath.split(/[/\\]/).pop() || imagePath;
-    return `/api/uploads/${filename}`;
+    return `/api/files/${filename}`;
   };
 
   if (!user || !hasAdminAccess) {
     return (
       <main className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-        <HeaderDemo />
+        <Header />
         <div className="flex items-center justify-center flex-1 p-8">
           <Card className="max-w-md">
             <CardContent className="p-6 text-center">
@@ -208,7 +214,7 @@ export const AdminReview = () => {
 
   return (
     <main className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-      <HeaderDemo />
+      <Header />
       
       <section className="flex flex-col items-start gap-6 w-full px-6 sm:px-8 xl:px-[107px] py-[72px]">
         {/* Header */}

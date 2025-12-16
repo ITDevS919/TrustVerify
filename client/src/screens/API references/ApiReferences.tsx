@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRightIcon, CopyIcon, X } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 
   const apiEndpoints = [
     {
@@ -572,7 +572,7 @@ export const ApiReferences = (): JSX.Element => {
   
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col relative">
-        <HeaderDemo />
+        <Header />
 
         <div className="flex flex-col items-start gap-4 sm:gap-[30px] w-full px-4 sm:px-6 md:px-[100px] pt-6 sm:pt-[50px] pb-8 sm:pb-[120px]">
             <div className="flex flex-col items-start gap-4 sm:gap-6 w-full">
@@ -608,7 +608,7 @@ export const ApiReferences = (): JSX.Element => {
                     />
                   </button>
                         <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-[0] leading-[normal]">
-                        API Documentation
+                        API Reference
                         </h1>
                     </div>
                     <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base sm:text-lg md:text-xl tracking-[0] leading-6 sm:leading-8">
@@ -623,7 +623,7 @@ export const ApiReferences = (): JSX.Element => {
                 <Card className="hidden md:block w-full md:w-[389px] bg-white rounded-[14px] border-[0.8px] border-neutral-200 shadow-[0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_0px_0px_transparent,0px_1px_3px_#0000001a,0px_1px_2px_-1px_#0000001a]">
                     <CardContent className="flex flex-col items-start gap-6 sm:gap-[50px] p-4 sm:p-6">
                     <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-lg sm:text-xl tracking-[0] leading-4">
-                    API References 
+                    API Endpoints 
                     </h2>
 
                     <div className="flex flex-col items-start gap-4 sm:gap-[21px] w-full">

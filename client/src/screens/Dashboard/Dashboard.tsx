@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -206,7 +206,7 @@ export const Dashboard = (): JSX.Element => {
 
   return (
     <main className="bg-white overflow-hidden w-full relative">
-      <HeaderDemo />
+      <Header />
       <section className="w-full flex items-center justify-center px-6 sm:px-10 xl:px-20 2xl:px-28 py-[72px]">
         <div className="flex flex-col items-end gap-[30px] w-full">
           <div className="flex flex-col items-start gap-6 w-full">
@@ -396,7 +396,7 @@ export const Dashboard = (): JSX.Element => {
                           </span>
                         </Button>
                         <Button
-                          onClick={() => navigate("/id-verification")}
+                          onClick={() => navigate("/kyc-verification")}
                           variant="outline"
                           className="h-[98px] rounded-[10px] border border-dashed border-neutral-300 flex flex-col items-center justify-center gap-4 hover:bg-accent/50"
                         >

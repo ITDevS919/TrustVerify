@@ -7,12 +7,24 @@ import Stripe from "stripe";
 import { storage } from "../storage";
 import type { User, SubscriptionPlan, UserSubscription } from "../shared/schema";
 
+// Validate Stripe configuration
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is required for subscription services');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('STRIPE_SECRET_KEY is required for subscription services in production');
+  }
+  console.warn('⚠️  STRIPE_SECRET_KEY not configured - subscription features will be limited to free plans');
 }
 
+// Validate webhook secret in production
+if (process.env.NODE_ENV === 'production' && !process.env.STRIPE_WEBHOOK_SECRET) {
+  console.warn('⚠️  STRIPE_WEBHOOK_SECRET not configured - webhook signature verification will fail');
+}
+
+// Use stable Stripe API version for production
+// Latest stable version as of 2024: 2023-10-16
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-08-27.basil",
+  apiVersion: "2023-10-16",
+  typescript: true,
 });
 
 export interface CreateSubscriptionParams {
@@ -272,34 +284,54 @@ export class SubscriptionService {
       throw new Error('Subscription plan not found');
     }
 
-    // If the plan has no Stripe price (e.g., free tier or Stripe not configured),
-    // create the subscription locally and return the success URL so the client
-    // can continue without redirecting to Stripe Checkout.
+    // Check if plan is free (price is 0 or null)
+    const isFreePlan = !plan.price || parseFloat(plan.price) === 0 || plan.name === 'free';
+
+    // If the plan has no Stripe price, only allow for free plans
+    // Paid plans MUST have a Stripe price ID in production
     if (!plan.stripePriceId) {
-      const now = new Date();
-      const oneMonthFromNow = new Date(now);
-      oneMonthFromNow.setMonth(now.getMonth() + 1);
+      if (!isFreePlan && process.env.NODE_ENV === 'production') {
+        throw new Error('Paid subscription plans must have a Stripe price ID configured in production');
+      }
 
-      await storage.createUserSubscription({
-        userId,
-        planId,
-        status: 'active',
-        stripeSubscriptionId: null,
-        stripeCustomerId: null,
-        currentPeriodStart: now,
-        currentPeriodEnd: oneMonthFromNow,
-        cancelAtPeriodEnd: false,
-        canceledAt: null,
-        trialStart: null,
-        trialEnd: null,
-        quantity: 1,
-        metadata: {
-          note: 'Local subscription created without Stripe price ID',
-        },
-      });
+      // Only create local subscription for free plans
+      if (isFreePlan) {
+        const now = new Date();
+        const oneMonthFromNow = new Date(now);
+        oneMonthFromNow.setMonth(now.getMonth() + 1);
 
-      // No external checkout needed; return a URL the client can navigate to.
-      return successUrl;
+        // Check if user already has this subscription
+        const existingSubscription = await storage.getUserSubscriptionByUserId(userId);
+        if (existingSubscription && existingSubscription.planId === planId) {
+          // User already has this plan, return success URL
+          return successUrl;
+        }
+
+        await storage.createUserSubscription({
+          userId,
+          planId,
+          status: 'active',
+          stripeSubscriptionId: null,
+          stripeCustomerId: null,
+          currentPeriodStart: now,
+          currentPeriodEnd: oneMonthFromNow,
+          cancelAtPeriodEnd: false,
+          canceledAt: null,
+          trialStart: null,
+          trialEnd: null,
+          quantity: 1,
+          metadata: {
+            note: 'Free plan subscription created locally',
+            createdVia: 'checkout_session',
+          },
+        });
+
+        // No external checkout needed; return a URL the client can navigate to.
+        return successUrl;
+      } else {
+        // Paid plan without Stripe price ID - not allowed
+        throw new Error('Subscription plan does not have a Stripe price ID. Please contact support.');
+      }
     }
 
     const user = await storage.getUser(userId);
@@ -331,6 +363,18 @@ export class SubscriptionService {
       metadata: {
         userId: userId.toString(),
         planId: planId.toString(),
+        createdBy: 'checkout_api',
+      },
+      // Enable automatic tax if configured
+      automatic_tax: {
+        enabled: false, // Set to true if you have tax configuration in Stripe
+      },
+      // Subscription data to pass to webhook
+      subscription_data: {
+        metadata: {
+          userId: userId.toString(),
+          planId: planId.toString(),
+        },
       },
     });
 
@@ -341,29 +385,111 @@ export class SubscriptionService {
    * Handle Stripe webhook event
    */
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {
-    switch (event.type) {
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-        break;
-      case 'customer.subscription.deleted':
-        await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-        break;
-      case 'invoice.paid':
-        await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
-        break;
-      case 'invoice.payment_failed':
-        await this.handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
-        break;
-      default:
-        console.log(`Unhandled webhook event type: ${event.type}`);
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          await this.handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+          break;
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+          break;
+        case 'customer.subscription.deleted':
+          await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          break;
+        case 'invoice.paid':
+          await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
+          break;
+        case 'invoice.payment_failed':
+          await this.handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          break;
+        default:
+          console.log(`Unhandled webhook event type: ${event.type}`);
+      }
+    } catch (error: any) {
+      console.error(`Error handling webhook event ${event.type}:`, {
+        error: error.message,
+        eventId: event.id,
+        stack: error.stack,
+      });
+      throw error; // Re-throw to be caught by route handler
     }
+  }
+
+  /**
+   * Handle checkout session completed - create subscription from checkout
+   */
+  private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session): Promise<void> {
+    if (session.mode !== 'subscription' || !session.subscription) {
+      return; // Not a subscription checkout
+    }
+
+    const userId = session.metadata?.userId ? parseInt(session.metadata.userId) : null;
+    const planId = session.metadata?.planId ? parseInt(session.metadata.planId) : null;
+
+    if (!userId || !planId) {
+      console.error('Checkout session missing userId or planId in metadata:', {
+        sessionId: session.id,
+        metadata: session.metadata,
+      });
+      return;
+    }
+
+    // Retrieve the subscription from Stripe
+    const subscriptionId = typeof session.subscription === 'string' 
+      ? session.subscription 
+      : session.subscription.id;
+    
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+    // Check if subscription already exists
+    const existingSubscription = await storage.getUserSubscriptionByStripeId(subscriptionId);
+    if (existingSubscription) {
+      console.log(`Subscription already exists for Stripe ID: ${subscriptionId}`);
+      return;
+    }
+
+    const plan = await storage.getSubscriptionPlan(planId);
+    if (!plan) {
+      console.error(`Plan not found for planId: ${planId}`);
+      return;
+    }
+
+    const customerId = typeof stripeSubscription.customer === 'string' 
+      ? stripeSubscription.customer 
+      : stripeSubscription.customer?.id || session.customer as string;
+
+    // Create subscription in database
+    await storage.createUserSubscription({
+      userId,
+      planId,
+      status: stripeSubscription.status === 'trialing' ? 'trialing' : 'active',
+      stripeSubscriptionId: subscriptionId,
+      stripeCustomerId: customerId,
+      currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+      cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+      canceledAt: stripeSubscription.canceled_at ? new Date(stripeSubscription.canceled_at * 1000) : null,
+      trialStart: stripeSubscription.trial_start ? new Date(stripeSubscription.trial_start * 1000) : null,
+      trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
+      quantity: stripeSubscription.items.data[0]?.quantity || 1,
+      metadata: {
+        createdVia: 'checkout_session',
+        checkoutSessionId: session.id,
+        stripeSubscription: subscriptionId,
+      },
+    });
+
+    console.log(`Created subscription from checkout session: ${subscriptionId} for user ${userId}`);
   }
 
   private async handleSubscriptionUpdated(stripeSubscription: Stripe.Subscription): Promise<void> {
     const subscription = await storage.getUserSubscriptionByStripeId(stripeSubscription.id);
+    
     if (!subscription) {
-      console.error(`Subscription not found for Stripe ID: ${stripeSubscription.id}`);
+      // Subscription should be created by checkout.session.completed event
+      // If we get here, it might be a race condition or subscription created outside checkout
+      console.warn(`Subscription not found for Stripe ID: ${stripeSubscription.id} - may be created by checkout.session.completed event`);
       return;
     }
 

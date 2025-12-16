@@ -391,7 +391,9 @@ export const IndustrySolutions = (): JSX.Element => {
                           </>
                         )}
 
-                        <Button className="w-full h-14 bg-app-primary hover:bg-app-primary/90 rounded-xl [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
+                        <Button 
+                          onClick={() => navigate("/contact")}
+                          className="w-full h-14 bg-app-primary hover:bg-app-primary/90 rounded-xl [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
                           <span className="flex items-center gap-2">
                             Learn More
                             <img
@@ -441,7 +443,9 @@ export const IndustrySolutions = (): JSX.Element => {
                           </div>
                         </div>
 
-                        <Button className="w-full h-14 bg-app-primary hover:bg-app-primary/90 rounded-xl [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
+                        <Button 
+                          onClick={() => navigate("/contact")}
+                          className="w-full h-14 bg-app-primary hover:bg-app-primary/90 rounded-xl [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
                           <span className="flex items-center gap-2">
                             Learn More
                             <img
@@ -550,7 +554,9 @@ export const IndustrySolutions = (): JSX.Element => {
                   </p>
                 </div>
 
-                <Button className="bg-app-primary hover:bg-app-primary/90 text-white rounded-[10px] h-14 px-8 [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-lg tracking-[-0.20px]">
+                <Button 
+                  onClick={() => navigate("/pricing")}
+                  className="bg-app-primary hover:bg-app-primary/90 text-white rounded-[10px] h-14 px-8 [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-lg tracking-[-0.20px]">
                   View Complete Pricing
                   <img
                     className="w-[30px] h-[30px] ml-2"
@@ -653,6 +659,13 @@ export const IndustrySolutions = (): JSX.Element => {
                       </div>
 
                       <Button
+                        onClick={() => {
+                          if (plan.buttonText === "Contact Sales" || plan.name === "Enterprise") {
+                            navigate("/contact");
+                          } else {
+                            navigate("/pricing");
+                          }
+                        }}
                         className={`${plan.buttonBgColor} ${plan.buttonTextColor} hover:opacity-90 rounded-[14px] h-[54px] w-full mt-5 [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-lg`}
                       >
                         {plan.buttonText}

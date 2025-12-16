@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -14,6 +15,7 @@ interface DeveloperAuthProps {
 }
 
 export const DeveloperAuth = ({ onSuccess }: DeveloperAuthProps) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSignup, setIsSignup] = useState(false);
@@ -103,14 +105,14 @@ export const DeveloperAuth = ({ onSuccess }: DeveloperAuthProps) => {
           <CardContent>
             <div className="flex flex-col gap-4">
               <Button
-                onClick={() => (window.location.href = "/login")}
+                onClick={() => navigate("/login")}
                 className="w-full bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
               >
                 Go to Login
               </Button>
               <Button
                 variant="outline"
-                onClick={() => (window.location.href = "/signup")}
+                onClick={() => navigate("/register")}
                 className="w-full"
               >
                 Create Account

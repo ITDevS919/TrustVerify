@@ -6,7 +6,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { subscriptionService } from '../services/subscription-service';
-import Stripe from 'stripe';
 
 // Authentication middleware
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -270,37 +269,9 @@ router.get('/usage', requireAuth, async (req, res) => {
   }
 });
 
-// Stripe webhook endpoint
-// Note: This endpoint should use raw body for signature verification
-// In Express, you may need to configure body parser to not parse this route
-router.post('/webhook', async (req, res) => {
-  const sig = req.headers['stripe-signature'] as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!sig || !webhookSecret) {
-    return res.status(400).send('Missing signature or webhook secret');
-  }
-
-  let event: Stripe.Event;
-
-  try {
-    // For Express, you may need to use req.rawBody if available
-    // Otherwise, ensure the body is a Buffer or string
-    const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    event = Stripe.webhooks.constructEvent(body, sig, webhookSecret);
-  } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  try {
-    await subscriptionService.handleWebhookEvent(event);
-    res.json({ received: true });
-  } catch (error: any) {
-    console.error('Error handling webhook event:', error);
-    res.status(500).json({ error: 'Failed to handle webhook event' });
-  }
-});
+// Note: Webhook route is registered in index.ts BEFORE body parser
+// to ensure raw body is available for signature verification
+// This route handler is kept here for reference but not used
 
 export default router;
 

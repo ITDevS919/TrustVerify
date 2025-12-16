@@ -366,7 +366,7 @@ export const OurMission = (): JSX.Element => {
                 />            
             </div>
           </div>
-          <ScrollArea className="w-full h-[798px]">
+          {/* <ScrollArea className="w-full h-[798px]">
             <div className="flex flex-col w-full items-start gap-[23px] pr-4">
               {jobPositions.map((job) => (
                 <Card
@@ -432,7 +432,7 @@ export const OurMission = (): JSX.Element => {
                 </Card>
               ))}
             </div>
-          </ScrollArea>
+          </ScrollArea> */}
         </div>
 
       </section>

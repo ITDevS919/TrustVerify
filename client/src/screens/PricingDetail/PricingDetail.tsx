@@ -5,6 +5,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { apiRequest } from "../../lib/queryClient";
 import { useAuth } from "../../hooks/use-auth";
@@ -540,6 +541,7 @@ const faqItems = [
 ];
 
 export const PricingDetail = (): JSX.Element => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isMonthly, setIsMonthly] = useState(true);
@@ -572,7 +574,7 @@ export const PricingDetail = (): JSX.Element => {
         description: "Please log in to subscribe to a plan",
         variant: "destructive",
       });
-      window.location.href = "/login";
+      navigate("/login");
       return;
     }
 
@@ -798,7 +800,7 @@ export const PricingDetail = (): JSX.Element => {
               <div className="flex items-center justify-center w-full mb-4">
                 <Button
                   variant="outline"
-                  onClick={() => (window.location.href = "/subscription/manage")}
+                  onClick={() => navigate("/subscription/manage")}
                   className="[font-family:'DM_Sans_18pt-Medium',Helvetica]"
                 >
                   Manage My Subscription
@@ -969,11 +971,11 @@ export const PricingDetail = (): JSX.Element => {
                       )}
                       onClick={() => {
                         if (plan.cta === "Contact Sales" || plan.name === "Enterprise") {
-                          window.location.href = '/contact';
+                          navigate('/contact');
                         } else if (plan.cta.includes("Start") || plan.cta.includes("Choose") || plan.cta.includes("Get")) {
                           handleSubscribe(plan.name);
                         } else {
-                          window.location.href = '/login';
+                          navigate('/login');
                         }
                       }}
                       disabled={processingPlan === plan.name}
@@ -1208,7 +1210,7 @@ export const PricingDetail = (): JSX.Element => {
             </div>
           </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[30px] w-full z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[30px] w-full z-10">
             {addOns.map((addOn, index) => (
               <Card
                 key={index}
@@ -1254,6 +1256,7 @@ export const PricingDetail = (): JSX.Element => {
 
                 <div className="inline-flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5">
                   <Button 
+                    onClick={() => navigate("/dashboard")}
                     size="none"
                     className="bg-white rounded-[4px] sm:rounded-[6px] md:rounded-[8px] lg:rounded-[10px] hover:bg-white/90 px-3 py-0 sm:px-6 sm:py-2 md:px-8 md:py-4  lg:px-10 lg:py-5">
                     <p className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-app-primary text-[7px] sm:text-[10px] md:text-sm lg:text-lg text-center tracking-[-0.20px]">
@@ -1262,6 +1265,7 @@ export const PricingDetail = (): JSX.Element => {
                   </Button>
 
                   <Button
+                    onClick={() => navigate("/contact")}
                     variant="outline"
                     size="none"
                     className="rounded-[4px] sm:rounded-[6px] md:rounded-[8px] lg:rounded-[10px] border border-solid border-white bg-transparent hover:bg-white/10 text-white hover:text-white px-3 py-0 sm:px-6 sm:py-1.5 md:px-8 md:py-3 lg:px-10 lg:py-5"

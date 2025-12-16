@@ -39,8 +39,20 @@ import { LiveDemo } from "./screens/LiveDemo";
 import { NewTransaction } from "./screens/Transactions/NewTransaction";
 import { AdminReview } from "./screens/AdminReview/AdminReview";
 import { AdminDashboard } from "./screens/AdminDashboard";
+import { ApiPricing } from "./screens/ApiPricing";
 import { SubscriptionManagement, SubscriptionSuccess, SubscriptionCancel } from "./screens/Subscriptions";
 import ZendeskChat from "./components/ChatBot/ZendeskChat";
+import { Business } from "./screens/Business";
+import { Developers } from "./screens/Developers";
+import { Resources } from "./screens/Resources";
+import { SecurityDashboard } from "./screens/SecurityDashboard";
+import { Webhook } from "./screens/Webhook";
+import { OnboardingDemo } from "./screens/OnboardingDemo";
+import { IntegrationExamples } from "./screens/IntegrationExample";
+import { Features } from "./screens/EnterpriseFeatures";
+import DemoPage from "./screens/DemoPage/DemoPage";
+import { Solutions } from "./screens/solutions";
+import CategoryPage from "./screens/solutions/[Category]";
 
 
 function App() {
@@ -67,18 +79,34 @@ function App() {
               <Route path="/subscription/success" element={<SubscriptionSuccess />} />
               <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
               <Route path="/policies" element={<PrivacyPolicy />} />
-              <Route path="/compliances" element={<RegulatoryCompliances />} />
+              <Route path="/regulatory-compliance" element={<RegulatoryCompliances />} />
               <Route path="/terms" element={<TermsOfServices />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/training" element={<Training />} />
               <Route path="/consumer-protection" element={<ConsumerProtection />} />
               <Route path="/developer-center" element={<DeveloperCenter />} />
-              <Route path="/api-documentation" element={<ApiReferences />} />
+              <Route path="/api-reference" element={<ApiReferences />} />
+              <Route path="/api-pricing" element={<ApiPricing />} />
+
               <Route path="/fraud-prevention" element={<FraudPrevention />} />
               <Route path="/live-demo" element={<LiveDemo />} />
               
+              {/* New Routes for Updated Pages */}
+              <Route path="/business" element={<Business />} />
+              <Route path="/developers" element={<Developers />} />
+              <Route path="/resources" element={<Resources />} />
+              <Route path="/security-dashboard" element={<SecurityDashboard />} />
+              <Route path="/webhooks" element={<Webhook />} />
+              <Route path="/onboarding-demo" element={<OnboardingDemo />} />
+              <Route path="/integration-examples" element={<IntegrationExamples />} />
+              <Route path="/enterprise/features" element={<Features />} />
+              <Route path="/demo" element={<DemoPage />} />
+              <Route path="/solutions" element={<Solutions />} />
+              <Route path="/solutions/:category" element={<CategoryPage />} />
+
+              
               {/* Protected Routes */}
-              <Route 
+              <Route  
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
@@ -127,7 +155,7 @@ function App() {
                 } 
               />
               <Route 
-                path="/id-verification" 
+                path="/kyc-verification" 
                 element={
                   <ProtectedRoute>
                     <IdVerification />

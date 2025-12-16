@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import React from "react";
 import { X, Clock, Copy, Eye, Trash2, ChevronDown } from "lucide-react";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { Button } from "../../components/ui/button";
 import { Separator } from "../../components/ui/separator";
 import { Badge } from "../../components/ui/badge";
@@ -638,7 +638,7 @@ export const DeveloperPortal = (): JSX.Element => {
   if (checkingAccount) {
     return (
       <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-        <HeaderDemo />
+        <Header />
         <div className="flex items-center justify-center flex-1">
           <div className="text-[#808080]">Checking developer account...</div>
         </div>
@@ -649,7 +649,7 @@ export const DeveloperPortal = (): JSX.Element => {
   if (!hasDeveloperAccount) {
     return (
       <div className="bg-[#f6f6f6] w-full flex flex-col min-h-screen">
-        <HeaderDemo />
+        <Header />
         <DeveloperAuth onSuccess={() => {
           setHasDeveloperAccount(true);
           checkDeveloperAccount(); // Refresh to get account status
@@ -660,7 +660,7 @@ export const DeveloperPortal = (): JSX.Element => {
 
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col">
-      <HeaderDemo />
+      <Header />
       {/* Pending Account Banner */}
       {accountStatus === "pending" && (
         <div className="w-full bg-yellow-50 border-b border-yellow-200 px-4 md:px-8 py-3">

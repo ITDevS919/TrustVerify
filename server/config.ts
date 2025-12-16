@@ -41,13 +41,21 @@ const configSchema = z.object({
   
   // Payment Processing
   STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
   VITE_STRIPE_PUBLIC_KEY: z.string().optional(),
+  FRONTEND_URL: z.string().url().optional(),
+  SERVER_URL: z.string().url().optional(),
   
   // Cloud Storage (AWS S3)
-  AWS_S3_REGION: z.string().optional(),
+  FILE_STORAGE_PROVIDER: z.enum(['local', 's3', 'azure']).default('local'),
+  AWS_REGION: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
   AWS_S3_BUCKET: z.string().optional(),
+  AWS_S3_REGION: z.string().optional(),
   AWS_S3_ACCESS_KEY_ID: z.string().optional(),
   AWS_S3_SECRET_ACCESS_KEY: z.string().optional(),
+  FILE_ENCRYPTION_KEY: z.string().min(32).optional(), // For encrypting files at rest
   
   // Cloud Storage (Cloudflare R2)
   CLOUDFLARE_R2_ACCOUNT_ID: z.string().optional(),

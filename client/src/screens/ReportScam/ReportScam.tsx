@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from "../../components/ui/select";
 import { Textarea } from "../../components/ui/textarea";
-import { HeaderDemo } from "../../components/HeaderDemo";
+import { Header } from "../../components/Header";
 import { useNavigate } from "react-router-dom";
 const navigationItems = [
     { label: "Demo", isActive: true },
@@ -71,7 +71,7 @@ export const ReportScam = (): JSX.Element => {
     const navigate = useNavigate();
     return (
         <div className="bg-[#f6f6f6] w-full flex flex-col">
-            <HeaderDemo />
+            <Header />
             <section className="flex flex-col w-full gap-4 sm:gap-6 md:gap-[30px] px-4 sm:px-8 lg:px-[107px] py-4 sm:py-6 md:py-[72px]">
                 <div className="flex flex-col gap-4 sm:gap-6 w-full">
                     <button 

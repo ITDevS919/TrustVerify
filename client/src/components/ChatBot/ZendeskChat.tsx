@@ -18,7 +18,7 @@ export default function ZendeskChat() {
   // Load Zendesk Web Widget SDK
   useEffect(() => {
     const zendeskKey = (import.meta as any).env?.VITE_ZENDESK_KEY || '';
-    
+ 
     if (!zendeskKey) {
       console.warn('Zendesk key not configured. Using custom chat widget.');
       return;
