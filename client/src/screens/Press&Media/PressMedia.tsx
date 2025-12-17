@@ -15,7 +15,7 @@ const statsData = [
   },
   {
     icon: "/processing.png",
-    title: "Newcastle",
+    title: "Northumberland",
     subtitle: "UK Headquarters",
   },
   {
@@ -102,12 +102,12 @@ const contactCards = [
       {
         type: "email",
         icon: "/fi_646094.svg",
-        value: "press@trustverify.io",
+        value: "info@trustverify.co.uk",
       },
       {
         type: "phone",
         icon: "/fi_3059407.svg",
-        value: "+44 191 123 4567",
+        value: "+44 02 0454 2723",
       },
     ],
   },
@@ -121,12 +121,12 @@ const contactCards = [
       {
         type: "person",
         icon: "/fi_747376.svg",
-        value: "Alex Chen, VP of Product Marketing",
+        value: "",
       },
       {
         type: "email",
         icon: "/fi_646094.svg",
-        value: "product@trustverify.io",
+        value: "",
       },
     ],
   },
@@ -140,12 +140,12 @@ const contactCards = [
       {
         type: "person",
         icon: "/fi_747376.svg",
-        value: "Jennifer Walsh, Head of Communications",
+        value: "",
       },
       {
         type: "email",
         icon: "/fi_646094.svg",
-        value: "executives@trustverify.io",
+        value: "",
       },
     ],
   },
@@ -245,7 +245,7 @@ export const PressMedia = (): JSX.Element => {
             </Button>
           </header>
 
-          <div className="z-10 grid grid-cols-1 xl:grid-cols-2 gap-[30px] w-full">
+          {/* <div className="z-10 grid grid-cols-1 xl:grid-cols-2 gap-[30px] w-full">
             {pressReleases.map((release, index) => (
               <article key={index} className="flex flex-col sm:flex-row items-center gap-[30px] w-full">
                 <div
@@ -275,7 +275,7 @@ export const PressMedia = (): JSX.Element => {
                 </div>
               </article>
             ))}
-          </div>
+          </div> */}
         </div>
         <div className="flex flex-col w-full items-center gap-5 pt-28 ">
           <div className="flex flex-col items-center gap-5 w-full">
