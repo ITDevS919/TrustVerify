@@ -49,9 +49,17 @@ export default function SecurityDashboard() {
   const [loading, setLoading] = useState(true);
   const [runningPenTest, setRunningPenTest] = useState(false);
 
+  // Check admin access - same logic as AdminDashboard
+  const isDevelopment = (import.meta as any).env?.DEV || (import.meta as any).env?.VITE_ALLOW_ALL_ADMIN === 'true';
+  const hasAdminAccess = isDevelopment || user?.email?.includes('@trustverify.com') || user?.isAdmin;
+
   useEffect(() => {
-    loadSecurityStatus();
-  }, []);
+    if (hasAdminAccess) {
+      loadSecurityStatus();
+    } else {
+      setLoading(false);
+    }
+  }, [hasAdminAccess]);
 
   const loadSecurityStatus = async () => {
     try {
@@ -103,7 +111,7 @@ export default function SecurityDashboard() {
     }
   };
 
-  if (!user || !user.email?.includes('@trustverify.com')) {
+  if (!user || !hasAdminAccess) {
     return (
       <div className="min-h-screen bg-white">
         <Header />

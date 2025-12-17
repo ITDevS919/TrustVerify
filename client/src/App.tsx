@@ -25,7 +25,6 @@ import { Login } from "./screens/Login";
 import { Signup } from "./screens/Signup";
 import { DeveloperCenter } from "./screens/DeveloperCenter";
 import { Messages } from "./screens/Messages";
-import { MessagesChat } from "./screens/MessagesChat";
 import { SupportCenter } from "./screens/SupportCenter";
 import { ReportScam } from "./screens/ReportScam";
 import { SecureTransactions } from "./screens/SecureTransactions";
@@ -57,6 +56,7 @@ import CategoryPage from "./screens/solutions/[Category]";
 import { SDKDocumentation } from "./screens/SDK-Documentation";
 import { EnterpriseContact } from "./screens/EnterpriseContact";
 import { WebsiteIntegrityPage } from "./screens/WebsiteIntegrity";
+import { NotFound } from "./screens/NotFound";
 
 function App() {
   return (
@@ -95,7 +95,7 @@ function App() {
               <Route path="/sdk-documentation" element={<SDKDocumentation />} />
               <Route path="/fraud-prevention" element={<FraudPrevention />} />
               <Route path="/live-demo" element={<LiveDemo />} />
-              
+              <Route path="/not-found" element={<NotFound />} />
               {/* New Routes for Updated Pages */}
               <Route path="/business" element={<Business />} />
               <Route path="/resources" element={<Resources />} />
@@ -108,7 +108,7 @@ function App() {
               <Route path="/demo" element={<DemoPage />} />
               <Route path="/solutions" element={<Solutions />} />
               <Route path="/solutions/:category" element={<CategoryPage />} />
-
+              
               <Route path="/website-integrity" element={<WebsiteIntegrityPage />} />
 
               {/* Protected Routes */}
@@ -121,18 +121,10 @@ function App() {
                 } 
               />
               <Route 
-                path="/messages" 
+                path="/messages/:transactionId?" 
                 element={
                   <ProtectedRoute>
                     <Messages />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/messages-chat" 
-                element={
-                  <ProtectedRoute>
-                    <MessagesChat />
                   </ProtectedRoute>
                 } 
               />

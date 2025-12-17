@@ -152,41 +152,7 @@ export const Dashboard = (): JSX.Element => {
 
   const recentTransactions: RecentTransactionUI[] = useMemo(() => {
     if (!transactions.length) {
-      return [
-        {
-          icon: "/ecommerce.png",
-          title: "E-commerce Purchase",
-          date: "18/04/2025",
-          amount: "£2,500.00",
-          status: {
-            text: "Processing",
-            bgColor: "bg-[#eab30833]",
-            textColor: "text-yellow-500",
-          },
-        },
-        {
-          icon: "/digital.png",
-          title: "Digital Marketing Services - UK",
-          date: "15/01/2025",
-          amount: "£1,125.00",
-          status: {
-            text: "Active",
-            bgColor: "bg-[#0b3a7833]",
-            textColor: "text-[#0b3a78]",
-          },
-        },
-        {
-          icon: "/website.png",
-          title: "Website Development - London",
-          date: "10/01/2025",
-          amount: "£2,062.00",
-          status: {
-            text: "Completed",
-            bgColor: "bg-[#27ae6033]",
-            textColor: "text-[#27ae60]",
-          },
-        },
-      ];
+      return [];
     }
 
     return transactions.slice(0, 3).map((transaction) => {
@@ -460,6 +426,12 @@ export const Dashboard = (): JSX.Element => {
                         <div className="w-full p-6 flex flex-col items-center justify-center gap-4">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0A3778]" />
                           <p className="text-[#808080]">Loading transactions...</p>
+                        </div>
+                      ) : recentTransactions.length === 0 ? (
+                        <div className="w-full p-6 flex flex-col items-center justify-center gap-4">
+                          <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl">
+                            No recent transactions. Create a new transaction to get started.
+                          </p>
                         </div>
                       ) : (
                         recentTransactions.map((transaction, index) => {

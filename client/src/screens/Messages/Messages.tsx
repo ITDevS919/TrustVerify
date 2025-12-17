@@ -5,12 +5,13 @@ import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { SearchIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "../../components/Header";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { MessageThread } from "@/components/ui/message-thread";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const statsData = [
     {
@@ -30,171 +31,215 @@ const statsData = [
     },
 ];
 
-const chatData = [
-    {
-        id: 1,
-        transactionId: 1,
-        avatar:
-            "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-1.svg",
-        name: "Jane Developer",
-        participantEmail: "jane@developer.com",
-        message: "I'll have the website mockups ready by tomorrow",
-        date: "15/01/25",
-        lastMessageTime: "2025-01-15T14:30:00Z",
-        unreadCount: 2,
-        transactionTitle: "Website Development",
-        transactionAmount: "£2,500.00",
-        transactionStatus: "active",
-        backgroundImage: "/group-1597880969.png",
-    },
-    {
-        id: 2,
-        transactionId: 2,
-        avatar:
-            "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-1.svg",
-        name: "Mike Startup",
-        participantEmail: "mike@startup.com",
-        message: "Perfect!! The logo Looks great..",
-        date: "15/01/25",
-        lastMessageTime: "2025-01-14T16:45:00Z",
-        unreadCount: 1,
-        transactionTitle: "Logo Design Package",
-        transactionAmount: "£750.00",
-        transactionStatus: "completed",
-        backgroundImage: "/group-1597880969-1.png",
-    },
-    {
-        id: 3,
-        transactionId: 3,
-        avatar:
-            "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-1.svg",
-        name: "Alex Business",
-        participantEmail: "alex@business.com",
-        message: "When can we start the content creation?",
-        date: "15/01/25",
-        lastMessageTime: "2025-01-12T09:15:00Z",
-        unreadCount: 0,
-        transactionTitle: "Content Writing Services",
-        transactionAmount: "£1,200.00",
-        transactionStatus: "pending",
-        backgroundImage: "/group-1597880969-2.png",
-    },
-];
+interface Transaction {
+    id: number;
+    title: string;
+    description: string;
+    amount: string;
+    currency: string;
+    status: string;
+    buyerId: number;
+    sellerId: number;
+    buyerEmail?: string;
+    sellerEmail?: string;
+    createdAt: string;
+    escrowId?: string;
+}
+
+interface Message {
+    id: number;
+    transactionId: number;
+    senderId: number;
+    content: string;
+    isSystemMessage: boolean;
+    flaggedAsScam: boolean;
+    createdAt: string;
+}
+
+interface Conversation {
+    id: number;
+    transactionId: number;
+    avatar: string;
+    name: string;
+    participantEmail: string;
+    message: string;
+    date: string;
+    lastMessageTime: string;
+    unreadCount: number;
+    transactionTitle: string;
+    transactionAmount: string;
+    transactionStatus: string;
+    backgroundImage: string;
+}
 
 export const Messages = (): JSX.Element => {
     const { user } = useAuth();
     const { toast } = useToast();
     const navigate = useNavigate();
+    const { transactionId } = useParams<{ transactionId?: string }>();
+    const queryClient = useQueryClient();
     const [selectedChat, setSelectedChat] = useState<number | null>(null);
     const [newMessage, setNewMessage] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Fetch user's transactions
+    const { data: transactionsData, isLoading: transactionsLoading } = useQuery<{ transactions: Transaction[] }>({
+        queryKey: ["transactions", user?.id],
+        queryFn: async () => {
+            const response = await fetch("/api/transactions", {
+                credentials: "include",
+            });
+            if (!response.ok) throw new Error("Failed to fetch transactions");
+            return response.json();
+        },
+        enabled: !!user,
+    });
+
+    // Fetch messages for selected transaction
+    const { data: messagesData = [], refetch: refetchMessages } = useQuery<Message[]>({
+        queryKey: ["messages", selectedChat],
+        queryFn: async () => {
+            if (!selectedChat) return [];
+            const response = await fetch(`/api/messages/${selectedChat}`, {
+                credentials: "include",
+            });
+            if (!response.ok) throw new Error("Failed to fetch messages");
+            return response.json();
+        },
+        enabled: !!selectedChat && !!user,
+    });
+
+    // Convert transactions to conversations
+    const conversations: Conversation[] = transactionsData?.transactions?.map((transaction) => {
+        const isBuyer = transaction.buyerId === user?.id;
+        const participantEmail = isBuyer ? transaction.sellerEmail : transaction.buyerEmail;
+        const participantName = participantEmail?.split("@")[0] || "Unknown";
+        
+        // Get last message for this transaction
+        const transactionMessages = messagesData.filter(m => m.transactionId === transaction.id);
+        const lastMessage = transactionMessages[transactionMessages.length - 1];
+        
+        return {
+            id: transaction.id,
+            transactionId: transaction.id,
+            avatar: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-1.svg",
+            name: participantName.charAt(0).toUpperCase() + participantName.slice(1),
+            participantEmail: participantEmail || "",
+            message: lastMessage?.content || "No messages yet",
+            date: new Date(transaction.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" }),
+            lastMessageTime: lastMessage?.createdAt || transaction.createdAt,
+            unreadCount: 0, // TODO: Calculate unread count
+            transactionTitle: transaction.title,
+            transactionAmount: `${transaction.currency || "$"}${transaction.amount}`,
+            transactionStatus: transaction.status,
+            backgroundImage: "/group-1597880969.png",
+        };
+    }) || [];
+
+    // Auto-select conversation when transactionId is in URL
+    useEffect(() => {
+        if (transactionId) {
+            const transactionIdNum = parseInt(transactionId);
+            if (transactionIdNum && transactionsData?.transactions?.some(t => t.id === transactionIdNum)) {
+                setSelectedChat(transactionIdNum);
+            }
+        }
+    }, [transactionId, transactionsData]);
+
     const handleChatClick = (chatId: number) => {
         setSelectedChat(chatId);
+        navigate(`/messages/${chatId}`);
     };
 
     const handleBackToChatList = () => {
         setSelectedChat(null);
+        navigate("/messages");
     };
 
     // Get selected chat data
-    const selectedChatData = selectedChat ? chatData.find(chat => chat.id === selectedChat) : null;
+    const selectedChatData = selectedChat ? conversations.find(chat => chat.transactionId === selectedChat) : null;
 
-    // Mock messages for selected conversation
-    const messagesData = selectedChat ? [
-        {
-            id: 1,
-            transactionId: selectedChat,
-            senderId: selectedChatData?.id === 1 ? 2 : 1,
-            content: "Hi! I'm excited to work on your website project.",
-            isSystemMessage: false,
-            flaggedAsScam: false,
-            createdAt: "2025-01-15T10:00:00Z"
-        },
-        {
-            id: 2,
-            transactionId: selectedChat,
-            senderId: user?.id || 1,
-            content: "Great! When can we start discussing the requirements?",
-            isSystemMessage: false,
-            flaggedAsScam: false,
-            createdAt: "2025-01-15T10:15:00Z"
-        },
-        {
-            id: 3,
-            transactionId: selectedChat,
-            senderId: selectedChatData?.id === 1 ? 2 : 1,
-            content: "I can start right away. Let me prepare some initial mockups first.",
-            isSystemMessage: false,
-            flaggedAsScam: false,
-            createdAt: "2025-01-15T10:30:00Z"
-        },
-        {
-            id: 4,
-            transactionId: selectedChat,
-            senderId: 0,
-            content: "Escrow payment has been secured for this transaction.",
-            isSystemMessage: true,
-            flaggedAsScam: false,
-            createdAt: "2025-01-15T11:00:00Z"
-        },
-        {
-            id: 5,
-            transactionId: selectedChat,
-            senderId: selectedChatData?.id === 1 ? 2 : 1,
-            content: selectedChatData?.message || "I'll have the website mockups ready by tomorrow",
-            isSystemMessage: false,
-            flaggedAsScam: false,
-            createdAt: selectedChatData?.lastMessageTime || "2025-01-15T14:30:00Z"
-        }
-    ] : [];
-
-    const filteredConversations = chatData.filter(conversation =>
+    const filteredConversations = conversations.filter(conversation =>
         conversation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         conversation.transactionTitle.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Send message mutation
+    const sendMessageMutation = useMutation({
+        mutationFn: async (content: string) => {
+            if (!selectedChat) throw new Error("No transaction selected");
+            const response = await fetch("/api/messages", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({
+                    transactionId: selectedChat,
+                    content: content.trim(),
+                }),
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Failed to send message");
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            setNewMessage("");
+            refetchMessages();
+            queryClient.invalidateQueries({ queryKey: ["messages", selectedChat] });
+            toast({
+                title: "Message sent",
+                description: "Your message has been sent securely.",
+            });
+        },
+        onError: (error: Error) => {
+            toast({
+                title: "Failed to send message",
+                description: error.message || "Please try again.",
+                variant: "destructive",
+            });
+        },
+    });
+
     const handleSendMessage = async () => {
         if (newMessage.trim() && selectedChat) {
-            try {
-                // Here you would typically send the message to your API
-                // await apiRequest("POST", `/api/messages`, {
-                //     transactionId: selectedChat,
-                //     content: newMessage.trim()
-                // });
-                
-                toast({
-                    title: "Message sent",
-                    description: "Your message has been sent securely.",
-                });
-                setNewMessage("");
-            } catch (error) {
-                toast({
-                    title: "Failed to send message",
-                    description: error instanceof Error ? error.message : "Please try again.",
-                    variant: "destructive",
-                });
-            }
+            sendMessageMutation.mutate(newMessage);
         }
     };
 
-    const handleFlagMessage = async (messageId: number) => {
-        try {
-            // Here you would typically flag the message via API
-            // await apiRequest("POST", `/api/messages/${messageId}/flag`);
-            console.log("Flagging message:", messageId);
-            
+    // Flag message mutation
+    const flagMessageMutation = useMutation({
+        mutationFn: async (messageId: number) => {
+            const response = await fetch(`/api/messages/${messageId}/flag`, {
+                method: "PATCH",
+                credentials: "include",
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || "Failed to flag message");
+            }
+            return response.json();
+        },
+        onSuccess: () => {
+            refetchMessages();
             toast({
                 title: "Message flagged",
                 description: "This message has been flagged for review.",
             });
-        } catch (error) {
+        },
+        onError: (error: Error) => {
             toast({
                 title: "Failed to flag message",
-                description: error instanceof Error ? error.message : "Please try again.",
+                description: error.message || "Please try again.",
                 variant: "destructive",
             });
-        }
+        },
+    });
+
+    const handleFlagMessage = async (messageId: number) => {
+        flagMessageMutation.mutate(messageId);
     };
 
     const getStatusColor = (status: string) => {
@@ -273,11 +318,21 @@ export const Messages = (): JSX.Element => {
 
                             <div className="flex-1 flex flex-col gap-4 p-3 overflow-y-auto">
                                 {selectedChat ? (
-                                    <MessageThread 
-                                        messages={messagesData}
-                                        currentUserId={user.id}
-                                        onFlagMessage={handleFlagMessage}
-                                    />
+                                    messagesData.length > 0 ? (
+                                        <MessageThread 
+                                            messages={messagesData}
+                                            currentUserId={user.id}
+                                            onFlagMessage={handleFlagMessage}
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="text-center">
+                                                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                                                    No messages yet. Start the conversation!
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="flex items-center justify-center h-full">
                                         <div className="text-center">
@@ -304,13 +359,13 @@ export const Messages = (): JSX.Element => {
                                             }}
                                             className="flex-1 min-h-[44px] max-h-[120px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm resize-none"
                                         />
-                                        <Button 
-                                            onClick={handleSendMessage}
-                                            disabled={!newMessage.trim()}
-                                            className="w-[44px] h-[44px] p-0 bg-transparent hover:bg-transparent flex-shrink-0 disabled:opacity-50"
-                                        >
-                                            <Send className="w-5 h-5 text-[#27ae60]" />
-                                        </Button>
+                                            <Button 
+                                                onClick={handleSendMessage}
+                                                disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                                                className="w-[44px] h-[44px] p-0 bg-transparent hover:bg-transparent flex-shrink-0 disabled:opacity-50"
+                                            >
+                                                <Send className="w-5 h-5 text-[#27ae60]" />
+                                            </Button>
                                     </div>
                                     <div className="inline-flex items-center gap-[3px]">
                                         <ShieldIcon className="w-4 h-4 text-[#808080] flex-shrink-0" />
@@ -356,7 +411,9 @@ export const Messages = (): JSX.Element => {
                             // Calculate dynamic values
                             let value = stat.value;
                             if (index === 0) {
-                                value = filteredConversations.length.toString().padStart(2, '0');
+                                value = (transactionsLoading ? "00" : filteredConversations.length.toString().padStart(2, '0'));
+                            } else if (index === 1) {
+                                value = messagesData.length.toString().padStart(2, '0');
                             } else if (index === 2) {
                                 value = filteredConversations.reduce((sum, conv) => sum + conv.unreadCount, 0).toString().padStart(2, '0');
                             }
@@ -419,7 +476,22 @@ export const Messages = (): JSX.Element => {
                                 </div>
 
                                 <div className="flex flex-col flex-1 lg:overflow-y-auto lg:min-h-0">
-                                    {filteredConversations.map((chat) => (
+                                    {transactionsLoading ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                                                Loading conversations...
+                                            </p>
+                                        </div>
+                                    ) : filteredConversations.length === 0 ? (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="text-center">
+                                                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                                                    No conversations yet. Create a transaction to start messaging.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        filteredConversations.map((chat) => (
                                         <button
                                             key={chat.id}
                                             onClick={() => handleChatClick(chat.id)}
@@ -460,7 +532,7 @@ export const Messages = (): JSX.Element => {
                                                 </div>
                                             </div>
                                         </button>
-                                    ))}
+                                    )))}
                                 </div>
                             </CardContent>
                         </Card>
@@ -540,11 +612,21 @@ export const Messages = (): JSX.Element => {
                                     </div>
 
                                     <div className="flex-1 flex flex-col gap-4 sm:gap-6 md:gap-[30px] p-3 sm:p-4 md:p-5 overflow-y-auto">
-                                        <MessageThread 
-                                            messages={messagesData}
-                                            currentUserId={user.id}
-                                            onFlagMessage={handleFlagMessage}
-                                        />
+                                        {messagesData.length > 0 ? (
+                                            <MessageThread 
+                                                messages={messagesData}
+                                                currentUserId={user.id}
+                                                onFlagMessage={handleFlagMessage}
+                                            />
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full">
+                                                <div className="text-center">
+                                                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                                                        No messages yet. Start the conversation!
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex flex-col items-start gap-2 sm:gap-2.5 p-3 sm:p-4 md:p-5">
@@ -563,7 +645,7 @@ export const Messages = (): JSX.Element => {
                                             />
                                             <Button 
                                                 onClick={handleSendMessage}
-                                                disabled={!newMessage.trim()}
+                                                disabled={!newMessage.trim() || sendMessageMutation.isPending}
                                                 className="w-[44px] h-[44px] sm:w-[51px] sm:h-[50px] p-0 bg-transparent hover:bg-transparent flex-shrink-0 disabled:opacity-50"
                                             >
                                                 <Send className="w-5 h-5 sm:w-6 sm:h-6 text-[#27ae60]" />

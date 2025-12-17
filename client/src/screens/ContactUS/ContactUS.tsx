@@ -64,6 +64,13 @@ const buttons = [
   },
 ];
 
+// Declare Zendesk global types
+declare global {
+  interface Window {
+    zE?: any;
+  }
+}
+
 const supportOptions = [
   {
     icon: "/security_icon.png",
@@ -85,7 +92,25 @@ const supportOptions = [
     description:
       "Get instant help from our support team during business hours.",
     linkText: "Start Chat",
-    action: () => window.open("/live-chat", "_blank"),
+    action: () => {
+      // Open Zendesk chatbot if available
+      if (window.zE) {
+        window.zE('webWidget', 'open');
+      } else {
+        // Fallback: try to open after a short delay (in case Zendesk is still loading)
+        const checkZendesk = setInterval(() => {
+          if (window.zE) {
+            window.zE('webWidget', 'open');
+            clearInterval(checkZendesk);
+          }
+        }, 100);
+        
+        // Clear interval after 5 seconds if Zendesk still not loaded
+        setTimeout(() => {
+          clearInterval(checkZendesk);
+        }, 5000);
+      }
+    },
   },
 ];  
 
@@ -433,7 +458,7 @@ export const ContactUS = (): JSX.Element => {
                     Newcastle upon Tyne NE1 6EE, UK
                   </p>
                   <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
-                    Phone: +44 20 7123 4567
+                    Phone: +44 02 0454 2723
                   </p>
                   <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
                     Hours: Mon-Fri 9AM-6PM GMT

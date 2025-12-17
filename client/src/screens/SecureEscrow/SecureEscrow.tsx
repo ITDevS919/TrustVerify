@@ -1,4 +1,4 @@
-import React from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
@@ -7,88 +7,13 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Header } from "../../components/Header";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useAuth } from "../../hooks/use-auth";
+import { useToast } from "../../hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-const statsData = [
-    {
-      icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-11.svg",
-      label: "Total in Escrow",
-      value: "03",
-      badge: {
-        icon: "/fi-55925181.svg",
-        text: "+12%",
-        subtext: " this month",
-        textColor: "text-[#436cc8]",
-      },
-    },
-    {
-      icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-61.svg",
-      label: "Completed",
-      value: "10",
-      badge: {
-        dot: true,
-        dotColor: "bg-app-secondary",
-        text: "100% Success Rate",
-        textColor: "text-app-secondary",
-      },
-    },
-    {
-      icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar1.svg",
-      label: "Pending",
-      value: "02",
-      badge: {
-        dot: true,
-        dotColor: "bg-yellow-500",
-        text: "Avg 2.3 Days",
-        textColor: "text-yellow-500",
-      },
-    },
-    {
-      icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-21.svg",
-      label: "Disputes",
-      value: "00",
-      badge: {
-        dot: true,
-        dotColor: "bg-[#e7000b]",
-        text: "Protected By AI",
-        textColor: "text-[#e7000b]",
-      },
-    },
-  ];
-  
-  const transactionsData = [
-    {
-      title: "Website Development",
-      description:
-        "Custom e-commerce website with payment integration and mobile optimization",
-      amount: "$2,500.00",
-      id: "Esc-001",
-      status: "Active",
-      statusColor: "bg-[#436cc833]",
-      statusDotColor: "bg-[#436cc8]",
-      statusTextColor: "text-[#436cc8]",
-    },
-    {
-      title: "Logo Design",
-      description:
-        "Professional Logo design with brand guidelines for startup company",
-      amount: "$750.00",
-      id: "Esc-002",
-      status: "Completed",
-      statusColor: "bg-[#27ae6033]",
-      statusIcon: "",
-      statusTextColor: "text-[#27ae60]",
-    },
-    {
-      title: "Content Writing",
-      description: "SEO-optimized blog posts and website copy for 3 months.",
-      amount: "$1,200.00",
-      id: "Esc-003",
-      status: "Pending",
-      statusColor: "bg-[#eab30833]",
-      statusIcon: "/fi-177425401.svg",
-      statusTextColor: "text-yellow-500",
-    },
-  ];
   
   const escrowStepsData = [
     {
@@ -111,11 +36,214 @@ const statsData = [
     },
   ];
 
+  // Transaction form schema
+  const transactionSchema = z.object({
+    title: z.string().min(1, "Transaction title is required"),
+    description: z.string().min(1, "Description is required"),
+    amount: z.string().min(1, "Amount is required"),
+    recipientEmail: z.string().email("Valid email is required"),
+  });
+
+  type TransactionForm = z.infer<typeof transactionSchema>;
+
+  // Transaction interface
+  interface Transaction {
+    id: number;
+    title: string;
+    description: string;
+    amount: string | number;
+    currency?: string;
+    status: string;
+    buyerId?: number;
+    sellerId?: number;
+    buyer?: string;
+    seller?: string;
+    createdAt: string;
+    escrowId?: string;
+  }
+
 export const SecureEscrow = (): JSX.Element => {
     const navigate = useNavigate();
-    const [paymentType, setPaymentType] = React.useState<"send" | "request">(
-        "send",
-      );
+    const { user } = useAuth();
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [paymentType, setPaymentType] = useState<"send" | "request">("send");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Fetch user's transactions
+    const { data: transactionsData, isLoading: loadingTransactions } = useQuery<{ transactions: Transaction[] }>({
+        queryKey: ["transactions", user?.id],
+        queryFn: async () => {
+            const response = await fetch("/api/transactions?page=1&limit=20", {
+                credentials: "include",
+            });
+            if (!response.ok) throw new Error("Failed to fetch transactions");
+            return response.json();
+        },
+        enabled: !!user,
+        refetchOnWindowFocus: true,
+    });
+
+    const transactions = transactionsData?.transactions ?? [];
+
+    // Calculate stats from real transactions
+    const statsData = useMemo(() => {
+        const totalInEscrow = transactions.filter(t => 
+            ["escrow", "active"].includes(t.status?.toLowerCase() || "")
+        ).length;
+        
+        const completed = transactions.filter(t => 
+            t.status?.toLowerCase() === "completed"
+        ).length;
+        
+        const pending = transactions.filter(t => 
+            ["pending", "processing"].includes(t.status?.toLowerCase() || "")
+        ).length;
+        
+        const disputes = transactions.filter(t => 
+            t.status?.toLowerCase() === "disputed"
+        ).length;
+
+        return [
+            {
+                icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-11.svg",
+                label: "Total in Escrow",
+                value: totalInEscrow.toString().padStart(2, "0"),
+                badge: {
+                    icon: "/fi-55925181.svg",
+                    text: "+12%",
+                    subtext: " this month",
+                    textColor: "text-[#436cc8]",
+                },
+            },
+            {
+                icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-61.svg",
+                label: "Completed",
+                value: completed.toString().padStart(2, "0"),
+                badge: {
+                    dot: true,
+                    dotColor: "bg-app-secondary",
+                    text: completed > 0 ? "100% Success Rate" : "No completions yet",
+                    textColor: "text-app-secondary",
+                },
+            },
+            {
+                icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar1.svg",
+                label: "Pending",
+                value: pending.toString().padStart(2, "0"),
+                badge: {
+                    dot: true,
+                    dotColor: "bg-yellow-500",
+                    text: "Avg 2.3 Days",
+                    textColor: "text-yellow-500",
+                },
+            },
+            {
+                icon: "/mb-6-inline-flex-items-center-justify-center-w-16-h-16-bg-primar-21.svg",
+                label: "Disputes",
+                value: disputes.toString().padStart(2, "0"),
+                badge: {
+                    dot: true,
+                    dotColor: "bg-[#e7000b]",
+                    text: "Protected By AI",
+                    textColor: "text-[#e7000b]",
+                },
+            },
+        ];
+    }, [transactions]);
+
+    const {
+      register,
+      handleSubmit,
+      formState: { errors },
+      reset
+    } = useForm<TransactionForm>({
+      resolver: zodResolver(transactionSchema),
+    });
+
+    const onSubmit = async (data: TransactionForm) => {
+      setIsSubmitting(true);
+      
+      try {
+        // API call to create transaction
+        const response = await fetch("/api/transactions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            title: data.title,
+            description: data.description,
+            amount: parseFloat(data.amount.replace(/[^0-9.]/g, "")),
+            currency: "USD",
+            sellerEmail: data.recipientEmail,
+            category: "other",
+            deliveryTimeframe: "14_days"
+          }),
+        });
+
+        if (response.ok) {
+          await response.json();
+          
+          // Invalidate and refetch transactions
+          queryClient.invalidateQueries({ queryKey: ["transactions", user?.id] });
+          reset();
+          
+          toast({
+            title: "Transaction Created!",
+            description: "Your escrow transaction has been created successfully.",
+          });
+        } else {
+          const error = await response.json();
+          throw new Error(error.message || "Failed to create transaction");
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to create transaction. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    const getStatusColor = (status: string) => {
+      switch (status.toLowerCase()) {
+        case "completed":
+          return {
+            statusColor: "bg-[#27ae6033]",
+            statusDotColor: "bg-[#27ae60]",
+            statusTextColor: "text-[#27ae60]",
+          };
+        case "active":
+          return {
+            statusColor: "bg-[#436cc833]",
+            statusDotColor: "bg-[#436cc8]",
+            statusTextColor: "text-[#436cc8]",
+          };
+        case "pending":
+          return {
+            statusColor: "bg-[#eab30833]",
+            statusDotColor: "bg-yellow-500",
+            statusTextColor: "text-yellow-500",
+          };
+        case "disputed":
+          return {
+            statusColor: "bg-[#e7000b33]",
+            statusDotColor: "bg-[#e7000b]",
+            statusTextColor: "text-[#e7000b]",
+          };
+        default:
+          return {
+            statusColor: "bg-[#80808033]",
+            statusDotColor: "bg-[#808080]",
+            statusTextColor: "text-[#808080]",
+          };
+      }
+    };
+
 
   return (
     <main className="bg-[#f6f6f6] overflow-hidden w-full flex flex-col relative">
@@ -142,7 +270,7 @@ export const SecureEscrow = (): JSX.Element => {
             Secure Escrow
           </h1>
           <p className="flex items-center justify-center w-full [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl tracking-[0] leading-8">
-            SendIcon and receive payments securely with our escrow protection
+            Send and receive payments securely with our escrow protection
           </p>
         </div>
       </div>
@@ -245,7 +373,7 @@ export const SecureEscrow = (): JSX.Element => {
                               }
                             />
                             <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-sm tracking-[-0.20px] leading-[18px]">
-                              SendIcon Payment
+                              Send Payment
                             </span>
                           </Button>
                           <Button
@@ -272,25 +400,38 @@ export const SecureEscrow = (): JSX.Element => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-start gap-5 w-full">
+                      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col items-start gap-5 w-full">
                         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 w-full">
                           <div className="flex flex-col flex-1 items-start gap-2.5">
                             <Label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-6">
                               Transaction Title
                             </Label>
                             <Input
+                              {...register("title")}
                               placeholder="e.g Web development, Mobile app etc."
                               className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
                             />
+                            {errors.title && (
+                              <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#e7000b] text-sm">
+                                {errors.title.message}
+                              </p>
+                            )}
                           </div>
                           <div className="flex flex-col flex-1 items-start gap-2.5">
                             <Label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base tracking-[0] leading-6">
                               Recipient Email
                             </Label>
                             <Input
+                              {...register("recipientEmail")}
+                              type="email"
                               placeholder="recipient@example.com"
                               className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
                             />
+                            {errors.recipientEmail && (
+                              <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#e7000b] text-sm">
+                                {errors.recipientEmail.message}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -299,9 +440,15 @@ export const SecureEscrow = (): JSX.Element => {
                             Description
                           </Label>
                           <Textarea
+                            {...register("description")}
                             placeholder="Enter description...."
                             className="h-[120px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base resize-none"
                           />
+                          {errors.description && (
+                            <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#e7000b] text-sm">
+                              {errors.description.message}
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex flex-col items-start gap-2.5 w-full">
@@ -309,40 +456,50 @@ export const SecureEscrow = (): JSX.Element => {
                             Amount USD
                           </Label>
                           <Input
+                            {...register("amount")}
                             placeholder="$0.00"
                             className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
                           />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-start justify-center gap-2.5 p-5 sm:p-6 w-full bg-[#1f4dd824] rounded-xl">
-                      <div className="flex flex-col items-start justify-center gap-[5px] w-full">
-                        <div className="flex items-start gap-[5px] w-full">
-                          <img
-                            className="w-[19px] h-[23px]"
-                            alt="Shield"
-                            src="/fi-1026491.svg"
-                          />
-                          <div className="flex flex-col items-start gap-[5px] flex-1">
-                            <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#1f4dd8] text-sm tracking-[-0.20px] leading-7 whitespace-nowrap">
-                              Enterprise Escrow Protection
-                            </div>
-                            <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#1f4dd8] text-xs tracking-[0] leading-[22px]">
-                              Funds are secured with bank-level encryption and
-                              held in FDIC-insured accounts until both parties
-                              confirm transaction completion. Our AI-powered
-                              dispute resolution ensures fair outcomes
+                          {errors.amount && (
+                            <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#e7000b] text-sm">
+                              {errors.amount.message}
                             </p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col items-start justify-center gap-2.5 p-5 sm:p-6 w-full bg-[#1f4dd824] rounded-xl">
+                          <div className="flex flex-col items-start justify-center gap-[5px] w-full">
+                            <div className="flex items-start gap-[5px] w-full">
+                              <img
+                                className="w-[19px] h-[23px]"
+                                alt="Shield"
+                                src="/fi-1026491.svg"
+                              />
+                              <div className="flex flex-col items-start gap-[5px] flex-1">
+                                <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#1f4dd8] text-sm tracking-[-0.20px] leading-7 whitespace-nowrap">
+                                  Enterprise Escrow Protection
+                                </div>
+                                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#1f4dd8] text-xs tracking-[0] leading-[22px]">
+                                  Funds are secured with bank-level encryption and
+                                  held in FDIC-insured accounts until both parties
+                                  confirm transaction completion. Our AI-powered
+                                  dispute resolution ensures fair outcomes
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
+
+                        <Button 
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="w-full h-[50px] bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 rounded-lg [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm tracking-[-0.20px] leading-[18px] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSubmitting ? "Creating..." : "Create Secure Transactions"}
+                        </Button>
+                      </form>
                     </div>
                   </div>
-
-                  <Button className="w-full h-[50px] bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 rounded-lg [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm tracking-[-0.20px] leading-[18px]">
-                    Create Secure Transactions
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -361,89 +518,111 @@ export const SecureEscrow = (): JSX.Element => {
                         Recent Transactions
                       </h2>
                     </div>
-                    <button className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-app-primary text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer">
+                    <button
+                     onClick={() =>navigate("/secure-transaction")}
+                     className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-app-primary text-base tracking-[0] leading-6 whitespace-nowrap cursor-pointer"
+                    >
+                     
                       View all
                     </button>
                   </div>
 
                   <div className="flex flex-col gap-4">
-                    {transactionsData.map((transaction, index) => (
-                      <Card
-                        key={index}
-                        className="border border-solid border-[#ececec] rounded-xl"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex flex-col items-start gap-5">
-                            <div className="flex flex-col items-start gap-4 w-full">
-                              <div className="flex flex-col items-start gap-4 w-full">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                                  <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base tracking-[0] leading-6 whitespace-nowrap">
-                                    {transaction.title}
-                                  </h3>
-                                  <Badge
-                                    className={`${transaction.statusColor} inline-flex items-center justify-center gap-[5px] px-2.5 py-[7px] rounded-[50px]`}
+                    {loadingTransactions ? (
+                      <div className="w-full p-6 flex flex-col items-center justify-center gap-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0A3778]" />
+                        <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base">
+                          Loading transactions...
+                        </p>
+                      </div>
+                    ) : transactions.length === 0 ? (
+                      <div className="w-full p-6 flex flex-col items-center justify-center gap-4">
+                        <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-xl">
+                          No transactions yet. Create a new transaction to get started.
+                        </p>
+                      </div>
+                    ) : (
+                      transactions.slice(0, 3).map((transaction) => {
+                        const statusStyles = getStatusColor(transaction.status);
+                        const currency = transaction.currency || 'USD';
+                        const formattedAmount = typeof transaction.amount === 'number'
+                          ? new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(transaction.amount)
+                          : transaction.amount;
+                        
+                        return (
+                          <Card
+                            key={transaction.id}
+                            className="border border-solid border-[#ececec] rounded-xl"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex flex-col items-start gap-5">
+                                <div className="flex flex-col items-start gap-4 w-full">
+                                  <div className="flex flex-col items-start gap-4 w-full">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                                      <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base tracking-[0] leading-6 whitespace-nowrap">
+                                        {transaction.title}
+                                      </h3>
+                                      <Badge
+                                        className={`${statusStyles.statusColor} inline-flex items-center justify-center gap-[5px] px-2.5 py-[7px] rounded-[50px]`}
+                                      >
+                                        <div
+                                          className={`w-[7px] h-[7px] rounded-[3.5px] ${statusStyles.statusDotColor}`}
+                                        />
+                                        <span
+                                          className={`[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xs tracking-[0] leading-[9.2px] ${statusStyles.statusTextColor}`}
+                                        >
+                                          {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+                                        </span>
+                                      </Badge>
+                                    </div>
+                                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm tracking-[0] leading-6">
+                                      {transaction.description}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
+                                    <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#003d2b] text-lg tracking-[0] leading-6 whitespace-nowrap">
+                                      {formattedAmount}
+                                    </div>
+                                    <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080] text-sm text-right tracking-[0] leading-6 whitespace-nowrap">
+                                      {transaction.escrowId || `#${transaction.id}`}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-2">
+                                  <Button 
+                                    onClick={() => navigate(`/transactions/${transaction.id}`)}
+                                    className="flex-1 h-10 bg-app-primary hover:bg-app-primary/90 rounded-lg"
                                   >
-                                    {transaction.statusDotColor && (
-                                      <div
-                                        className={`w-[7px] h-[7px] rounded-[3.5px] ${transaction.statusDotColor}`}
-                                      />
-                                    )}
-                                    {transaction.statusIcon && (
-                                      <img
-                                        className="w-2.5 h-2.5"
-                                        alt="Status"
-                                        src={transaction.statusIcon}
-                                      />
-                                    )}
-                                    <span
-                                      className={`[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-xs tracking-[0] leading-[9.2px] ${transaction.statusTextColor}`}
-                                    >
-                                      {transaction.status}
+                                    <img
+                                      className="w-4 h-4 mr-[5px]"
+                                      alt="View"
+                                      src="/fi-7096121.svg"
+                                    />
+                                    <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-xs tracking-[-0.20px] leading-[18px]">
+                                      View
                                     </span>
-                                  </Badge>
+                                  </Button>
+                                  <Button
+                                    onClick={() => navigate(`/messages/${transaction.id}`)}
+                                    variant="outline"
+                                    className="flex-1 h-10 border border-solid border-[#0b3a78] rounded-lg hover:bg-[#0b3a78]/10"
+                                  >
+                                    <img
+                                      className="w-[15px] h-[15px] mr-[5px]"
+                                      alt="Chat"
+                                      src="/fi-5897081.svg"
+                                    />
+                                    <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-app-primary text-xs tracking-[-0.20px] leading-[18px]">
+                                      Chat
+                                    </span>
+                                  </Button>
                                 </div>
-                                <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm tracking-[0] leading-6">
-                                  {transaction.description}
-                                </p>
                               </div>
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
-                                <div className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-[#003d2b] text-lg tracking-[0] leading-6 whitespace-nowrap">
-                                  {transaction.amount}
-                                </div>
-                                <div className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080] text-sm text-right tracking-[0] leading-6 whitespace-nowrap">
-                                  {transaction.id}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between w-full gap-2">
-                              <Button className="flex-1 h-10 bg-app-primary hover:bg-app-primary/90 rounded-lg">
-                                <img
-                                  className="w-4 h-4 mr-[5px]"
-                                  alt="View"
-                                  src="/fi-7096121.svg"
-                                />
-                                <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-xs tracking-[-0.20px] leading-[18px]">
-                                  View
-                                </span>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="flex-1 h-10 border border-solid border-[#0b3a78] rounded-lg hover:bg-[#0b3a78]/10"
-                              >
-                                <img
-                                  className="w-[15px] h-[15px] mr-[5px]"
-                                  alt="Chat"
-                                  src="/fi-5897081.svg"
-                                />
-                                <span className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-app-primary text-xs tracking-[-0.20px] leading-[18px]">
-                                  Chat
-                                </span>
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </CardContent>

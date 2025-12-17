@@ -337,7 +337,7 @@ export default function Resources() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Link to="/help-center">
+              <Link to="/help">
                 <Button variant="outline" className="w-full justify-start border-[#e4e4e4] text-[#003d2b] hover:bg-[#0b3a780d] rounded-[10px]">
                   <BookOpen className="h-4 w-4 mr-2" />
                   <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium">Help Center</span>

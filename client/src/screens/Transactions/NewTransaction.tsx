@@ -755,7 +755,7 @@ export const NewTransaction = (): JSX.Element => {
 
                   <Button
                     className="h-[46px] w-full md:w-[174px] bg-app-secondary rounded-lg [font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-white text-sm text-center tracking-[-0.20px] leading-[18px]"
-                    onClick={() => navigate("/support-center")}
+                    onClick={() => navigate("/contact")}
                   >
                     Contact Support
                   </Button>
