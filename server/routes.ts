@@ -2043,6 +2043,386 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== CRM Routes ====================
+  
+  // CRM Contacts
+  app.get("/api/crm/contacts", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const contacts = await storage.getCrmContacts(req.user.id, page, limit);
+      res.json(contacts);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/crm/contacts", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const contact = await storage.createCrmContact({ ...req.body, userId: req.user.id });
+      res.status(201).json(contact);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/crm/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const contact = await storage.getCrmContact(parseInt(req.params.id), req.user.id);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      res.json(contact);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/crm/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const contact = await storage.updateCrmContact(parseInt(req.params.id), req.user.id, req.body);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      res.json(contact);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/crm/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      await storage.deleteCrmContact(parseInt(req.params.id), req.user.id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // CRM Leads
+  app.get("/api/crm/leads", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const leads = await storage.getCrmLeads(req.user.id, page, limit);
+      res.json(leads);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/crm/leads", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const lead = await storage.createCrmLead({ ...req.body, userId: req.user.id });
+      res.status(201).json(lead);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/crm/leads/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const lead = await storage.updateCrmLead(parseInt(req.params.id), req.user.id, req.body);
+      if (!lead) return res.status(404).json({ error: "Lead not found" });
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // CRM Opportunities
+  app.get("/api/crm/opportunities", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const opportunities = await storage.getCrmOpportunities(req.user.id, page, limit);
+      res.json(opportunities);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/crm/opportunities", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const opportunity = await storage.createCrmOpportunity({ ...req.body, userId: req.user.id });
+      res.status(201).json(opportunity);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/crm/opportunities/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const opportunity = await storage.updateCrmOpportunity(parseInt(req.params.id), req.user.id, req.body);
+      if (!opportunity) return res.status(404).json({ error: "Opportunity not found" });
+      res.json(opportunity);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // CRM Interactions
+  app.get("/api/crm/interactions", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const contactId = req.query.contactId ? parseInt(req.query.contactId as string) : undefined;
+      const leadId = req.query.leadId ? parseInt(req.query.leadId as string) : undefined;
+      const opportunityId = req.query.opportunityId ? parseInt(req.query.opportunityId as string) : undefined;
+      const interactions = await storage.getCrmInteractions(req.user.id, { contactId, leadId, opportunityId }, page, limit);
+      res.json(interactions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/crm/interactions", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const interaction = await storage.createCrmInteraction({ ...req.body, userId: req.user.id });
+      res.status(201).json(interaction);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // CRM Analytics
+  app.get("/api/crm/analytics", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const analytics = await storage.getCrmAnalytics(req.user.id);
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== HR Routes ====================
+  
+  // HR Employees
+  app.get("/api/hr/employees", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const employees = await storage.getHrEmployees(page, limit);
+      res.json(employees);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/hr/employees", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const employee = await storage.createHrEmployee(req.body);
+      res.status(201).json(employee);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/hr/employees/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const employee = await storage.getHrEmployee(parseInt(req.params.id));
+      if (!employee) return res.status(404).json({ error: "Employee not found" });
+      res.json(employee);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/hr/employees/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const employee = await storage.updateHrEmployee(parseInt(req.params.id), req.body);
+      if (!employee) return res.status(404).json({ error: "Employee not found" });
+      res.json(employee);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // HR Attendance
+  app.get("/api/hr/attendance", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      const attendance = await storage.getHrAttendance(employeeId, startDate, endDate);
+      res.json(attendance);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/hr/attendance", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const attendance = await storage.createHrAttendance(req.body);
+      res.status(201).json(attendance);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/hr/attendance/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const attendance = await storage.updateHrAttendance(parseInt(req.params.id), req.body);
+      if (!attendance) return res.status(404).json({ error: "Attendance record not found" });
+      res.json(attendance);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // HR Leave Requests
+  app.get("/api/hr/leave-requests", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+      const status = req.query.status as string;
+      const leaveRequests = await storage.getHrLeaveRequests(employeeId, status);
+      res.json(leaveRequests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/hr/leave-requests", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const leaveRequest = await storage.createHrLeaveRequest(req.body);
+      res.status(201).json(leaveRequest);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/hr/leave-requests/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const leaveRequest = await storage.updateHrLeaveRequest(parseInt(req.params.id), req.body);
+      if (!leaveRequest) return res.status(404).json({ error: "Leave request not found" });
+      res.json(leaveRequest);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // HR Performance Reviews
+  app.get("/api/hr/performance-reviews", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+      const reviews = await storage.getHrPerformanceReviews(employeeId);
+      res.json(reviews);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/hr/performance-reviews", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const review = await storage.createHrPerformanceReview(req.body);
+      res.status(201).json(review);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // HR Recruitment
+  app.get("/api/hr/recruitment", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const status = req.query.status as string;
+      const recruitment = await storage.getHrRecruitment(status, page, limit);
+      res.json(recruitment);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/hr/recruitment", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const recruitment = await storage.createHrRecruitment(req.body);
+      res.status(201).json(recruitment);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/hr/recruitment/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const recruitment = await storage.updateHrRecruitment(parseInt(req.params.id), req.body);
+      if (!recruitment) return res.status(404).json({ error: "Recruitment not found" });
+      res.json(recruitment);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // HR Job Applications
+  app.get("/api/hr/job-applications", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const recruitmentId = req.query.recruitmentId ? parseInt(req.query.recruitmentId as string) : undefined;
+      const status = req.query.status as string;
+      const applications = await storage.getHrJobApplications(recruitmentId, status);
+      res.json(applications);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/hr/job-applications", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const application = await storage.createHrJobApplication(req.body);
+      res.status(201).json(application);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/hr/job-applications/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const application = await storage.updateHrJobApplication(parseInt(req.params.id), req.body);
+      if (!application) return res.status(404).json({ error: "Application not found" });
+      res.json(application);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // HR Analytics
+  app.get("/api/hr/analytics", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) return res.sendStatus(401);
+      const analytics = await storage.getHrAnalytics();
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Contact Form Submission Endpoint
   app.post("/api/contact", async (req, res) => {
     try {

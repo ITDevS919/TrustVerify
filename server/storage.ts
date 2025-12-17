@@ -17,6 +17,16 @@ import {
     userSubscriptions,
     subscriptionInvoices,
     subscriptionUsage,
+    crmContacts,
+    crmLeads,
+    crmOpportunities,
+    crmInteractions,
+    hrEmployees,
+    hrAttendance,
+    hrLeaveRequests,
+    hrPerformanceReviews,
+    hrRecruitment,
+    hrJobApplications,
     type User, 
     type InsertUser,
     type KycVerification,
@@ -39,7 +49,27 @@ import {
     type UserSubscription,
     type SubscriptionInvoice,
     type SubscriptionUsage,
-    type InsertSubscriptionPlan
+    type InsertSubscriptionPlan,
+    type CrmContact,
+    type InsertCrmContact,
+    type CrmLead,
+    type InsertCrmLead,
+    type CrmOpportunity,
+    type InsertCrmOpportunity,
+    type CrmInteraction,
+    type InsertCrmInteraction,
+    type HrEmployee,
+    type InsertHrEmployee,
+    type HrAttendance,
+    type InsertHrAttendance,
+    type HrLeaveRequest,
+    type InsertHrLeaveRequest,
+    type HrPerformanceReview,
+    type InsertHrPerformanceReview,
+    type HrRecruitment,
+    type InsertHrRecruitment,
+    type HrJobApplication,
+    type InsertHrJobApplication
   } from "./shared/schema";
   import { db } from "./db.ts";
   import { eq, and, or, ilike, gte, lte, desc, count, avg, sql } from "drizzle-orm";
@@ -170,6 +200,43 @@ import {
     getUserCount(): Promise<number>;
     getActiveTransactionCount(): Promise<number>;
     getPendingKycCount(): Promise<number>;
+
+    // CRM methods
+    getCrmContacts(userId: number, page: number, limit: number): Promise<{ contacts: CrmContact[]; total: number; page: number; limit: number }>;
+    createCrmContact(contact: InsertCrmContact & { userId: number }): Promise<CrmContact>;
+    getCrmContact(id: number, userId: number): Promise<CrmContact | undefined>;
+    updateCrmContact(id: number, userId: number, updates: Partial<CrmContact>): Promise<CrmContact | undefined>;
+    deleteCrmContact(id: number, userId: number): Promise<void>;
+    getCrmLeads(userId: number, page: number, limit: number): Promise<{ leads: CrmLead[]; total: number; page: number; limit: number }>;
+    createCrmLead(lead: InsertCrmLead & { userId: number }): Promise<CrmLead>;
+    updateCrmLead(id: number, userId: number, updates: Partial<CrmLead>): Promise<CrmLead | undefined>;
+    getCrmOpportunities(userId: number, page: number, limit: number): Promise<{ opportunities: CrmOpportunity[]; total: number; page: number; limit: number }>;
+    createCrmOpportunity(opportunity: InsertCrmOpportunity & { userId: number }): Promise<CrmOpportunity>;
+    updateCrmOpportunity(id: number, userId: number, updates: Partial<CrmOpportunity>): Promise<CrmOpportunity | undefined>;
+    getCrmInteractions(userId: number, filters: { contactId?: number; leadId?: number; opportunityId?: number }, page: number, limit: number): Promise<{ interactions: CrmInteraction[]; total: number; page: number; limit: number }>;
+    createCrmInteraction(interaction: InsertCrmInteraction & { userId: number }): Promise<CrmInteraction>;
+    getCrmAnalytics(userId: number): Promise<any>;
+
+    // HR methods
+    getHrEmployees(page: number, limit: number): Promise<{ employees: HrEmployee[]; total: number; page: number; limit: number }>;
+    createHrEmployee(employee: InsertHrEmployee): Promise<HrEmployee>;
+    getHrEmployee(id: number): Promise<HrEmployee | undefined>;
+    updateHrEmployee(id: number, updates: Partial<HrEmployee>): Promise<HrEmployee | undefined>;
+    getHrAttendance(employeeId?: number, startDate?: string, endDate?: string): Promise<HrAttendance[]>;
+    createHrAttendance(attendance: InsertHrAttendance): Promise<HrAttendance>;
+    updateHrAttendance(id: number, updates: Partial<HrAttendance>): Promise<HrAttendance | undefined>;
+    getHrLeaveRequests(employeeId?: number, status?: string): Promise<HrLeaveRequest[]>;
+    createHrLeaveRequest(leaveRequest: InsertHrLeaveRequest): Promise<HrLeaveRequest>;
+    updateHrLeaveRequest(id: number, updates: Partial<HrLeaveRequest>): Promise<HrLeaveRequest | undefined>;
+    getHrPerformanceReviews(employeeId?: number): Promise<HrPerformanceReview[]>;
+    createHrPerformanceReview(review: InsertHrPerformanceReview): Promise<HrPerformanceReview>;
+    getHrRecruitment(status?: string, page?: number, limit?: number): Promise<{ recruitment: HrRecruitment[]; total: number; page: number; limit: number }>;
+    createHrRecruitment(recruitment: InsertHrRecruitment): Promise<HrRecruitment>;
+    updateHrRecruitment(id: number, updates: Partial<HrRecruitment>): Promise<HrRecruitment | undefined>;
+    getHrJobApplications(recruitmentId?: number, status?: string): Promise<HrJobApplication[]>;
+    createHrJobApplication(application: InsertHrJobApplication): Promise<HrJobApplication>;
+    updateHrJobApplication(id: number, updates: Partial<HrJobApplication>): Promise<HrJobApplication | undefined>;
+    getHrAnalytics(): Promise<any>;
 
     // Session store
     sessionStore: session.Store;
@@ -989,6 +1056,151 @@ import {
 
     async listSubscriptionUsage(_subscriptionId: number, _periodStart?: Date, _periodEnd?: Date): Promise<SubscriptionUsage[]> {
       return [];
+    }
+
+    // ==================== CRM Methods (MemStorage - not supported) ====================
+    async getCrmContacts(_userId: number, page: number, limit: number): Promise<{ contacts: CrmContact[]; total: number; page: number; limit: number }> {
+      return { contacts: [], total: 0, page, limit };
+    }
+
+    async createCrmContact(_contact: InsertCrmContact & { userId: number }): Promise<CrmContact> {
+      throw new Error("CRM contacts not supported in MemStorage");
+    }
+
+    async getCrmContact(_id: number, _userId: number): Promise<CrmContact | undefined> {
+      return undefined;
+    }
+
+    async updateCrmContact(_id: number, _userId: number, _updates: Partial<CrmContact>): Promise<CrmContact | undefined> {
+      throw new Error("CRM contacts not supported in MemStorage");
+    }
+
+    async deleteCrmContact(_id: number, _userId: number): Promise<void> {
+      throw new Error("CRM contacts not supported in MemStorage");
+    }
+
+    async getCrmLeads(_userId: number, page: number, limit: number): Promise<{ leads: CrmLead[]; total: number; page: number; limit: number }> {
+      return { leads: [], total: 0, page, limit };
+    }
+
+    async createCrmLead(_lead: InsertCrmLead & { userId: number }): Promise<CrmLead> {
+      throw new Error("CRM leads not supported in MemStorage");
+    }
+
+    async updateCrmLead(_id: number, _userId: number, _updates: Partial<CrmLead>): Promise<CrmLead | undefined> {
+      throw new Error("CRM leads not supported in MemStorage");
+    }
+
+    async getCrmOpportunities(_userId: number, page: number, limit: number): Promise<{ opportunities: CrmOpportunity[]; total: number; page: number; limit: number }> {
+      return { opportunities: [], total: 0, page, limit };
+    }
+
+    async createCrmOpportunity(_opportunity: InsertCrmOpportunity & { userId: number }): Promise<CrmOpportunity> {
+      throw new Error("CRM opportunities not supported in MemStorage");
+    }
+
+    async updateCrmOpportunity(_id: number, _userId: number, _updates: Partial<CrmOpportunity>): Promise<CrmOpportunity | undefined> {
+      throw new Error("CRM opportunities not supported in MemStorage");
+    }
+
+    async getCrmInteractions(_userId: number, _filters: { contactId?: number; leadId?: number; opportunityId?: number }, page: number, limit: number): Promise<{ interactions: CrmInteraction[]; total: number; page: number; limit: number }> {
+      return { interactions: [], total: 0, page, limit };
+    }
+
+    async createCrmInteraction(_interaction: InsertCrmInteraction & { userId: number }): Promise<CrmInteraction> {
+      throw new Error("CRM interactions not supported in MemStorage");
+    }
+
+    async getCrmAnalytics(_userId: number): Promise<any> {
+      return {
+        totalContacts: 0,
+        totalLeads: 0,
+        totalOpportunities: 0,
+        totalRevenue: 0,
+      };
+    }
+
+    // ==================== HR Methods (MemStorage - not supported) ====================
+    async getHrEmployees(page: number, limit: number): Promise<{ employees: HrEmployee[]; total: number; page: number; limit: number }> {
+      return { employees: [], total: 0, page, limit };
+    }
+
+    async createHrEmployee(_employee: InsertHrEmployee): Promise<HrEmployee> {
+      throw new Error("HR employees not supported in MemStorage");
+    }
+
+    async getHrEmployee(_id: number): Promise<HrEmployee | undefined> {
+      return undefined;
+    }
+
+    async updateHrEmployee(_id: number, _updates: Partial<HrEmployee>): Promise<HrEmployee | undefined> {
+      throw new Error("HR employees not supported in MemStorage");
+    }
+
+    async getHrAttendance(_employeeId?: number, _startDate?: string, _endDate?: string): Promise<HrAttendance[]> {
+      return [];
+    }
+
+    async createHrAttendance(_attendance: InsertHrAttendance): Promise<HrAttendance> {
+      throw new Error("HR attendance not supported in MemStorage");
+    }
+
+    async updateHrAttendance(_id: number, _updates: Partial<HrAttendance>): Promise<HrAttendance | undefined> {
+      throw new Error("HR attendance not supported in MemStorage");
+    }
+
+    async getHrLeaveRequests(_employeeId?: number, _status?: string): Promise<HrLeaveRequest[]> {
+      return [];
+    }
+
+    async createHrLeaveRequest(_leaveRequest: InsertHrLeaveRequest): Promise<HrLeaveRequest> {
+      throw new Error("HR leave requests not supported in MemStorage");
+    }
+
+    async updateHrLeaveRequest(_id: number, _updates: Partial<HrLeaveRequest>): Promise<HrLeaveRequest | undefined> {
+      throw new Error("HR leave requests not supported in MemStorage");
+    }
+
+    async getHrPerformanceReviews(_employeeId?: number): Promise<HrPerformanceReview[]> {
+      return [];
+    }
+
+    async createHrPerformanceReview(_review: InsertHrPerformanceReview): Promise<HrPerformanceReview> {
+      throw new Error("HR performance reviews not supported in MemStorage");
+    }
+
+    async getHrRecruitment(_status?: string, page: number = 1, limit: number = 20): Promise<{ recruitment: HrRecruitment[]; total: number; page: number; limit: number }> {
+      return { recruitment: [], total: 0, page, limit };
+    }
+
+    async createHrRecruitment(_recruitment: InsertHrRecruitment): Promise<HrRecruitment> {
+      throw new Error("HR recruitment not supported in MemStorage");
+    }
+
+    async updateHrRecruitment(_id: number, _updates: Partial<HrRecruitment>): Promise<HrRecruitment | undefined> {
+      throw new Error("HR recruitment not supported in MemStorage");
+    }
+
+    async getHrJobApplications(_recruitmentId?: number, _status?: string): Promise<HrJobApplication[]> {
+      return [];
+    }
+
+    async createHrJobApplication(_application: InsertHrJobApplication): Promise<HrJobApplication> {
+      throw new Error("HR job applications not supported in MemStorage");
+    }
+
+    async updateHrJobApplication(_id: number, _updates: Partial<HrJobApplication>): Promise<HrJobApplication | undefined> {
+      throw new Error("HR job applications not supported in MemStorage");
+    }
+
+    async getHrAnalytics(): Promise<any> {
+      return {
+        totalEmployees: 0,
+        activeEmployees: 0,
+        onLeaveEmployees: 0,
+        totalLeaveRequests: 0,
+        pendingLeaveRequests: 0,
+      };
     }
   }
   
@@ -1884,6 +2096,360 @@ import {
         .from(subscriptionUsage)
         .where(and(...conditions))
         .orderBy(desc(subscriptionUsage.createdAt));
+    }
+
+    // ==================== CRM Methods ====================
+    async getCrmContacts(userId: number, page: number, limit: number): Promise<{ contacts: CrmContact[]; total: number; page: number; limit: number }> {
+      const offset = (page - 1) * limit;
+      const contacts = await db.select()
+        .from(crmContacts)
+        .where(eq(crmContacts.userId, userId))
+        .orderBy(desc(crmContacts.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const [totalResult] = await db.select({ count: count() })
+        .from(crmContacts)
+        .where(eq(crmContacts.userId, userId));
+      
+      return { contacts, total: totalResult?.count || 0, page, limit };
+    }
+
+    async createCrmContact(contact: InsertCrmContact & { userId: number }): Promise<CrmContact> {
+      const [newContact] = await db.insert(crmContacts)
+        .values({ ...contact, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newContact;
+    }
+
+    async getCrmContact(id: number, userId: number): Promise<CrmContact | undefined> {
+      const [contact] = await db.select()
+        .from(crmContacts)
+        .where(and(eq(crmContacts.id, id), eq(crmContacts.userId, userId)));
+      return contact || undefined;
+    }
+
+    async updateCrmContact(id: number, userId: number, updates: Partial<CrmContact>): Promise<CrmContact | undefined> {
+      const [updated] = await db.update(crmContacts)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(and(eq(crmContacts.id, id), eq(crmContacts.userId, userId)))
+        .returning();
+      return updated || undefined;
+    }
+
+    async deleteCrmContact(id: number, userId: number): Promise<void> {
+      await db.delete(crmContacts)
+        .where(and(eq(crmContacts.id, id), eq(crmContacts.userId, userId)));
+    }
+
+    async getCrmLeads(userId: number, page: number, limit: number): Promise<{ leads: CrmLead[]; total: number; page: number; limit: number }> {
+      const offset = (page - 1) * limit;
+      const leads = await db.select()
+        .from(crmLeads)
+        .where(eq(crmLeads.userId, userId))
+        .orderBy(desc(crmLeads.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const [totalResult] = await db.select({ count: count() })
+        .from(crmLeads)
+        .where(eq(crmLeads.userId, userId));
+      
+      return { leads, total: totalResult?.count || 0, page, limit };
+    }
+
+    async createCrmLead(lead: InsertCrmLead & { userId: number }): Promise<CrmLead> {
+      const [newLead] = await db.insert(crmLeads)
+        .values({ ...lead, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newLead;
+    }
+
+    async updateCrmLead(id: number, userId: number, updates: Partial<CrmLead>): Promise<CrmLead | undefined> {
+      const [updated] = await db.update(crmLeads)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(and(eq(crmLeads.id, id), eq(crmLeads.userId, userId)))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getCrmOpportunities(userId: number, page: number, limit: number): Promise<{ opportunities: CrmOpportunity[]; total: number; page: number; limit: number }> {
+      const offset = (page - 1) * limit;
+      const opportunities = await db.select()
+        .from(crmOpportunities)
+        .where(eq(crmOpportunities.userId, userId))
+        .orderBy(desc(crmOpportunities.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const [totalResult] = await db.select({ count: count() })
+        .from(crmOpportunities)
+        .where(eq(crmOpportunities.userId, userId));
+      
+      return { opportunities, total: totalResult?.count || 0, page, limit };
+    }
+
+    async createCrmOpportunity(opportunity: InsertCrmOpportunity & { userId: number }): Promise<CrmOpportunity> {
+      const [newOpportunity] = await db.insert(crmOpportunities)
+        .values({ ...opportunity, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newOpportunity;
+    }
+
+    async updateCrmOpportunity(id: number, userId: number, updates: Partial<CrmOpportunity>): Promise<CrmOpportunity | undefined> {
+      const [updated] = await db.update(crmOpportunities)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(and(eq(crmOpportunities.id, id), eq(crmOpportunities.userId, userId)))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getCrmInteractions(userId: number, filters: { contactId?: number; leadId?: number; opportunityId?: number }, page: number, limit: number): Promise<{ interactions: CrmInteraction[]; total: number; page: number; limit: number }> {
+      const offset = (page - 1) * limit;
+      const conditions = [eq(crmInteractions.userId, userId)];
+      
+      if (filters.contactId) conditions.push(eq(crmInteractions.contactId, filters.contactId));
+      if (filters.leadId) conditions.push(eq(crmInteractions.leadId, filters.leadId));
+      if (filters.opportunityId) conditions.push(eq(crmInteractions.opportunityId, filters.opportunityId));
+      
+      const interactions = await db.select()
+        .from(crmInteractions)
+        .where(and(...conditions))
+        .orderBy(desc(crmInteractions.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const [totalResult] = await db.select({ count: count() })
+        .from(crmInteractions)
+        .where(and(...conditions));
+      
+      return { interactions, total: totalResult?.count || 0, page, limit };
+    }
+
+    async createCrmInteraction(interaction: InsertCrmInteraction & { userId: number }): Promise<CrmInteraction> {
+      const [newInteraction] = await db.insert(crmInteractions)
+        .values({ ...interaction, createdAt: new Date() })
+        .returning();
+      return newInteraction;
+    }
+
+    async getCrmAnalytics(userId: number): Promise<any> {
+      const [contactsCount] = await db.select({ count: count() })
+        .from(crmContacts)
+        .where(eq(crmContacts.userId, userId));
+      
+      const [leadsCount] = await db.select({ count: count() })
+        .from(crmLeads)
+        .where(eq(crmLeads.userId, userId));
+      
+      const [opportunitiesCount] = await db.select({ count: count() })
+        .from(crmOpportunities)
+        .where(eq(crmOpportunities.userId, userId));
+      
+      const [totalValue] = await db.select({ total: sql<number>`COALESCE(SUM(${crmOpportunities.value}), 0)` })
+        .from(crmOpportunities)
+        .where(and(eq(crmOpportunities.userId, userId), eq(crmOpportunities.stage, 'closed_won')));
+      
+      return {
+        totalContacts: contactsCount?.count || 0,
+        totalLeads: leadsCount?.count || 0,
+        totalOpportunities: opportunitiesCount?.count || 0,
+        totalRevenue: totalValue?.total || 0,
+      };
+    }
+
+    // ==================== HR Methods ====================
+    async getHrEmployees(page: number, limit: number): Promise<{ employees: HrEmployee[]; total: number; page: number; limit: number }> {
+      const offset = (page - 1) * limit;
+      const employees = await db.select()
+        .from(hrEmployees)
+        .orderBy(desc(hrEmployees.createdAt))
+        .limit(limit)
+        .offset(offset);
+      
+      const [totalResult] = await db.select({ count: count() })
+        .from(hrEmployees);
+      
+      return { employees, total: totalResult?.count || 0, page, limit };
+    }
+
+    async createHrEmployee(employee: InsertHrEmployee): Promise<HrEmployee> {
+      const [newEmployee] = await db.insert(hrEmployees)
+        .values({ ...employee, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newEmployee;
+    }
+
+    async getHrEmployee(id: number): Promise<HrEmployee | undefined> {
+      const [employee] = await db.select()
+        .from(hrEmployees)
+        .where(eq(hrEmployees.id, id));
+      return employee || undefined;
+    }
+
+    async updateHrEmployee(id: number, updates: Partial<HrEmployee>): Promise<HrEmployee | undefined> {
+      const [updated] = await db.update(hrEmployees)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(hrEmployees.id, id))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getHrAttendance(employeeId?: number, startDate?: string, endDate?: string): Promise<HrAttendance[]> {
+      const conditions = [];
+      if (employeeId) conditions.push(eq(hrAttendance.employeeId, employeeId));
+      if (startDate) conditions.push(gte(hrAttendance.date, new Date(startDate)));
+      if (endDate) conditions.push(lte(hrAttendance.date, new Date(endDate)));
+      
+      return await db.select()
+        .from(hrAttendance)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(hrAttendance.date));
+    }
+
+    async createHrAttendance(attendance: InsertHrAttendance): Promise<HrAttendance> {
+      const [newAttendance] = await db.insert(hrAttendance)
+        .values({ ...attendance, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newAttendance;
+    }
+
+    async updateHrAttendance(id: number, updates: Partial<HrAttendance>): Promise<HrAttendance | undefined> {
+      const [updated] = await db.update(hrAttendance)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(hrAttendance.id, id))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getHrLeaveRequests(employeeId?: number, status?: string): Promise<HrLeaveRequest[]> {
+      const conditions = [];
+      if (employeeId) conditions.push(eq(hrLeaveRequests.employeeId, employeeId));
+      if (status) conditions.push(eq(hrLeaveRequests.status, status));
+      
+      return await db.select()
+        .from(hrLeaveRequests)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(hrLeaveRequests.createdAt));
+    }
+
+    async createHrLeaveRequest(leaveRequest: InsertHrLeaveRequest): Promise<HrLeaveRequest> {
+      const startDate = new Date(leaveRequest.startDate);
+      const endDate = new Date(leaveRequest.endDate);
+      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      const [newLeaveRequest] = await db.insert(hrLeaveRequests)
+        .values({ ...leaveRequest, days, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newLeaveRequest;
+    }
+
+    async updateHrLeaveRequest(id: number, updates: Partial<HrLeaveRequest>): Promise<HrLeaveRequest | undefined> {
+      const [updated] = await db.update(hrLeaveRequests)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(hrLeaveRequests.id, id))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getHrPerformanceReviews(employeeId?: number): Promise<HrPerformanceReview[]> {
+      const conditions = employeeId ? [eq(hrPerformanceReviews.employeeId, employeeId)] : [];
+      
+      return await db.select()
+        .from(hrPerformanceReviews)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(hrPerformanceReviews.reviewDate));
+    }
+
+    async createHrPerformanceReview(review: InsertHrPerformanceReview): Promise<HrPerformanceReview> {
+      const [newReview] = await db.insert(hrPerformanceReviews)
+        .values({ ...review, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newReview;
+    }
+
+    async getHrRecruitment(status?: string, page: number = 1, limit: number = 20): Promise<{ recruitment: HrRecruitment[]; total: number; page: number; limit: number }> {
+      const offset = (page - 1) * limit;
+      const conditions = status ? [eq(hrRecruitment.status, status)] : [];
+      
+      const recruitment = await db.select()
+        .from(hrRecruitment)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(hrRecruitment.postedDate))
+        .limit(limit)
+        .offset(offset);
+      
+      const [totalResult] = await db.select({ count: count() })
+        .from(hrRecruitment)
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
+      
+      return { recruitment, total: totalResult?.count || 0, page, limit };
+    }
+
+    async createHrRecruitment(recruitment: InsertHrRecruitment): Promise<HrRecruitment> {
+      const [newRecruitment] = await db.insert(hrRecruitment)
+        .values({ ...recruitment, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newRecruitment;
+    }
+
+    async updateHrRecruitment(id: number, updates: Partial<HrRecruitment>): Promise<HrRecruitment | undefined> {
+      const [updated] = await db.update(hrRecruitment)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(hrRecruitment.id, id))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getHrJobApplications(recruitmentId?: number, status?: string): Promise<HrJobApplication[]> {
+      const conditions = [];
+      if (recruitmentId) conditions.push(eq(hrJobApplications.recruitmentId, recruitmentId));
+      if (status) conditions.push(eq(hrJobApplications.status, status));
+      
+      return await db.select()
+        .from(hrJobApplications)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(hrJobApplications.createdAt));
+    }
+
+    async createHrJobApplication(application: InsertHrJobApplication): Promise<HrJobApplication> {
+      const [newApplication] = await db.insert(hrJobApplications)
+        .values({ ...application, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newApplication;
+    }
+
+    async updateHrJobApplication(id: number, updates: Partial<HrJobApplication>): Promise<HrJobApplication | undefined> {
+      const [updated] = await db.update(hrJobApplications)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(hrJobApplications.id, id))
+        .returning();
+      return updated || undefined;
+    }
+
+    async getHrAnalytics(): Promise<any> {
+      const [employeesCount] = await db.select({ count: count() })
+        .from(hrEmployees)
+        .where(eq(hrEmployees.status, 'active'));
+      
+      const [onLeaveCount] = await db.select({ count: count() })
+        .from(hrLeaveRequests)
+        .where(eq(hrLeaveRequests.status, 'approved'));
+      
+      const [openPositions] = await db.select({ count: count() })
+        .from(hrRecruitment)
+        .where(eq(hrRecruitment.status, 'open'));
+      
+      const [applicationsCount] = await db.select({ count: count() })
+        .from(hrJobApplications)
+        .where(eq(hrJobApplications.status, 'applied'));
+      
+      return {
+        totalEmployees: employeesCount?.count || 0,
+        employeesOnLeave: onLeaveCount?.count || 0,
+        openPositions: openPositions?.count || 0,
+        pendingApplications: applicationsCount?.count || 0,
+      };
     }
 
   }

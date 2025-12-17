@@ -57,6 +57,15 @@ import { SDKDocumentation } from "./screens/SDK-Documentation";
 import { EnterpriseContact } from "./screens/EnterpriseContact";
 import { WebsiteIntegrityPage } from "./screens/WebsiteIntegrity";
 import { NotFound } from "./screens/NotFound";
+import CRMDashboard from "./screens/CRM/dashboard";
+import CRMContacts from "./screens/CRM/contacts";
+import CRMLeads from "./screens/CRM/leads";
+import CRMOpportunities from "./screens/CRM/opportunities";
+import HRDashboard from "./screens/HR/dashboard";
+import HREmployees from "./screens/HR/employees";
+import HRPerformance from "./screens/HR/performance";
+import HRRecruitment from "./screens/HR/recruitment";
+import HRTimeOff from "./screens/HR/time-off";
 
 function App() {
   return (
@@ -197,6 +206,82 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <AdminReview />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* CRM Routes */}
+              <Route 
+                path="/crm" 
+                element={
+                  <ProtectedRoute>
+                    <CRMDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/crm/contacts" 
+                element={
+                  <ProtectedRoute>
+                    <CRMContacts />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/crm/leads" 
+                element={
+                  <ProtectedRoute>
+                    <CRMLeads />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/crm/opportunities" 
+                element={
+                  <ProtectedRoute>
+                    <CRMOpportunities />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* HR Routes */}
+              <Route 
+                path="/hr" 
+                element={
+                  <ProtectedRoute>
+                    <HRDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/hr/employees" 
+                element={
+                  <ProtectedRoute>
+                    <HREmployees />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/hr/performance" 
+                element={
+                  <ProtectedRoute>
+                    <HRPerformance />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/hr/recruitment" 
+                element={
+                  <ProtectedRoute>
+                    <HRRecruitment />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/hr/time-off" 
+                element={
+                  <ProtectedRoute>
+                    <HRTimeOff />
                   </ProtectedRoute>
                 } 
               />

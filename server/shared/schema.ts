@@ -803,3 +803,512 @@ export type SubscriptionInvoice = typeof subscriptionInvoices.$inferSelect;
 export type SubscriptionUsage = typeof subscriptionUsage.$inferSelect;
 export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
 
+// CRM Tables
+export const crmContacts = pgTable("crm_contacts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(), // Owner/creator
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  company: text("company"),
+  jobTitle: text("job_title"),
+  address: text("address"),
+  city: text("city"),
+  country: text("country"),
+  postalCode: text("postal_code"),
+  website: text("website"),
+  status: text("status").default("active"), // active, inactive, archived
+  source: text("source"), // website, referral, social_media, etc.
+  tags: jsonb("tags").default("[]"), // Array of tag strings
+  notes: text("notes"),
+  customFields: jsonb("custom_fields").default("{}"), // Flexible custom data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const crmLeads = pgTable("crm_leads", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  company: text("company"),
+  jobTitle: text("job_title"),
+  source: text("source").notNull(), // website, referral, social_media, etc.
+  status: text("status").default("new"), // new, contacted, qualified, converted, lost
+  score: integer("score").default(0), // Lead score 0-100
+  estimatedValue: decimal("estimated_value", { precision: 12, scale: 2 }),
+  currency: text("currency").default("GBP"),
+  notes: text("notes"),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  convertedAt: timestamp("converted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const crmOpportunities = pgTable("crm_opportunities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  leadId: integer("lead_id").references(() => crmLeads.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  stage: text("stage").default("prospecting"), // prospecting, qualification, proposal, negotiation, closed_won, closed_lost
+  probability: integer("probability").default(0), // 0-100 percentage
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").default("GBP"),
+  expectedCloseDate: timestamp("expected_close_date"),
+  actualCloseDate: timestamp("actual_close_date"),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  notes: text("notes"),
+  tags: jsonb("tags").default("[]"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const crmInteractions = pgTable("crm_interactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  contactId: integer("contact_id").references(() => crmContacts.id),
+  leadId: integer("lead_id").references(() => crmLeads.id),
+  opportunityId: integer("opportunity_id").references(() => crmOpportunities.id),
+  type: text("type").notNull(), // call, email, meeting, note, task, event
+  subject: text("subject"),
+  description: text("description").notNull(),
+  direction: text("direction").default("outbound"), // inbound, outbound
+  duration: integer("duration"), // in minutes for calls/meetings
+  outcome: text("outcome"), // success, no_answer, voicemail, follow_up_needed, etc.
+  nextAction: text("next_action"),
+  nextActionDate: timestamp("next_action_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// HR Tables
+export const hrEmployees = pgTable("hr_employees", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).unique(), // Link to user account if exists
+  employeeId: text("employee_id").notNull().unique(), // Company employee ID
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull().unique(),
+  phone: text("phone"),
+  dateOfBirth: timestamp("date_of_birth"),
+  address: text("address"),
+  city: text("city"),
+  country: text("country"),
+  postalCode: text("postal_code"),
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  emergencyContactRelation: text("emergency_contact_relation"),
+  department: text("department"),
+  position: text("position").notNull(),
+  jobTitle: text("job_title").notNull(),
+  employmentType: text("employment_type").default("full_time"), // full_time, part_time, contract, intern
+  status: text("status").default("active"), // active, on_leave, terminated, suspended
+  hireDate: timestamp("hire_date").notNull(),
+  terminationDate: timestamp("termination_date"),
+  salary: decimal("salary", { precision: 12, scale: 2 }),
+  currency: text("currency").default("GBP"),
+  managerId: integer("manager_id").references((): any => hrEmployees.id), // Self-referencing for manager
+  workLocation: text("work_location"), // office, remote, hybrid
+  notes: text("notes"),
+  customFields: jsonb("custom_fields").default("{}"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hrAttendance = pgTable("hr_attendance", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => hrEmployees.id).notNull(),
+  date: timestamp("date").notNull(),
+  checkIn: timestamp("check_in"),
+  checkOut: timestamp("check_out"),
+  breakDuration: integer("break_duration").default(0), // in minutes
+  totalHours: decimal("total_hours", { precision: 5, scale: 2 }),
+  status: text("status").default("present"), // present, absent, late, half_day, leave
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hrLeaveRequests = pgTable("hr_leave_requests", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => hrEmployees.id).notNull(),
+  leaveType: text("leave_type").notNull(), // annual, sick, personal, maternity, paternity, unpaid
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  days: integer("days").notNull(),
+  reason: text("reason"),
+  status: text("status").default("pending"), // pending, approved, rejected, cancelled
+  approvedBy: integer("approved_by").references(() => hrEmployees.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hrPerformanceReviews = pgTable("hr_performance_reviews", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => hrEmployees.id).notNull(),
+  reviewPeriod: text("review_period").notNull(), // Q1_2024, H1_2024, Annual_2024
+  reviewDate: timestamp("review_date").notNull(),
+  reviewedBy: integer("reviewed_by").references(() => hrEmployees.id).notNull(),
+  overallRating: integer("overall_rating"), // 1-5 scale
+  goals: jsonb("goals").default("[]"), // Array of goal objects
+  achievements: text("achievements"),
+  areasForImprovement: text("areas_for_improvement"),
+  feedback: text("feedback"),
+  nextReviewDate: timestamp("next_review_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hrRecruitment = pgTable("hr_recruitment", {
+  id: serial("id").primaryKey(),
+  position: text("position").notNull(),
+  department: text("department"),
+  jobDescription: text("job_description"),
+  requirements: jsonb("requirements").default("[]"),
+  status: text("status").default("open"), // open, interviewing, offer_pending, filled, cancelled
+  postedDate: timestamp("posted_date").defaultNow(),
+  closingDate: timestamp("closing_date"),
+  salaryRange: text("salary_range"),
+  employmentType: text("employment_type").default("full_time"),
+  location: text("location"),
+  recruiterId: integer("recruiter_id").references(() => hrEmployees.id),
+  numberOfPositions: integer("number_of_positions").default(1),
+  filledPositions: integer("filled_positions").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hrJobApplications = pgTable("hr_job_applications", {
+  id: serial("id").primaryKey(),
+  recruitmentId: integer("recruitment_id").references(() => hrRecruitment.id).notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  resumeUrl: text("resume_url"),
+  coverLetter: text("cover_letter"),
+  status: text("status").default("applied"), // applied, screening, interview, offer, rejected, withdrawn
+  stage: text("stage"), // phone_screen, technical_interview, final_interview, etc.
+  interviewDate: timestamp("interview_date"),
+  interviewNotes: text("interview_notes"),
+  rating: integer("rating"), // 1-5 scale
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CRM Relations
+export const crmContactsRelations = relations(crmContacts, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [crmContacts.userId],
+    references: [users.id],
+  }),
+  leads: many(crmLeads),
+  opportunities: many(crmOpportunities),
+  interactions: many(crmInteractions),
+}));
+
+export const crmLeadsRelations = relations(crmLeads, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [crmLeads.userId],
+    references: [users.id],
+  }),
+  contact: one(crmContacts, {
+    fields: [crmLeads.contactId],
+    references: [crmContacts.id],
+  }),
+  assignedUser: one(users, {
+    fields: [crmLeads.assignedTo],
+    references: [users.id],
+  }),
+  opportunities: many(crmOpportunities),
+  interactions: many(crmInteractions),
+}));
+
+export const crmOpportunitiesRelations = relations(crmOpportunities, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [crmOpportunities.userId],
+    references: [users.id],
+  }),
+  contact: one(crmContacts, {
+    fields: [crmOpportunities.contactId],
+    references: [crmContacts.id],
+  }),
+  lead: one(crmLeads, {
+    fields: [crmOpportunities.leadId],
+    references: [crmLeads.id],
+  }),
+  assignedUser: one(users, {
+    fields: [crmOpportunities.assignedTo],
+    references: [users.id],
+  }),
+  interactions: many(crmInteractions),
+}));
+
+export const crmInteractionsRelations = relations(crmInteractions, ({ one }) => ({
+  owner: one(users, {
+    fields: [crmInteractions.userId],
+    references: [users.id],
+  }),
+  contact: one(crmContacts, {
+    fields: [crmInteractions.contactId],
+    references: [crmContacts.id],
+  }),
+  lead: one(crmLeads, {
+    fields: [crmInteractions.leadId],
+    references: [crmLeads.id],
+  }),
+  opportunity: one(crmOpportunities, {
+    fields: [crmInteractions.opportunityId],
+    references: [crmOpportunities.id],
+  }),
+}));
+
+// HR Relations
+export const hrEmployeesRelations = relations(hrEmployees, ({ one, many }) => ({
+  user: one(users, {
+    fields: [hrEmployees.userId],
+    references: [users.id],
+  }),
+  manager: one(hrEmployees, {
+    fields: [hrEmployees.managerId],
+    references: [hrEmployees.id],
+  }),
+  directReports: many(hrEmployees),
+  attendance: many(hrAttendance),
+  leaveRequests: many(hrLeaveRequests),
+  performanceReviews: many(hrPerformanceReviews),
+}));
+
+export const hrAttendanceRelations = relations(hrAttendance, ({ one }) => ({
+  employee: one(hrEmployees, {
+    fields: [hrAttendance.employeeId],
+    references: [hrEmployees.id],
+  }),
+}));
+
+export const hrLeaveRequestsRelations = relations(hrLeaveRequests, ({ one }) => ({
+  employee: one(hrEmployees, {
+    fields: [hrLeaveRequests.employeeId],
+    references: [hrEmployees.id],
+  }),
+  approver: one(hrEmployees, {
+    fields: [hrLeaveRequests.approvedBy],
+    references: [hrEmployees.id],
+  }),
+}));
+
+export const hrPerformanceReviewsRelations = relations(hrPerformanceReviews, ({ one }) => ({
+  employee: one(hrEmployees, {
+    fields: [hrPerformanceReviews.employeeId],
+    references: [hrEmployees.id],
+  }),
+  reviewer: one(hrEmployees, {
+    fields: [hrPerformanceReviews.reviewedBy],
+    references: [hrEmployees.id],
+  }),
+}));
+
+export const hrRecruitmentRelations = relations(hrRecruitment, ({ one, many }) => ({
+  recruiter: one(hrEmployees, {
+    fields: [hrRecruitment.recruiterId],
+    references: [hrEmployees.id],
+  }),
+  applications: many(hrJobApplications),
+}));
+
+export const hrJobApplicationsRelations = relations(hrJobApplications, ({ one }) => ({
+  recruitment: one(hrRecruitment, {
+    fields: [hrJobApplications.recruitmentId],
+    references: [hrRecruitment.id],
+  }),
+}));
+
+// CRM Insert Schemas
+export const insertCrmContactSchema = createInsertSchema(crmContacts).pick({
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  company: true,
+  jobTitle: true,
+  address: true,
+  city: true,
+  country: true,
+  postalCode: true,
+  website: true,
+  status: true,
+  source: true,
+  tags: true,
+  notes: true,
+  customFields: true,
+});
+
+export const insertCrmLeadSchema = createInsertSchema(crmLeads).pick({
+  contactId: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  company: true,
+  jobTitle: true,
+  source: true,
+  status: true,
+  score: true,
+  estimatedValue: true,
+  currency: true,
+  notes: true,
+  assignedTo: true,
+});
+
+export const insertCrmOpportunitySchema = createInsertSchema(crmOpportunities).pick({
+  contactId: true,
+  leadId: true,
+  name: true,
+  description: true,
+  stage: true,
+  probability: true,
+  value: true,
+  currency: true,
+  expectedCloseDate: true,
+  assignedTo: true,
+  notes: true,
+  tags: true,
+});
+
+export const insertCrmInteractionSchema = createInsertSchema(crmInteractions).pick({
+  contactId: true,
+  leadId: true,
+  opportunityId: true,
+  type: true,
+  subject: true,
+  description: true,
+  direction: true,
+  duration: true,
+  outcome: true,
+  nextAction: true,
+  nextActionDate: true,
+});
+
+// HR Insert Schemas
+export const insertHrEmployeeSchema = createInsertSchema(hrEmployees).pick({
+  userId: true,
+  employeeId: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  dateOfBirth: true,
+  address: true,
+  city: true,
+  country: true,
+  postalCode: true,
+  emergencyContactName: true,
+  emergencyContactPhone: true,
+  emergencyContactRelation: true,
+  department: true,
+  position: true,
+  jobTitle: true,
+  employmentType: true,
+  status: true,
+  hireDate: true,
+  salary: true,
+  currency: true,
+  managerId: true,
+  workLocation: true,
+  notes: true,
+  customFields: true,
+});
+
+export const insertHrAttendanceSchema = createInsertSchema(hrAttendance).pick({
+  employeeId: true,
+  date: true,
+  checkIn: true,
+  checkOut: true,
+  breakDuration: true,
+  status: true,
+  notes: true,
+});
+
+export const insertHrLeaveRequestSchema = createInsertSchema(hrLeaveRequests).pick({
+  employeeId: true,
+  leaveType: true,
+  startDate: true,
+  endDate: true,
+  reason: true,
+});
+
+export const insertHrPerformanceReviewSchema = createInsertSchema(hrPerformanceReviews).pick({
+  employeeId: true,
+  reviewPeriod: true,
+  reviewDate: true,
+  reviewedBy: true,
+  overallRating: true,
+  goals: true,
+  achievements: true,
+  areasForImprovement: true,
+  feedback: true,
+  nextReviewDate: true,
+});
+
+export const insertHrRecruitmentSchema = createInsertSchema(hrRecruitment).pick({
+  position: true,
+  department: true,
+  jobDescription: true,
+  requirements: true,
+  status: true,
+  closingDate: true,
+  salaryRange: true,
+  employmentType: true,
+  location: true,
+  recruiterId: true,
+  numberOfPositions: true,
+});
+
+export const insertHrJobApplicationSchema = createInsertSchema(hrJobApplications).pick({
+  recruitmentId: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  resumeUrl: true,
+  coverLetter: true,
+  status: true,
+  stage: true,
+  interviewDate: true,
+  interviewNotes: true,
+  rating: true,
+  notes: true,
+});
+
+// CRM Types
+export type CrmContact = typeof crmContacts.$inferSelect;
+export type InsertCrmContact = z.infer<typeof insertCrmContactSchema>;
+export type CrmLead = typeof crmLeads.$inferSelect;
+export type InsertCrmLead = z.infer<typeof insertCrmLeadSchema>;
+export type CrmOpportunity = typeof crmOpportunities.$inferSelect;
+export type InsertCrmOpportunity = z.infer<typeof insertCrmOpportunitySchema>;
+export type CrmInteraction = typeof crmInteractions.$inferSelect;
+export type InsertCrmInteraction = z.infer<typeof insertCrmInteractionSchema>;
+
+// HR Types
+export type HrEmployee = typeof hrEmployees.$inferSelect;
+export type InsertHrEmployee = z.infer<typeof insertHrEmployeeSchema>;
+export type HrAttendance = typeof hrAttendance.$inferSelect;
+export type InsertHrAttendance = z.infer<typeof insertHrAttendanceSchema>;
+export type HrLeaveRequest = typeof hrLeaveRequests.$inferSelect;
+export type InsertHrLeaveRequest = z.infer<typeof insertHrLeaveRequestSchema>;
+export type HrPerformanceReview = typeof hrPerformanceReviews.$inferSelect;
+export type InsertHrPerformanceReview = z.infer<typeof insertHrPerformanceReviewSchema>;
+export type HrRecruitment = typeof hrRecruitment.$inferSelect;
+export type InsertHrRecruitment = z.infer<typeof insertHrRecruitmentSchema>;
+export type HrJobApplication = typeof hrJobApplications.$inferSelect;
+export type InsertHrJobApplication = z.infer<typeof insertHrJobApplicationSchema>;
+

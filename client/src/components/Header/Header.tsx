@@ -442,7 +442,7 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
         
       {/* Mobile Drawer Menu */}
       {isMenuOpen && (
-        <div className="lg:hidden fixed top-0 left-0 right-0 z-[70] bg-[#27Ae60] shadow-lg border-b border-gray-200">
+        <div className="xl:hidden fixed top-0 left-0 right-0 z-[70] bg-[#27Ae60] shadow-lg border-b border-gray-200">
           <div className="flex items-center justify-between px-6 py-4">
             <Link to="/" onClick={() => setIsMenuOpen(false)}>
               <img
