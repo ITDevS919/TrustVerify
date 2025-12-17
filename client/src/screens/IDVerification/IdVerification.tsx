@@ -166,10 +166,14 @@ export const IdVerification = (): JSX.Element => {
         method: "POST",
         body: payload,
         credentials: "include",
+        headers: {
+          // Don't set Content-Type for FormData - browser will set it with boundary
+        },
       });
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
-        throw new Error(error.message || "Verification submission failed");
+        const errorMessage = error.error || error.message || `Verification submission failed (${res.status})`;
+        throw new Error(errorMessage);
       }
       return res.json();
     },
@@ -284,6 +288,17 @@ export const IdVerification = (): JSX.Element => {
   };
 
   const onSubmit = async (data: VerificationForm) => {
+    // Check if user is logged in
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to submit your verification.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
     if (!frontIdFile || (documentType !== "passport" && !backIdFile) || !selfieFile) {
       toast({
         title: "Attachments missing",
@@ -300,7 +315,7 @@ export const IdVerification = (): JSX.Element => {
       formData.append("documentNumber", data.documentNumber);
       formData.append("firstName", data.firstName);
       formData.append("lastName", data.lastName);
-      formData.append("email", user?.email || "");
+      formData.append("email", user.email || "");
       formData.append("phone", ""); // Can be added to form if needed
       formData.append("dateOfBirth", data.dateOfBirth);
       formData.append("address", data.address);
@@ -313,6 +328,16 @@ export const IdVerification = (): JSX.Element => {
       formData.append("selfieImage", selfieFile);
 
       await kycSubmissionMutation.mutateAsync(formData);
+    } catch (error: any) {
+      // Error handling is done in the mutation's onError, but we can add additional handling here if needed
+      if (error.message?.includes("401") || error.message?.includes("Authentication")) {
+        toast({
+          title: "Session expired",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+        });
+        navigate("/login");
+      }
     } finally {
       setUploadsInProgress(false);
     }

@@ -241,6 +241,47 @@ async function createTables() {
     `;
     console.log('✓ Created index on subscription_usage.subscription_id');
 
+    // Create file_storage table for KYC/KYB documents
+    await sql`
+      CREATE TABLE IF NOT EXISTS file_storage (
+        id SERIAL PRIMARY KEY,
+        file_id TEXT NOT NULL UNIQUE,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        file_name TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        storage_provider TEXT NOT NULL,
+        storage_key TEXT NOT NULL,
+        file_type TEXT NOT NULL,
+        checksum TEXT,
+        encrypted BOOLEAN DEFAULT false,
+        uploaded_at TIMESTAMP DEFAULT NOW(),
+        expires_at TIMESTAMP,
+        deleted_at TIMESTAMP
+      );
+    `;
+    console.log('✓ Created file_storage table');
+
+    // Create indexes for file_storage table
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_file_storage_user_id 
+      ON file_storage(user_id);
+    `;
+    console.log('✓ Created index on file_storage.user_id');
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_file_storage_file_id 
+      ON file_storage(file_id);
+    `;
+    console.log('✓ Created index on file_storage.file_id');
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_file_storage_file_type 
+      ON file_storage(file_type);
+    `;
+    console.log('✓ Created index on file_storage.file_type');
+
     console.log('\n✅ All tables created successfully!');
   } catch (error: any) {
     console.error('✗ Error creating tables:', error.message);

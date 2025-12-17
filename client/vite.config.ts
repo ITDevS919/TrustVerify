@@ -70,14 +70,23 @@ export default defineConfig({
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: "localhost",
+        cookiePathRewrite: "/",
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+        },
       },
       "/auth": {
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
         ws: true,
+        cookieDomainRewrite: "localhost",
+        cookiePathRewrite: "/",
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, res) => {
+          proxy.on('error', (err, _req, _res) => {
             console.log('proxy error', err);
           });
         },

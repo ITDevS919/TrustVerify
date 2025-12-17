@@ -28,8 +28,22 @@ export const AdminDashboard = (): JSX.Element => {
   const isDevelopment = (import.meta as any).env?.DEV || (import.meta as any).env?.VITE_ALLOW_ALL_ADMIN === 'true';
   const hasAdminAccess = isDevelopment || user?.email?.includes('@trustverify.com') || user?.isAdmin;
 
+  // Type definitions
+  interface DashboardStats {
+    totalUsers?: number;
+    activeTransactions?: number;
+    pendingKyc?: number;
+    securityAlerts?: number;
+  }
+
+  interface Activity {
+    action: string;
+    timestamp: string;
+    type: string;
+  }
+
   // Fetch dashboard stats
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<DashboardStats>({
     queryKey: ['admin', 'dashboard', 'stats'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/admin/stats');
@@ -37,22 +51,23 @@ export const AdminDashboard = (): JSX.Element => {
     },
     enabled: !!user && hasAdminAccess,
     staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data (replaced cacheTime)
     refetchOnMount: true, // Always refetch on mount
     refetchOnWindowFocus: true, // Refetch when window gains focus
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
   });
 
   // Fetch recent activities
-  const { data: activities } = useQuery({
+  const { data: activities } = useQuery<Activity[]>({
     queryKey: ['admin', 'dashboard', 'activities'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/admin/activities');
-      return await response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!user && hasAdminAccess,
     staleTime: 0, // Always consider data stale
-    cacheTime: 0, // Don't cache the data
+    gcTime: 0, // Don't cache the data (replaced cacheTime)
     refetchOnMount: true, // Always refetch on mount
     refetchOnWindowFocus: true, // Refetch when window gains focus
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
@@ -202,17 +217,21 @@ export const AdminDashboard = (): JSX.Element => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {activities?.slice(0, 10).map((activity: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">{activity.action}</p>
-                            <p className="text-sm text-gray-600">{activity.timestamp}</p>
+                      {activities && activities.length > 0 ? (
+                        activities.slice(0, 10).map((activity, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-medium">{activity.action}</p>
+                              <p className="text-sm text-gray-600">{activity.timestamp}</p>
+                            </div>
+                            <Badge variant={activity.type === "success" ? "default" : "destructive"}>
+                              {activity.type}
+                            </Badge>
                           </div>
-                          <Badge variant={activity.type === "success" ? "default" : "destructive"}>
-                            {activity.type}
-                          </Badge>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-600 text-center py-4">No recent activities</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

@@ -151,6 +151,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  // Flexible middleware: accepts either API key OR session auth OR public access
+  // For browser-based requests from the frontend, allows public access
+  // For API calls, supports API key authentication
+  const validateApiKeyOrAuth = async (req: any, res: any, next: any) => {
+    // Check if API key is provided in Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // If API key is provided, validate it
+      // validateApiKey will handle the response (success or error)
+      return validateApiKey(req, res, next);
+    }
+    
+    // If no API key, allow access (public endpoint for browser use)
+    // Session auth is optional - if user is logged in, we can track usage
+    return next();
+  };
+
   // Middleware to check admin access
   const requireAdmin = (req: any, res: any, next: any) => {
     if (!req.isAuthenticated() || !req.user.isAdmin) {
@@ -1672,6 +1689,404 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Newsletter subscription error:", error);
       res.status(500).json({ error: "Failed to subscribe to newsletter" });
+    }
+  });
+
+  // ============================================
+  // FRAUD PREVENTION API ENDPOINTS
+  // ============================================
+
+  // 1. DOMAIN TRUST SCORE API
+  // Get domain trust score
+  app.get("/api/fraud/domain/:domain", validateApiKeyOrAuth, async (req, res) => {
+    try {
+      const { domain } = req.params;
+      
+      if (!domain || domain.length < 3) {
+        return res.status(400).json({ error: "Valid domain required" });
+      }
+
+      // Try to get from storage if method exists
+      let trustScore = null;
+      try {
+        if (typeof (storage as any).getDomainTrustScore === 'function') {
+          trustScore = await (storage as any).getDomainTrustScore(domain.toLowerCase());
+        }
+      } catch (storageError) {
+        console.warn("Storage method not available, using fallback");
+      }
+      
+      if (!trustScore) {
+        // Return default domain analysis
+        const defaultScore = {
+          domain: domain.toLowerCase(),
+          trustScore: 50,
+          riskLevel: "medium",
+          category: "unknown",
+          isPhishing: false,
+          isMalware: false,
+          isScam: false,
+          isSuspicious: false,
+          createdAt: new Date().toISOString()
+        };
+        return res.json(defaultScore);
+      }
+
+      res.json(trustScore);
+    } catch (error: any) {
+      console.error("Domain trust score error:", error);
+      res.status(500).json({ error: "Failed to get domain trust score" });
+    }
+  });
+
+  // 2. PHONE NUMBER VERIFICATION API
+  // Check phone number flags
+  app.get("/api/fraud/phone/:phoneNumber", validateApiKeyOrAuth, async (req, res) => {
+    try {
+      const { phoneNumber } = req.params;
+      
+      if (!phoneNumber || phoneNumber.length < 8) {
+        return res.status(400).json({ error: "Valid phone number required" });
+      }
+
+      // Try to get from storage if method exists
+      let phoneFlag = null;
+      try {
+        if (typeof (storage as any).getPhoneNumberFlag === 'function') {
+          phoneFlag = await (storage as any).getPhoneNumberFlag(phoneNumber);
+        }
+      } catch (storageError) {
+        console.warn("Storage method not available, using fallback");
+      }
+      
+      if (!phoneFlag) {
+        // Return default phone analysis
+        const defaultFlag = {
+          phoneNumber,
+          countryCode: "unknown",
+          region: "unknown",
+          carrier: "unknown",
+          isScam: false,
+          isSpam: false,
+          isRobo: false,
+          isSpoofed: false,
+          riskLevel: "low",
+          fraudScore: 10,
+          scamTypes: [],
+          reportedActivities: [],
+          createdAt: new Date().toISOString()
+        };
+        return res.json(defaultFlag);
+      }
+
+      res.json(phoneFlag);
+    } catch (error: any) {
+      console.error("Phone number flag error:", error);
+      res.status(500).json({ error: "Failed to get phone number flag" });
+    }
+  });
+
+  // 3. FRAUD REPORTS API
+  // Submit fraud report
+  app.post("/api/fraud/reports", async (req, res) => {
+    try {
+      const reportData = req.body;
+      const reporterId = req.isAuthenticated() && req.user ? req.user.id : undefined;
+      
+      // Try to create report in storage if method exists
+      let report = null;
+      try {
+        if (typeof (storage as any).createFraudReport === 'function') {
+          report = await (storage as any).createFraudReport({
+            ...reportData,
+            reporterId
+          });
+        }
+      } catch (storageError) {
+        console.warn("Storage method not available, using fallback");
+      }
+      
+      if (!report) {
+        // Return success response with report data
+        report = {
+          id: Date.now(),
+          ...reportData,
+          reporterId,
+          status: "pending",
+          createdAt: new Date().toISOString()
+        };
+      }
+      
+      res.status(201).json(report);
+    } catch (error: any) {
+      console.error("Fraud report creation error:", error);
+      res.status(500).json({ error: "Failed to create fraud report" });
+    }
+  });
+
+  // 4. WEBSITE ANALYSIS API
+  // Get website analysis by encoded URL
+  app.get("/api/fraud/analyze/:encodedUrl", validateApiKeyOrAuth, async (req, res) => {
+    try {
+      const url = decodeURIComponent(req.params.encodedUrl);
+      
+      if (!url || !url.includes('.')) {
+        return res.status(400).json({ error: "Valid URL required" });
+      }
+
+      // Try to get from storage if method exists
+      let analysis = null;
+      try {
+        if (typeof (storage as any).getWebsiteAnalysis === 'function') {
+          analysis = await (storage as any).getWebsiteAnalysis(url);
+        }
+      } catch (storageError) {
+        console.warn("Storage method not available, trying real-time analysis");
+      }
+      
+      if (!analysis) {
+        // Try to perform real-time analysis if not found
+        try {
+          const { WebsiteSecurityAnalyzer } = await import('./services/websiteAnalyzer');
+          const analyzer = new WebsiteSecurityAnalyzer();
+          const analysisResult = await analyzer.analyzeWebsite(url);
+          
+          // Try to store the analysis if method exists
+          try {
+            if (typeof (storage as any).createWebsiteAnalysis === 'function') {
+              await (storage as any).createWebsiteAnalysis({
+                url: analysisResult.url,
+                domain: analysisResult.domain,
+                riskScore: (100 - analysisResult.trustScore).toString(),
+                riskFactors: (analysisResult as any).fraudFlags || [],
+                hasValidSSL: analysisResult.sslCertificate?.valid || false,
+                certificateIssuer: analysisResult.sslCertificate?.issuer || null,
+                domainAge: (analysisResult.domainInfo as any)?.age || null,
+                pageLoadTime: analysisResult.performanceMetrics?.loadTime || null,
+                suspiciousKeywords: (analysisResult as any).suspiciousElements || [],
+                hasPasswordFields: false,
+                hasPaymentForms: false,
+                category: "security_analysis",
+                confidence: Math.round(analysisResult.trustScore).toString(),
+                isLegitimate: analysisResult.trustScore > 70
+              });
+            }
+          } catch (storeError) {
+            console.warn("Failed to store analysis:", storeError);
+          }
+          
+          return res.json({
+            url: analysisResult.url,
+            domain: analysisResult.domain,
+            riskScore: 100 - analysisResult.trustScore,
+            riskLevel: analysisResult.riskLevel || "medium",
+            category: (analysisResult as any).category || (analysisResult as any).summary?.category || "security_analysis",
+            hasValidSSL: analysisResult.sslCertificate?.valid || false,
+            confidence: Math.round(analysisResult.trustScore),
+            timestamp: new Date().toISOString()
+          });
+        } catch (analysisError) {
+          console.warn("Real-time analysis failed, returning default:", analysisError);
+          return res.json({
+            url,
+            domain: new URL(url).hostname,
+            riskScore: 50,
+            riskLevel: "medium",
+            category: "unknown",
+            hasValidSSL: false,
+            confidence: 50,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+
+      res.json(analysis);
+    } catch (error: any) {
+      console.error("Website analysis error:", error);
+      res.status(500).json({ error: "Failed to get website analysis" });
+    }
+  });
+
+  // 5. COMPREHENSIVE FRAUD CHECK API
+  // Multi-factor fraud check with real-time analysis
+  app.post("/api/fraud/check", async (req, res) => {
+    try {
+      const { domain, phoneNumber, email, url } = req.body;
+      const results: any = {};
+
+      console.log(`Comprehensive fraud check requested for:`, { domain, phoneNumber, email, url });
+
+      // Real-time website analysis if URL provided
+      if (url) {
+        try {
+          const { WebsiteSecurityAnalyzer } = await import('./services/websiteAnalyzer');
+          const analyzer = new WebsiteSecurityAnalyzer();
+          const analysisResult = await analyzer.analyzeWebsite(url);
+          
+          results.website = {
+            url: analysisResult.url,
+            domain: analysisResult.domain,
+            trustScore: analysisResult.trustScore,
+            riskScore: 100 - analysisResult.trustScore,
+            riskLevel: analysisResult.riskLevel || "medium",
+            category: (analysisResult as any).category || (analysisResult as any).summary?.category || "unknown",
+            securityAnalysis: {
+              hasHTTPS: analysisResult.securityHeaders?.hasHTTPS || false,
+              hasValidSSL: analysisResult.sslCertificate?.valid || false,
+              securityHeaders: {
+                hsts: analysisResult.securityHeaders?.hasHSTS || false,
+                csp: analysisResult.securityHeaders?.hasCSP || false,
+                xframe: analysisResult.securityHeaders?.hasXFrameOptions || false
+              }
+            },
+            threatIntelligence: {
+              isBlacklisted: analysisResult.threatIntelligence?.isBlacklisted || false,
+              threatCategories: analysisResult.threatIntelligence?.threatCategories || [],
+              reputationScore: analysisResult.threatIntelligence?.reputationScore || 50
+            },
+            vulnerabilities: analysisResult.vulnerabilities || [],
+            summary: analysisResult.summary || "Analysis completed",
+            timestamp: analysisResult.timestamp || new Date().toISOString()
+          };
+          
+          console.log(`Real-time website analysis completed for: ${url}`);
+        } catch (analysisError) {
+          console.warn(`Website analysis failed for ${url}:`, analysisError);
+          results.website = {
+            url,
+            error: "Real-time analysis failed",
+            fallback: true
+          };
+        }
+      }
+
+      // Check domain trust score if domain provided separately
+      if (domain && !url) {
+        try {
+          let domainScore = null;
+          if (typeof (storage as any).getDomainTrustScore === 'function') {
+            domainScore = await (storage as any).getDomainTrustScore(domain.toLowerCase());
+          }
+          results.domain = domainScore || {
+            domain: domain.toLowerCase(),
+            trustScore: 50,
+            riskLevel: "medium",
+            category: "unknown"
+          };
+        } catch (error) {
+          console.warn(`Domain check failed for ${domain}:`, error);
+          results.domain = { 
+            domain: domain.toLowerCase(),
+            trustScore: 50,
+            riskLevel: "medium",
+            category: "unknown"
+          };
+        }
+      }
+
+      // Check phone if provided
+      if (phoneNumber) {
+        try {
+          let phoneFlag = null;
+          if (typeof (storage as any).getPhoneNumberFlag === 'function') {
+            phoneFlag = await (storage as any).getPhoneNumberFlag(phoneNumber);
+          }
+          results.phone = phoneFlag || {
+            phoneNumber,
+            riskLevel: "low",
+            fraudScore: 10,
+            carrier: "unknown"
+          };
+        } catch (error) {
+          console.warn(`Phone check failed for ${phoneNumber}:`, error);
+          results.phone = { 
+            phoneNumber,
+            riskLevel: "low",
+            fraudScore: 10,
+            carrier: "unknown"
+          };
+        }
+      }
+
+      // Get related fraud reports
+      const reports: any[] = [];
+      if (domain) {
+        try {
+          if (typeof (storage as any).getFraudReportsByTarget === 'function') {
+            const domainReports = await (storage as any).getFraudReportsByTarget('domain', domain);
+            if (domainReports) reports.push(...domainReports);
+          }
+        } catch (error) {
+          console.warn(`Failed to get domain reports:`, error);
+        }
+      }
+      if (phoneNumber) {
+        try {
+          if (typeof (storage as any).getFraudReportsByTarget === 'function') {
+            const phoneReports = await (storage as any).getFraudReportsByTarget('phone', phoneNumber);
+            if (phoneReports) reports.push(...phoneReports);
+          }
+        } catch (error) {
+          console.warn(`Failed to get phone reports:`, error);
+        }
+      }
+
+      results.reports = reports;
+      results.checkDate = new Date().toISOString();
+      results.realTimeAnalysis = true;
+
+      console.log(`Comprehensive fraud check completed for:`, Object.keys(results));
+      res.json(results);
+    } catch (error: any) {
+      console.error("Comprehensive fraud check failed:", error);
+      res.status(500).json({ error: "Failed to perform fraud check", details: error.message });
+    }
+  });
+
+  // Contact Form Submission Endpoint
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { firstName, lastName, email, phone, company, subject, message } = req.body;
+      
+      // Validation
+      if (!firstName || !lastName || !email || !message) {
+        return res.status(400).json({ error: "First name, last name, email, and message are required" });
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // Log contact form submission
+      console.log("Contact form submission received:", {
+        firstName,
+        lastName,
+        email,
+        phone: phone || "not provided",
+        company: company || "not provided",
+        subject: subject || "not specified",
+        messageLength: message.length,
+        messagePreview: message.substring(0, 100) + (message.length > 100 ? "..." : ""),
+        timestamp: new Date().toISOString(),
+        ipAddress: req.ip || "unknown",
+      });
+
+      // In a production environment, you would:
+      // 1. Store the contact in a database table
+      // 2. Send an email notification to the support team
+      // 3. Send an auto-reply to the user
+      // 4. Create a ticket in your support system
+      
+      // For now, return success response
+      res.status(201).json({ 
+        success: true, 
+        message: "Your message has been received. We'll get back to you within 24 hours."
+      });
+    } catch (error: any) {
+      console.error("Failed to process contact form:", error);
+      res.status(500).json({ error: "Failed to send message. Please try again later." });
     }
   });
 

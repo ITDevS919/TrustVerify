@@ -452,7 +452,7 @@ export function Features() {
             </Button>
             
             <Button
-              onClick={() => handleNavigate('/auth')}
+              onClick={() => handleNavigate('/login')}
               className="bg-app-secondary text-white hover:bg-app-secondary/90 h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
             >
               <ArrowRight className="h-8 w-8" />

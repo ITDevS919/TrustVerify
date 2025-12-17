@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRightIcon, CopyIcon, X } from "lucide-react";
+import { ChevronRightIcon, CopyIcon, X, CheckCircle } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { Header } from "../../components/Header";
+import { useToast } from "../../hooks/use-toast";
 
   const apiEndpoints = [
     {
@@ -104,6 +105,23 @@ import { Header } from "../../components/Header";
   }'`,
     },
   ];
+
+export const ApiReferences = (): JSX.Element => {
+  const { toast } = useToast();
+  const [selectedEndpoint, setSelectedEndpoint] = useState<string>("authentication");
+  const [isApiEndpointsMenuOpen, setIsApiEndpointsMenuOpen] = useState<boolean>(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const copyToClipboard = (code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(id);
+    setTimeout(() => setCopiedCode(null), 2000);
+    toast({
+      title: "Copied!",
+      description: "Code example copied to clipboard",
+    });
+  };
 
   // Content structure for each endpoint
   // Add content for other endpoints by adding new objects with the endpoint id as key
@@ -221,8 +239,17 @@ import { Header } from "../../components/Header";
                         -H "Content-Type: application/json"`}
                     </pre>
                   </div>
-                  <button className="p-2 sm:p-0 flex-shrink-0">
-                    <CopyIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-white cursor-pointer" />
+                  <button 
+                    onClick={() => copyToClipboard(`curl -X GET "https://api.trustvault.com/v1/auth/verify" \\
+                        -H "Authorization: Bearer YOUR_API_KEY" \\
+                        -H "Content-Type: application/json"`, "auth-validate")}
+                    className="p-2 sm:p-0 flex-shrink-0 hover:opacity-80 transition-opacity"
+                  >
+                    {copiedCode === "auth-validate" ? (
+                      <CheckCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-[#27ae60]" />
+                    ) : (
+                      <CopyIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-white cursor-pointer" />
+                    )}
                   </button>
                 </div>
               </CardContent>
@@ -287,12 +314,19 @@ import { Header } from "../../components/Header";
                             {endpoint.codeExample}
                           </pre>
                         </div>
-                        <button className="p-2 sm:p-0 flex-shrink-0">
-                          <img
-                            className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
-                            alt="Copy"
-                            src="/fi-5859288.svg"
-                          />
+                        <button 
+                          onClick={() => copyToClipboard(endpoint.codeExample, `transaction-${index}`)}
+                          className="p-2 sm:p-0 flex-shrink-0 hover:opacity-80 transition-opacity"
+                        >
+                          {copiedCode === `transaction-${index}` ? (
+                            <CheckCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-[#27ae60]" />
+                          ) : (
+                            <img
+                              className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
+                              alt="Copy"
+                              src="/fi-5859288.svg"
+                            />
+                          )}
                         </button>
                       </div>
                     </CardContent>
@@ -370,8 +404,32 @@ import { Header } from "../../components/Header";
 }'`}
                         </pre>
                       </div>
-                      <button className="p-2 sm:p-0 flex-shrink-0">
-                        <CopyIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-white" />
+                      <button 
+                        onClick={() => copyToClipboard(`curl -X POST https://api.trustverify.com/api/kyc/submit \\
+-H "Authorization: Bearer YOUR_API_KEY" \\
+-H "Content-type: application/json" \\
+-d '{
+  "userId": "user_123",
+  "documentType": "passport",
+  "documentNumber": "P123456789",
+  "personalInfo": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "dateOfBirth": "1990-01-01"
+  },
+  "documents": {
+    "frontId": "base64_encoded_image",
+    "backId": "base64_encoded_image",
+    "selfie": "base64_encoded_image"
+  }
+}'`, "kyc-submit")}
+                        className="p-2 sm:p-0 flex-shrink-0 hover:opacity-80 transition-opacity"
+                      >
+                        {copiedCode === "kyc-submit" ? (
+                          <CheckCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-[#27ae60]" />
+                        ) : (
+                          <CopyIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-white" />
+                        )}
                       </button>
                     </div>
                   </CardContent>
@@ -406,8 +464,16 @@ import { Header } from "../../components/Header";
 -H "Authorization: Bearer YOUR_API_KEY"`}
                         </pre>
                       </div>
-                      <button className="p-2 sm:p-0 flex-shrink-0">
-                        <CopyIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-white" />
+                      <button 
+                        onClick={() => copyToClipboard(`curl -X GET https://api.trustverify.com/api/kyc/status/user_123 \\
+-H "Authorization: Bearer YOUR_API_KEY"`, "kyc-status")}
+                        className="p-2 sm:p-0 flex-shrink-0 hover:opacity-80 transition-opacity"
+                      >
+                        {copiedCode === "kyc-status" ? (
+                          <CheckCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-[#27ae60]" />
+                        ) : (
+                          <CopyIcon className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-white" />
+                        )}
                       </button>
                     </div>
                   </CardContent>
@@ -478,12 +544,32 @@ import { Header } from "../../components/Header";
 }'`}
                     </pre>
                   </div>
-                  <button className="p-2 sm:p-0 flex-shrink-0">
-                    <img
-                      className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
-                      alt="Copy"
-                      src="/fi-5859288.svg"
-                    />
+                  <button 
+                    onClick={() => copyToClipboard(`curl -X POST https://api.trustverify.com/api/fraud/analyze \\
+-H "Authorization: Bearer YOUR_API_KEY" \\
+-H "Content-Type: application/json" \\
+-d '{
+  "transactionId": "txn_123",
+  "userAgent": "Mozilla/5.0...",
+  "ipAddress": "192.168.1.1",
+  "deviceFingerprint": "device_hash_123",
+  "behaviorData": {
+    "sessionDuration": 120,
+    "clickPattern": "normal",
+    "typingSpeed": "average"
+  }
+}'`, "fraud-analyze")}
+                    className="p-2 sm:p-0 flex-shrink-0 hover:opacity-80 transition-opacity"
+                  >
+                    {copiedCode === "fraud-analyze" ? (
+                      <CheckCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-[#27ae60]" />
+                    ) : (
+                      <img
+                        className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
+                        alt="Copy"
+                        src="/fi-5859288.svg"
+                      />
+                    )}
                   </button>
                 </div>
               </div>
@@ -548,12 +634,26 @@ import { Header } from "../../components/Header";
 }'`}
                         </pre>
                       </div>
-                      <button className="p-2 sm:p-0 flex-shrink-0">
-                        <img
-                          className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
-                          alt="Copy"
-                          src="/fi-5859288.svg"
-                        />
+                      <button 
+                        onClick={() => copyToClipboard(`curl -X POST https://api.trustverify.com/api/webhooks \\
+-H "Authorization: Bearer YOUR API KEY" \\
+-H "Content-Type: application/json" \\
+-d '{
+"url": "https://your-app.com/webhooks/trustverify",
+"events": ["transaction.created", "transaction.completed", "kyc.approved"],
+"secret": "your_webhook_secret"
+}'`, "webhooks-create")}
+                        className="p-2 sm:p-0 flex-shrink-0 hover:opacity-80 transition-opacity"
+                      >
+                        {copiedCode === "webhooks-create" ? (
+                          <CheckCircle className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-[#27ae60]" />
+                        ) : (
+                          <img
+                            className="w-5 h-5 sm:w-[22px] sm:h-[22px]"
+                            alt="Copy"
+                            src="/fi-5859288.svg"
+                          />
+                        )}
                       </button>
                     </CardContent>
                   </Card>
@@ -564,11 +664,6 @@ import { Header } from "../../components/Header";
       </>
     ),
   };
-
-export const ApiReferences = (): JSX.Element => {
-  const [selectedEndpoint, setSelectedEndpoint] = useState<string>("authentication");
-  const [isApiEndpointsMenuOpen, setIsApiEndpointsMenuOpen] = useState<boolean>(false);
-  const navigate = useNavigate();
   
   return (
     <div className="bg-[#f6f6f6] w-full flex flex-col relative">

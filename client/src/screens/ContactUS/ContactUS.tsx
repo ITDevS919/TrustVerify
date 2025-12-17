@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Header } from "../../components/Header";
 import { Footer } from "../../components/Footer";
 import { Badge } from "../../components/ui/badge";
@@ -5,8 +6,10 @@ import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, ArrowRightIcon } from "lucide-react";
+import { useToast } from "../../hooks/use-toast";
 
 const contactCards = [
   {
@@ -67,12 +70,14 @@ const supportOptions = [
     title: "Security Issues",
     description: "Report security vulnerabilities or concerns immediately",
     linkText: "Report Now",
+    action: () => window.open("mailto:security@trustverify.co.uk?subject=Security Issue", "_blank"),
   },
   {
     icon: "/community_icon.png",
     title: "Community Form",
     description: "Connect with other users and get help from the community",
     linkText: "View Community",
+    action: () => window.open("https://community.trustverify.co.uk", "_blank"),
   },
   {
     icon: "/livechat_icon.png",
@@ -80,11 +85,79 @@ const supportOptions = [
     description:
       "Get instant help from our support team during business hours.",
     linkText: "Start Chat",
+    action: () => window.open("/live-chat", "_blank"),
   },
 ];  
 
 
 export const ContactUS = (): JSX.Element => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    company: "",
+    subject: "",
+    message: "",
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.message) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Here you would typically send the form data to your backend
+      // For now, we'll just show a success message
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Message Sent!",
+          description: "We'll get back to you within 24 hours.",
+        });
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          company: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        throw new Error("Failed to send message");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <main className="bg-white overflow-hidden w-full relative">
       <Header 
@@ -219,42 +292,116 @@ export const ContactUS = (): JSX.Element => {
                   </p>
                 </div>
 
-                <div className="z-10 flex flex-col gap-[21px] max-w-[610px]">
+                <form onSubmit={handleSubmit} className="z-10 flex flex-col gap-[21px] max-w-[610px]">
                   <div className="flex flex-col sm:flex-row gap-[30px]">
-                    <Input
-                      placeholder="First name"
-                      className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
-                    />
-                    <Input
-                      placeholder="Last name"
-                      className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
-                    />
+                    <div className="flex-1 flex flex-col gap-2">
+                      <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                        First Name *
+                      </label>
+                      <Input
+                        value={formData.firstName}
+                        onChange={(e) => handleInputChange("firstName", e.target.value)}
+                        placeholder="First name"
+                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                        required
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2">
+                      <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                        Last Name *
+                      </label>
+                      <Input
+                        value={formData.lastName}
+                        onChange={(e) => handleInputChange("lastName", e.target.value)}
+                        placeholder="Last name"
+                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                        required
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-[30px]">
+                  <div className="flex flex-col gap-2">
+                    <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                      Email Address *
+                    </label>
                     <Input
-                      placeholder="Phone No."
-                      className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
-                    />
-                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
                       placeholder="E-mail Address"
                       className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                      required
                     />
                   </div>
 
-                  <Textarea
-                    placeholder="Message"
-                    className="h-[127px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base resize-none"
-                  />
-                </div>
+                  <div className="flex flex-col sm:flex-row gap-[30px]">
+                    <div className="flex-1 flex flex-col gap-2">
+                      <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                        Phone No.
+                      </label>
+                      <Input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        placeholder="Phone No."
+                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2">
+                      <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                        Company
+                      </label>
+                      <Input
+                        value={formData.company}
+                        onChange={(e) => handleInputChange("company", e.target.value)}
+                        placeholder="Your Company Name"
+                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                      Subject
+                    </label>
+                    <Select value={formData.subject} onValueChange={(value) => handleInputChange("subject", value)}>
+                      <SelectTrigger className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base">
+                        <SelectValue placeholder="Select a subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">General Inquiry</SelectItem>
+                        <SelectItem value="technical">Technical Support</SelectItem>
+                        <SelectItem value="sales">Sales Question</SelectItem>
+                        <SelectItem value="partnership">Partnership Opportunity</SelectItem>
+                        <SelectItem value="security">Security Issue</SelectItem>
+                        <SelectItem value="billing">Billing Question</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
+                      Message *
+                    </label>
+                    <Textarea
+                      value={formData.message}
+                      onChange={(e) => handleInputChange("message", e.target.value)}
+                      placeholder="Tell us how we can help you..."
+                      className="h-[127px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base resize-none"
+                      required
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-[215px] h-14 bg-app-primary hover:bg-app-primary/90 rounded-[10px]">
+                    <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
+                      Send Message
+                    </span>
+                    <TrendingUp className="ml-2 w-[30px] h-[30px]" />
+                  </Button>
+                </form>
               </div>
 
-              <Button className="w-[215px] h-14 bg-app-primary hover:bg-app-primary/90 rounded-[10px]">
-                <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
-                  Send Message
-                </span>
-                <TrendingUp className="ml-2 w-[30px] h-[30px]" />
-              </Button>
+
             </div>
           </div>
 
@@ -265,6 +412,37 @@ export const ContactUS = (): JSX.Element => {
           />
         </div>
 
+      </section>
+
+      {/* Office Locations Section */}
+      <section className="relative w-full overflow-hidden bg-white py-16">
+        <div className="max-w-[1406px] mx-auto px-6 md:px-10">
+          <Card className="bg-white rounded-[20px] border border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+            <CardContent className="p-6 md:p-8">
+              <h2 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-2xl mb-6 flex items-center">
+                <span className="mr-2">📍</span>
+                Our Offices
+              </h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-xl mb-2">
+                    Headquarters - Newcastle
+                  </h3>
+                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base mb-2">
+                    15 Grey Street<br />
+                    Newcastle upon Tyne NE1 6EE, UK
+                  </p>
+                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                    Phone: +44 20 7123 4567
+                  </p>
+                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                    Hours: Mon-Fri 9AM-6PM GMT
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
       <section className="relative w-full overflow-hidden">
@@ -289,15 +467,23 @@ export const ContactUS = (): JSX.Element => {
               </div>
 
               <div className="flex items-center gap-5 flex-wrap justify-center">
-                {buttons.map((button, index) => (
-                  <Button
-                    key={index}
-                    variant={button.variant}
-                    className={button.className}
-                  >
-                    {button.label}
-                  </Button>
-                ))}
+                <Button
+                  variant={buttons[0].variant}
+                  className={buttons[0].className}
+                  onClick={() => window.open("mailto:enterprise@trustverify.co.uk", "_blank")}
+                >
+                  {buttons[0].label}
+                </Button>
+                <Button
+                  variant={buttons[1].variant}
+                  className={buttons[1].className}
+                  onClick={() => window.open("mailto:partnerships@trustverify.co.uk", "_blank")}
+                >
+                  {buttons[1].label}
+                </Button>
+              </div>
+              <div className="mt-4 text-sm text-white/80 text-center">
+                <p>Enterprise: enterprise@trustverify.co.uk | Partnerships: partnerships@trustverify.co.uk</p>
               </div>
             </CardContent>
           </Card>
@@ -387,7 +573,10 @@ export const ContactUS = (): JSX.Element => {
                           {option.description}
                         </p>
 
-                        <button className="flex items-center gap-2.5 mt-[17px] text-app-secondary [font-family:'Inter',Helvetica] font-medium text-[17.4px] tracking-[0] leading-[18px] hover:opacity-80 transition-opacity">
+                        <button 
+                          onClick={option.action}
+                          className="flex items-center gap-2.5 mt-[17px] text-app-secondary [font-family:'Inter',Helvetica] font-medium text-[17.4px] tracking-[0] leading-[18px] hover:opacity-80 transition-opacity"
+                        >
                           {option.linkText}
                           <ArrowRightIcon className="w-[11.25px] h-[18px]" />
                         </button>

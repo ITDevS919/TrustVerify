@@ -65,6 +65,7 @@ export function setupAuth(app: Express) {
   // Session hardening: short timeouts, SameSite=Strict, secure cookies
   const sessionTimeoutMs = (config.SESSION_TIMEOUT_MINUTES || 30) * 60 * 1000;
   const isTest = config.NODE_ENV === 'test';
+  const isDevelopment = config.NODE_ENV === 'development';
   
   const sessionSettings: session.SessionOptions = {
     secret: config.SESSION_SECRET,
@@ -75,7 +76,7 @@ export function setupAuth(app: Express) {
     rolling: config.SESSION_EXTEND_ON_ACTIVITY, // Extend session on activity
     cookie: {
       secure: config.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: isTest ? 'lax' : 'strict', // Use 'lax' in test mode for better cookie handling
+      sameSite: (isTest || isDevelopment) ? 'lax' : 'strict', // Use 'lax' in test/dev mode for better cookie handling with different ports
       httpOnly: true, // Prevent XSS attacks
       maxAge: sessionTimeoutMs, // Short timeout (default 30 minutes)
       domain: config.NODE_ENV === 'production' ? undefined : undefined, // Set domain in production if needed

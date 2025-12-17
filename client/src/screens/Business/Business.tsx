@@ -527,7 +527,7 @@ export default function Business() {
 
                   <Button 
                     className={`w-full rounded-[10px] min-h-[44px] ${plan.popular ? 'bg-app-secondary hover:bg-app-secondary/90' : 'bg-[#0b3a78] hover:bg-[#0b3a78]/90'} text-white`}
-                    onClick={() => plan.name === 'Enterprise' ? window.location.href = '/contact' : window.location.href = '/auth'}
+                    onClick={() => plan.name === 'Enterprise' ? window.location.href = '/contact' : window.location.href = '/login'}
                   >
                     <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold">{plan.name === 'Enterprise' ? 'Contact Sales' : 'Get Started'}</span>
                   </Button>
@@ -640,7 +640,7 @@ export default function Business() {
                 <Button 
                   size="lg" 
                   className="bg-white text-[#0A3778] hover:bg-gray-100 rounded-[10px] min-h-[46px]"
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={() => window.location.href = '/login'}
                 >
                   <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold">Get Started</span>
                   <ArrowRight className="h-4 w-4 ml-2" />
