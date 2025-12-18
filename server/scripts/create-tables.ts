@@ -18,6 +18,21 @@ async function createTables() {
   console.log('Creating database tables...');
 
   try {
+    // Check if users table exists
+    const usersTableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users'
+      );
+    `;
+    
+    if (!usersTableCheck[0]?.exists) {
+      console.error('✗ Error: users table does not exist. Please create the users table first.');
+      throw new Error('users table does not exist. The users table must be created before running this script.');
+    }
+    console.log('✓ Verified users table exists');
+
     // Create workflow_configurations table
     await sql`
       CREATE TABLE IF NOT EXISTS workflow_configurations (
@@ -283,8 +298,14 @@ async function createTables() {
     console.log('✓ Created index on file_storage.file_type');
 
     // Create CRM tables
+    // Drop and recreate if they exist without proper structure
+    await sql`DROP TABLE IF EXISTS crm_interactions CASCADE;`;
+    await sql`DROP TABLE IF EXISTS crm_opportunities CASCADE;`;
+    await sql`DROP TABLE IF EXISTS crm_leads CASCADE;`;
+    await sql`DROP TABLE IF EXISTS crm_contacts CASCADE;`;
+    
     await sql`
-      CREATE TABLE IF NOT EXISTS crm_contacts (
+      CREATE TABLE crm_contacts (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id),
         first_name TEXT NOT NULL,
@@ -310,7 +331,7 @@ async function createTables() {
     console.log('✓ Created crm_contacts table');
 
     await sql`
-      CREATE TABLE IF NOT EXISTS crm_leads (
+      CREATE TABLE crm_leads (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id),
         contact_id INTEGER REFERENCES crm_contacts(id),
@@ -335,7 +356,7 @@ async function createTables() {
     console.log('✓ Created crm_leads table');
 
     await sql`
-      CREATE TABLE IF NOT EXISTS crm_opportunities (
+      CREATE TABLE crm_opportunities (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id),
         contact_id INTEGER REFERENCES crm_contacts(id),
@@ -358,7 +379,7 @@ async function createTables() {
     console.log('✓ Created crm_opportunities table');
 
     await sql`
-      CREATE TABLE IF NOT EXISTS crm_interactions (
+      CREATE TABLE crm_interactions (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id),
         contact_id INTEGER REFERENCES crm_contacts(id),
@@ -378,8 +399,16 @@ async function createTables() {
     console.log('✓ Created crm_interactions table');
 
     // Create HR tables
+    // Drop and recreate if they exist without proper structure
+    await sql`DROP TABLE IF EXISTS hr_job_applications CASCADE;`;
+    await sql`DROP TABLE IF EXISTS hr_recruitment CASCADE;`;
+    await sql`DROP TABLE IF EXISTS hr_performance_reviews CASCADE;`;
+    await sql`DROP TABLE IF EXISTS hr_leave_requests CASCADE;`;
+    await sql`DROP TABLE IF EXISTS hr_attendance CASCADE;`;
+    await sql`DROP TABLE IF EXISTS hr_employees CASCADE;`;
+    
     await sql`
-      CREATE TABLE IF NOT EXISTS hr_employees (
+      CREATE TABLE hr_employees (
         id SERIAL PRIMARY KEY,
         user_id INTEGER UNIQUE REFERENCES users(id),
         employee_id TEXT NOT NULL UNIQUE,
@@ -513,29 +542,64 @@ async function createTables() {
     `;
     console.log('✓ Created hr_job_applications table');
 
+    // Verify table structures before creating indexes
+    console.log('Verifying table structures...');
+    const tablesToCheck = [
+      { name: 'crm_contacts', hasUserId: true },
+      { name: 'crm_leads', hasUserId: true },
+      { name: 'crm_opportunities', hasUserId: true },
+      { name: 'crm_interactions', hasUserId: true },
+      { name: 'hr_employees', hasUserId: true },
+    ];
+
+    for (const table of tablesToCheck) {
+      if (table.hasUserId) {
+        const columnCheck = await sql`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = ${table.name} AND column_name = 'user_id';
+        `;
+        if (columnCheck.length === 0) {
+          console.error(`✗ Error: ${table.name} table does not have user_id column`);
+          console.error(`  This might mean the table was created without the foreign key constraint.`);
+          console.error(`  Please drop and recreate the ${table.name} table.`);
+          throw new Error(`${table.name} table structure is incorrect - user_id column missing`);
+        }
+        console.log(`✓ Verified ${table.name} has user_id column`);
+      }
+    }
+
     // Create indexes for CRM tables
     await sql`
       CREATE INDEX IF NOT EXISTS idx_crm_contacts_user_id 
       ON crm_contacts(user_id);
     `;
+    console.log('✓ Created index on crm_contacts.user_id');
+    
     await sql`
       CREATE INDEX IF NOT EXISTS idx_crm_leads_user_id 
       ON crm_leads(user_id);
     `;
+    console.log('✓ Created index on crm_leads.user_id');
+    
     await sql`
       CREATE INDEX IF NOT EXISTS idx_crm_opportunities_user_id 
       ON crm_opportunities(user_id);
     `;
+    console.log('✓ Created index on crm_opportunities.user_id');
+    
     await sql`
       CREATE INDEX IF NOT EXISTS idx_crm_interactions_user_id 
       ON crm_interactions(user_id);
     `;
+    console.log('✓ Created index on crm_interactions.user_id');
 
     // Create indexes for HR tables
     await sql`
       CREATE INDEX IF NOT EXISTS idx_hr_employees_user_id 
       ON hr_employees(user_id);
     `;
+    console.log('✓ Created index on hr_employees.user_id');
     await sql`
       CREATE INDEX IF NOT EXISTS idx_hr_attendance_employee_id 
       ON hr_attendance(employee_id);
@@ -553,6 +617,130 @@ async function createTables() {
       ON hr_job_applications(recruitment_id);
     `;
     console.log('✓ Created indexes for CRM and HR tables');
+
+    // Create homepage_content table
+    await sql`
+      CREATE TABLE IF NOT EXISTS homepage_content (
+        id SERIAL PRIMARY KEY,
+        section TEXT NOT NULL,
+        key TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        value TEXT,
+        image_url TEXT,
+        json_data JSONB,
+        "order" INTEGER DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    console.log('✓ Created homepage_content table');
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_homepage_content_section 
+      ON homepage_content(section);
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_homepage_content_key 
+      ON homepage_content(key);
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_homepage_content_section_key 
+      ON homepage_content(section, key);
+    `;
+    console.log('✓ Created indexes for homepage_content table');
+
+    // Seed initial homepage content
+    console.log('\nSeeding initial homepage content...');
+    
+    // Check if content already exists
+    const existingContent = await sql`
+      SELECT COUNT(*) as count FROM homepage_content WHERE section = 'hero_slider';
+    `;
+    
+    if (existingContent[0]?.count === 0 || existingContent[0]?.count === '0') {
+      // Seed Hero Slider content for all 3 slides
+      const featuresJson = {
+        features: [
+          { icon: "/fi-18890334.svg", text: "Evidence-Driven" },
+          { icon: "/fi-2311992.svg", text: "Privacy-First" },
+          { icon: "/fi-4086231.svg", text: "Community-Backed" }
+        ]
+      };
+
+      // Slide 1
+      await sql`
+        INSERT INTO homepage_content (section, key, content_type, value, image_url, json_data, "order", is_active)
+        VALUES 
+          ('hero_slider', 'slide_1_badge_text', 'text', 'PROTECTING EVERY TRANSACTION, EVERYWHERE', NULL, NULL, 1, true),
+          ('hero_slider', 'slide_1_badge_icon', 'image', NULL, '/background-17.svg', NULL, 1, true),
+          ('hero_slider', 'slide_1_title_image', 'image', NULL, '/heading-1---insurance-plans-for-life-s-journey.svg', NULL, 1, true),
+          ('hero_slider', 'slide_1_background', 'image', NULL, '/Hero1.png', NULL, 1, true),
+          ('hero_slider', 'slide_1_description', 'text', 'Our advanced security network spans across 195+ countries, monitoring billions of transactions in real-time to ensure your financial operations remain secure no matter where business takes you.', NULL, NULL, 1, true),
+          ('hero_slider', 'slide_1_features', 'json', NULL, NULL, ${JSON.stringify(featuresJson)}::jsonb, 1, true);
+      `;
+
+      // Slide 2
+      await sql`
+        INSERT INTO homepage_content (section, key, content_type, value, image_url, json_data, "order", is_active)
+        VALUES 
+          ('hero_slider', 'slide_2_badge_text', 'text', 'INTELLIGENCE THAT NEVER SLEEP', NULL, NULL, 2, true),
+          ('hero_slider', 'slide_2_badge_icon', 'image', NULL, '/background-1.svg', NULL, 2, true),
+          ('hero_slider', 'slide_2_title_image', 'image', NULL, '/heading-1---insurance-plans-for-life-s-journey-1.svg', NULL, 2, true),
+          ('hero_slider', 'slide_2_background', 'image', NULL, '/Hero2.png', NULL, 2, true),
+          ('hero_slider', 'slide_2_description', 'text', 'Machine learning algorithms analyze transaction patterns, behavioral biometrics, and risk indicators to identify and prevent fraud before it happens, with 99.7% accuracy.', NULL, NULL, 2, true),
+          ('hero_slider', 'slide_2_features', 'json', NULL, NULL, ${JSON.stringify(featuresJson)}::jsonb, 2, true);
+      `;
+
+      // Slide 3
+      await sql`
+        INSERT INTO homepage_content (section, key, content_type, value, image_url, json_data, "order", is_active)
+        VALUES 
+          ('hero_slider', 'slide_3_badge_text', 'text', 'YOUR TRUST, OUR FOUNDATION', NULL, NULL, 3, true),
+          ('hero_slider', 'slide_3_badge_icon', 'image', NULL, '/background-4.svg', NULL, 3, true),
+          ('hero_slider', 'slide_3_title_image', 'image', NULL, '/heading-1---insurance-plans-for-life-s-journey-2.svg', NULL, 3, true),
+          ('hero_slider', 'slide_3_background', 'image', NULL, '/Hero3.png', NULL, 3, true),
+          ('hero_slider', 'slide_3_description', 'text', 'Bank-grade encryption, multi-layered authentication, and continuous monitoring create an impenetrable shield around your financial data and transactions.', NULL, NULL, 3, true),
+          ('hero_slider', 'slide_3_features', 'json', NULL, NULL, ${JSON.stringify(featuresJson)}::jsonb, 3, true);
+      `;
+      console.log('✓ Seeded hero slider content (3 slides)');
+    } else {
+      console.log('⚠ Homepage content already exists, skipping seed');
+    }
+
+    // Seed decorative images
+    const decorativeCheck = await sql`
+      SELECT COUNT(*) as count FROM homepage_content WHERE section = 'decorative_images';
+    `;
+    
+    if (decorativeCheck[0]?.count === 0 || decorativeCheck[0]?.count === '0') {
+      await sql`
+        INSERT INTO homepage_content (section, key, content_type, value, image_url, json_data, "order", is_active)
+        VALUES 
+          ('decorative_images', 'decorative_nate_shape', 'image', NULL, '/nate-shape.svg', NULL, 1, true),
+          ('decorative_images', 'decorative_star_1', 'image', NULL, '/icon-star.svg', NULL, 2, true),
+          ('decorative_images', 'decorative_star_2', 'image', NULL, '/icon-star-3.svg', NULL, 3, true),
+          ('decorative_images', 'decorative_star_3', 'image', NULL, '/icon-star.svg', NULL, 4, true),
+          ('decorative_images', 'decorative_star_4', 'image', NULL, '/icon-star-1.svg', NULL, 5, true);
+      `;
+      console.log('✓ Seeded decorative images');
+    }
+
+    // Seed partners section content
+    const partnersCheck = await sql`
+      SELECT COUNT(*) as count FROM homepage_content WHERE section = 'partners';
+    `;
+    
+    if (partnersCheck[0]?.count === 0 || partnersCheck[0]?.count === '0') {
+      await sql`
+        INSERT INTO homepage_content (section, key, content_type, value, image_url, json_data, "order", is_active)
+        VALUES 
+          ('partners', 'partners_badge_text', 'text', 'OUR PARTNERS', NULL, NULL, 1, true),
+          ('partners', 'partners_title', 'text', 'Build Trust With Leading Companies', NULL, NULL, 1, true),
+          ('partners', 'partners_description', 'text', 'TrustVerify Launched in 2025. We''re actively onboarding our first Enterprise clients and will showcase their partnerships here as they join platforms.', NULL, NULL, 1, true);
+      `;
+      console.log('✓ Seeded partners section content');
+    }
 
     console.log('\n✅ All tables created successfully!');
   } catch (error: any) {

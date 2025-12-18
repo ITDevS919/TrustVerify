@@ -27,6 +27,7 @@ import {
     hrPerformanceReviews,
     hrRecruitment,
     hrJobApplications,
+    homepageContent,
     type User, 
     type InsertUser,
     type KycVerification,
@@ -69,7 +70,10 @@ import {
     type HrRecruitment,
     type InsertHrRecruitment,
     type HrJobApplication,
-    type InsertHrJobApplication
+    type InsertHrJobApplication,
+    type HomepageContent,
+    type InsertHomepageContent,
+    type UpdateHomepageContent
   } from "./shared/schema";
   import { db } from "./db.ts";
   import { eq, and, or, ilike, gte, lte, desc, count, avg, sql } from "drizzle-orm";
@@ -1201,6 +1205,31 @@ import {
         totalLeaveRequests: 0,
         pendingLeaveRequests: 0,
       };
+    }
+
+    // ==================== Homepage Content Methods (MemStorage - not supported) ====================
+    async getHomepageContent(_section?: string): Promise<HomepageContent[]> {
+      return [];
+    }
+
+    async getHomepageContentByKey(_section: string, _key: string): Promise<HomepageContent | undefined> {
+      return undefined;
+    }
+
+    async createHomepageContent(_content: InsertHomepageContent): Promise<HomepageContent> {
+      throw new Error("Homepage content not supported in MemStorage");
+    }
+
+    async updateHomepageContent(_id: number, _updates: UpdateHomepageContent): Promise<HomepageContent | undefined> {
+      throw new Error("Homepage content not supported in MemStorage");
+    }
+
+    async deleteHomepageContent(_id: number): Promise<void> {
+      throw new Error("Homepage content not supported in MemStorage");
+    }
+
+    async uploadHomepageImage(_file: Buffer, _filename: string, _mimeType: string): Promise<string> {
+      throw new Error("Image upload not supported in MemStorage");
     }
   }
   
@@ -2450,6 +2479,60 @@ import {
         openPositions: openPositions?.count || 0,
         pendingApplications: applicationsCount?.count || 0,
       };
+    }
+
+    // ==================== Homepage Content Management Methods ====================
+    async getHomepageContent(section?: string): Promise<HomepageContent[]> {
+      const conditions = section ? [eq(homepageContent.section, section)] : [];
+      return await db.select()
+        .from(homepageContent)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(homepageContent.order, homepageContent.createdAt);
+    }
+
+    async getHomepageContentByKey(section: string, key: string): Promise<HomepageContent | undefined> {
+      const [content] = await db.select()
+        .from(homepageContent)
+        .where(and(
+          eq(homepageContent.section, section),
+          eq(homepageContent.key, key)
+        ));
+      return content || undefined;
+    }
+
+    async createHomepageContent(content: InsertHomepageContent): Promise<HomepageContent> {
+      const [newContent] = await db.insert(homepageContent)
+        .values({ ...content, createdAt: new Date(), updatedAt: new Date() })
+        .returning();
+      return newContent;
+    }
+
+    async updateHomepageContent(id: number, updates: UpdateHomepageContent): Promise<HomepageContent | undefined> {
+      const [updated] = await db.update(homepageContent)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(homepageContent.id, id))
+        .returning();
+      return updated || undefined;
+    }
+
+    async deleteHomepageContent(id: number): Promise<void> {
+      await db.delete(homepageContent)
+        .where(eq(homepageContent.id, id));
+    }
+
+    async uploadHomepageImage(file: Buffer, filename: string, mimeType: string): Promise<string> {
+      // Use the file storage service to upload images
+      const fileStorage = await import('./services/file-storage.ts');
+      const fileId = `homepage-${Date.now()}-${filename}`;
+      const uploaded = await fileStorage.uploadFile({
+        fileId,
+        buffer: file,
+        filename,
+        mimeType,
+        userId: 0, // System user for homepage content
+        fileType: 'homepage_image',
+      });
+      return uploaded.url || `/uploads/${uploaded.storageKey}`;
     }
 
   }

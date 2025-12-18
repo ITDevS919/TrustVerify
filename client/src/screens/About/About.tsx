@@ -4,6 +4,7 @@ import { Badge } from "../../components/ui/badge";
 import { Card, CardContent, CardContentReverse } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { CheckCircle2Icon } from "lucide-react";
+import { useNavigate } from "react-router-dom"; 
 
 const missionVisionValues = [
   {
@@ -60,6 +61,7 @@ const certifications = [
 ];
 
 export const About = (): JSX.Element => {
+  const navigate = useNavigate();
   return (
     <main className="bg-white overflow-hidden w-full relative">
       <Header 
@@ -101,7 +103,10 @@ export const About = (): JSX.Element => {
             <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080] text-lg tracking-[-0.20px] leading-7">
               Tailored solutions designed to address unique risks, empowering businesses with smarter protection.
             </p>
-            <Button className="h-auto px-8 py-4 bg-app-primary hover:bg-app-primary/90 rounded-[10px] [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg">
+            <Button 
+              className="h-auto px-8 py-4 bg-app-primary hover:bg-app-primary/90 rounded-[10px] [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg"
+              onClick={() => navigate("/contact")}
+            >
               Contact US
             </Button>
            </div>

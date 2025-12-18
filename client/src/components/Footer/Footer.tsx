@@ -33,12 +33,12 @@ const legalLinks = [
 const socialLinks = [
   { 
     label: "LinkedIn", 
-    url: "https://www.linkedin.com/company/trustverify",
+    url: "https://www.linkedin.com/company/trustuk/",
     icon: "linkedin"
   },
   { 
     label: "Facebook", 
-    url: "https://www.facebook.com/trustverify",
+    url: "https://www.facebook.com/share/17geRp9Xrd/?mibextid=wwXIfr",
     icon: "facebook"
   },
   { 

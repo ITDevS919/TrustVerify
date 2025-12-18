@@ -2,15 +2,17 @@ import { ArrowUpRight } from "lucide-react";
 import React from "react";
 import { Button } from "../../../../components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
-const slides = [
+// Default slides as fallback
+const defaultSlides = [
   {
     badge: {
       icon: "/background-17.svg",
       text: "PROTECTING EVERY TRANSACTION, EVERYWHERE",
     },
     title: "/heading-1---insurance-plans-for-life-s-journey.svg",
-    backgroundImage: "/Hero1.png", // Add background image
+    backgroundImage: "/Hero1.png",
     description:
       "Our advanced security network spans across 195+ countries, monitoring billions of transactions in real-time to ensure your financial operations remain secure no matter where business takes you.",
     features: [
@@ -34,7 +36,7 @@ const slides = [
       text: "INTELLIGENCE THAT NEVER SLEEP",
     },
     title: "/heading-1---insurance-plans-for-life-s-journey-1.svg",
-    backgroundImage: "/Hero2.png", // Add background image
+    backgroundImage: "/Hero2.png",
     description:
       "Machine learning algorithms analyze transaction patterns, behavioral biometrics, and risk indicators to identify and prevent fraud before it happens, with 99.7% accuracy.",
     features: [
@@ -58,7 +60,7 @@ const slides = [
       text: "YOUR TRUST, OUR FOUNDATION",
     },
     title: "/heading-1---insurance-plans-for-life-s-journey-2.svg",
-    backgroundImage: "/Hero3.png", // Add background image
+    backgroundImage: "/Hero3.png",
     description:
       "Bank-grade encryption, multi-layered authentication, and continuous monitoring create an impenetrable shield around your financial data and transactions.",
     features: [
@@ -83,6 +85,62 @@ export const HeroSliderSubsection = (): JSX.Element => {
   const [isTransitioning, setIsTransitioning] = React.useState(false);
   const [isPaused, setIsPaused] = React.useState(false);
   const navigate = useNavigate();
+
+  // Fetch homepage content from API
+  const { data: homepageContent } = useQuery({
+    queryKey: ['homepage-content', 'hero_slider'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/homepage-content?section=hero_slider');
+        if (!response.ok) throw new Error('Failed to fetch');
+        return await response.json();
+      } catch (error) {
+        console.error('Failed to fetch homepage content:', error);
+        return [];
+      }
+    },
+    staleTime: 0, // Always refetch when data is requested
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Always refetch on mount
+  });
+
+  // Transform API content into slides format
+  const slides = React.useMemo(() => {
+    if (!homepageContent || homepageContent.length === 0) {
+      return defaultSlides;
+    }
+
+    const slidesData: any[] = [];
+    for (let slideNum = 1; slideNum <= 3; slideNum++) {
+      const slideContent = homepageContent.filter((c: any) => c.key?.startsWith(`slide_${slideNum}`));
+      if (slideContent.length === 0) continue;
+
+      const badgeText = slideContent.find((c: any) => c.key === `slide_${slideNum}_badge_text`);
+      const badgeIcon = slideContent.find((c: any) => c.key === `slide_${slideNum}_badge_icon`);
+      const titleImage = slideContent.find((c: any) => c.key === `slide_${slideNum}_title_image`);
+      const backgroundImage = slideContent.find((c: any) => c.key === `slide_${slideNum}_background`);
+      const description = slideContent.find((c: any) => c.key === `slide_${slideNum}_description`);
+      const featuresData = slideContent.find((c: any) => c.key === `slide_${slideNum}_features`);
+
+      let features = defaultSlides[slideNum - 1]?.features || [];
+      if (featuresData?.jsonData?.features) {
+        features = featuresData.jsonData.features;
+      }
+
+      slidesData.push({
+        badge: {
+          icon: badgeIcon?.imageUrl || defaultSlides[slideNum - 1]?.badge.icon,
+          text: badgeText?.value || defaultSlides[slideNum - 1]?.badge.text,
+        },
+        title: titleImage?.imageUrl || defaultSlides[slideNum - 1]?.title,
+        backgroundImage: backgroundImage?.imageUrl || defaultSlides[slideNum - 1]?.backgroundImage,
+        description: description?.value || defaultSlides[slideNum - 1]?.description,
+        features: features,
+      });
+    }
+
+    return slidesData.length > 0 ? slidesData : defaultSlides;
+  }, [homepageContent]);
 
   const handleSlideChange = (index: number) => {
     if (index === currentSlide) return;
@@ -184,7 +242,7 @@ export const HeroSliderSubsection = (): JSX.Element => {
                 </div>
 
                 <div className="flex flex-wrap lg:flex-nowrap items-center justify-center sm:justify-start gap-3 sm:gap-4 md:gap-6 lg:gap-16 w-full">
-                  {slide.features.map((feature, featureIndex) => (
+                  {slide.features.map((feature: { icon: string; text: string }, featureIndex: number) => (
                     <div
                       key={featureIndex}
                       className="inline-flex items-center gap-2 sm:gap-2.5 lg:gap-2.5"

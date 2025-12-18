@@ -145,8 +145,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Middleware to check authentication
   const requireAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
+    // Check both isAuthenticated() and req.user for robustness
+    if (!req.isAuthenticated() && !req.user) {
+      console.log('[Auth] Unauthenticated request:', {
+        isAuthenticated: req.isAuthenticated(),
+        hasUser: !!req.user,
+        sessionId: req.sessionID,
+        path: req.path
+      });
       return res.status(401).json({ error: "Authentication required" });
+    }
+    // Ensure req.user is set if isAuthenticated is true but user is missing
+    if (req.isAuthenticated() && !req.user && req.session?.passport?.user) {
+      // Try to get user from session
+      storage.getUser(req.session.passport.user).then(user => {
+        if (user) {
+          req.user = user;
+        }
+        next();
+      }).catch(() => {
+        res.status(401).json({ error: "Authentication required" });
+      });
+      return;
     }
     next();
   };
@@ -566,28 +586,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Helper function for admin check (flexible for MVP testing)
   const requireAdminAccess = (req: any, res: any, next: any) => {
-    // In development/MVP, allow all authenticated users for testing
-    // In production, require proper admin status
-    const isDevelopment = process.env.NODE_ENV === 'development' || 
-                         process.env.ALLOW_ALL_ADMIN === 'true' ||
-                         process.env.ALLOW_ALL_ADMIN === '1';
-    
-    if (!req.isAuthenticated() || !req.user) {
-      return res.sendStatus(401);
+    // This middleware should be used AFTER requireAuth, so req.user should already be set
+    // Double-check authentication as a safety measure
+    if (!req.user) {
+      // If req.user is not set, try to get it from session
+      if (req.session?.passport?.user) {
+        storage.getUser(req.session.passport.user).then(user => {
+          if (user) {
+            req.user = user;
+            checkAdminAccess();
+          } else {
+            res.status(401).json({ error: "User not found" });
+          }
+        }).catch(() => {
+          res.status(401).json({ error: "Authentication failed" });
+        });
+        return;
+      }
+      return res.status(401).json({ error: "Authentication required" });
     }
 
-    if (isDevelopment) {
-      // Allow all authenticated users in development/MVP
-      console.log(`[Admin Access] Allowing access for user ${req.user.id} (MVP/Development mode)`);
-      return next();
+    function checkAdminAccess() {
+      // In development/MVP, allow all authenticated users for testing
+      // In production, require proper admin status
+      const isDevelopment = process.env.NODE_ENV === 'development' || 
+                           process.env.ALLOW_ALL_ADMIN === 'true' ||
+                           process.env.ALLOW_ALL_ADMIN === '1' ||
+                           process.env.VITE_ALLOW_ALL_ADMIN === 'true';
+      
+      if (isDevelopment) {
+        // Allow all authenticated users in development/MVP
+        console.log(`[Admin Access] Allowing access for user ${req.user.id} (${req.user.email}) (MVP/Development mode)`);
+        return next();
+      }
+
+      // Production: strict admin check
+      const isAdmin = req.user.isAdmin || req.user.email?.includes('@trustverify.com');
+      if (!isAdmin) {
+        console.log(`[Admin Access] Denied for user ${req.user.id} (${req.user.email}) - not admin`);
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      console.log(`[Admin Access] Granted for user ${req.user.id} (${req.user.email})`);
+      next();
     }
 
-    // Production: strict admin check
-    if (!req.user.email?.includes('@trustverify.com') && !req.user.isAdmin) {
-      return res.sendStatus(403);
-    }
-
-    next();
+    checkAdminAccess();
   };
 
   // Helper endpoint to set admin status (for testing only)
@@ -1656,6 +1700,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json([]);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  // Public endpoint to get homepage content (for frontend display)
+  app.get("/api/homepage-content", async (req, res) => {
+    try {
+      const { section } = req.query;
+      const content = await storage.getHomepageContent(section as string | undefined);
+      // Only return active content
+      const activeContent = content.filter((c: any) => c.isActive);
+      res.json(activeContent);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch homepage content" });
+    }
+  });
+
+  // Homepage Content Management Routes (Admin only)
+  app.get("/api/admin/homepage-content", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const { section } = req.query;
+      const content = await storage.getHomepageContent(section as string | undefined);
+      res.json(content);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch homepage content" });
+    }
+  });
+
+  app.get("/api/admin/homepage-content/:section/:key", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const { section, key } = req.params;
+      const content = await storage.getHomepageContentByKey(section, key);
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch homepage content" });
+    }
+  });
+
+  app.post("/api/admin/homepage-content", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const content = await storage.createHomepageContent(req.body);
+      res.status(201).json(content);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to create homepage content" });
+    }
+  });
+
+  app.put("/api/admin/homepage-content/:id", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const content = await storage.updateHomepageContent(id, req.body);
+      console.log("content :",  content);
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to update homepage content" });
+    }
+  });
+
+  app.delete("/api/admin/homepage-content/:id", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteHomepageContent(id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to delete homepage content" });
+    }
+  });
+
+  app.post("/api/admin/homepage-content/upload-image", requireAuth, requireAdminAccess, upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const imageUrl = await storage.uploadHomepageImage(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype
+      );
+      res.json({ url: imageUrl });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to upload image" });
     }
   });
 

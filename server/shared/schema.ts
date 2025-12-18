@@ -1004,6 +1004,24 @@ export const hrJobApplications = pgTable("hr_job_applications", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Homepage Content Management Table
+export const homepageContent = pgTable("homepage_content", {
+  id: serial("id").primaryKey(),
+  section: text("section").notNull(), // hero_slider, partners, features, decorative_images, etc.
+  key: text("key").notNull(), // slide_1, badge_text, title_image, background_image, etc.
+  contentType: text("content_type").notNull(), // text, image, json
+  value: text("value"), // For text content
+  imageUrl: text("image_url"), // For image content
+  jsonData: jsonb("json_data"), // For complex structured data (e.g., features array)
+  order: integer("order").default(0), // For ordering items
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertHomepageContentSchema = createInsertSchema(homepageContent);
+export const updateHomepageContentSchema = insertHomepageContentSchema.partial();
+
 // CRM Relations
 export const crmContactsRelations = relations(crmContacts, ({ one, many }) => ({
   owner: one(users, {
@@ -1311,4 +1329,9 @@ export type HrRecruitment = typeof hrRecruitment.$inferSelect;
 export type InsertHrRecruitment = z.infer<typeof insertHrRecruitmentSchema>;
 export type HrJobApplication = typeof hrJobApplications.$inferSelect;
 export type InsertHrJobApplication = z.infer<typeof insertHrJobApplicationSchema>;
+
+// Homepage Content Types
+export type HomepageContent = typeof homepageContent.$inferSelect;
+export type InsertHomepageContent = z.infer<typeof insertHomepageContentSchema>;
+export type UpdateHomepageContent = z.infer<typeof updateHomepageContentSchema>;
 
