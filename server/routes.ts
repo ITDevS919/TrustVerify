@@ -144,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Middleware to check authentication
-  const requireAuth = (req: any, res: any, next: any) => {
+  const requireAuth = async (req: any, res: any, next: any) => {
     // Check both isAuthenticated() and req.user for robustness
     if (!req.isAuthenticated() && !req.user) {
       console.log('[Auth] Unauthenticated request:', {
@@ -158,15 +158,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Ensure req.user is set if isAuthenticated is true but user is missing
     if (req.isAuthenticated() && !req.user && req.session?.passport?.user) {
       // Try to get user from session
-      storage.getUser(req.session.passport.user).then(user => {
+      try {
+        const user = await storage.getUser(req.session.passport.user);
         if (user) {
           req.user = user;
+          return next();
+        } else {
+          return res.status(401).json({ error: "User not found" });
         }
-        next();
-      }).catch(() => {
-        res.status(401).json({ error: "Authentication required" });
-      });
-      return;
+      } catch (error) {
+        console.error('[Auth] Error loading user from session:', error);
+        return res.status(401).json({ error: "Authentication required" });
+      }
     }
     next();
   };
@@ -585,53 +588,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function for admin check (flexible for MVP testing)
-  const requireAdminAccess = (req: any, res: any, next: any) => {
+  const requireAdminAccess = async (req: any, res: any, next: any) => {
     // This middleware should be used AFTER requireAuth, so req.user should already be set
     // Double-check authentication as a safety measure
     if (!req.user) {
       // If req.user is not set, try to get it from session
       if (req.session?.passport?.user) {
-        storage.getUser(req.session.passport.user).then(user => {
+        try {
+          const user = await storage.getUser(req.session.passport.user);
           if (user) {
             req.user = user;
-            checkAdminAccess();
           } else {
-            res.status(401).json({ error: "User not found" });
+            return res.status(401).json({ error: "User not found" });
           }
-        }).catch(() => {
-          res.status(401).json({ error: "Authentication failed" });
-        });
-        return;
+        } catch (error) {
+          console.error('[Admin Access] Error loading user:', error);
+          return res.status(401).json({ error: "Authentication failed" });
+        }
+      } else {
+        return res.status(401).json({ error: "Authentication required" });
       }
-      return res.status(401).json({ error: "Authentication required" });
     }
 
-    function checkAdminAccess() {
-      // In development/MVP, allow all authenticated users for testing
-      // In production, require proper admin status
-      const isDevelopment = process.env.NODE_ENV === 'development' || 
-                           process.env.ALLOW_ALL_ADMIN === 'true' ||
-                           process.env.ALLOW_ALL_ADMIN === '1' ||
-                           process.env.VITE_ALLOW_ALL_ADMIN === 'true';
-      
-      if (isDevelopment) {
-        // Allow all authenticated users in development/MVP
-        console.log(`[Admin Access] Allowing access for user ${req.user.id} (${req.user.email}) (MVP/Development mode)`);
-        return next();
-      }
-
-      // Production: strict admin check
-      const isAdmin = req.user.isAdmin || req.user.email?.includes('@trustverify.com');
-      if (!isAdmin) {
-        console.log(`[Admin Access] Denied for user ${req.user.id} (${req.user.email}) - not admin`);
-        return res.status(403).json({ error: "Admin access required" });
-      }
-
-      console.log(`[Admin Access] Granted for user ${req.user.id} (${req.user.email})`);
-      next();
+    // In development/MVP, allow all authenticated users for testing
+    // In production, require proper admin status
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                         process.env.ALLOW_ALL_ADMIN === 'true' ||
+                         process.env.ALLOW_ALL_ADMIN === '1' ||
+                         process.env.VITE_ALLOW_ALL_ADMIN === 'true';
+    
+    if (isDevelopment) {
+      // Allow all authenticated users in development/MVP
+      console.log(`[Admin Access] Allowing access for user ${req.user.id} (${req.user.email}) (MVP/Development mode)`);
+      return next();
     }
 
-    checkAdminAccess();
+    // Production: strict admin check
+    const isAdmin = req.user.isAdmin || req.user.email?.includes('@trustverify.com');
+    if (!isAdmin) {
+      console.log(`[Admin Access] Denied for user ${req.user.id} (${req.user.email}) - not admin`);
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    console.log(`[Admin Access] Granted for user ${req.user.id} (${req.user.email})`);
+    next();
   };
 
   // Helper endpoint to set admin status (for testing only)
@@ -1689,17 +1689,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin Activities
-  app.get("/api/admin/activities", requireAuth, requireAdminAccess, async (_req, res) => {
+  app.get("/api/admin/activities", requireAuth, requireAdminAccess, async (req, res) => {
     try {
       // Disable caching for real-time activities
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
 
-      // TODO: Fetch from audit logs
-      res.json([]);
+      const limit = parseInt(req.query.limit as string) || 50;
+      const activities = await storage.getAdminActivities(limit);
+      res.json(activities);
     } catch (error: any) {
       res.status(500).json({ error: "Failed to fetch activities" });
+    }
+  });
+
+  // Admin User Management
+  app.get("/api/admin/users", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+
+      const result = await storage.getUsers(page, limit, { search, status });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updates = req.body;
+
+      console.log(`[Admin] Updating user ${userId} with:`, updates);
+
+      // Remove sensitive fields that shouldn't be updated via this endpoint
+      delete updates.password;
+      delete updates.id;
+      delete updates.createdAt;
+
+      // Ensure isAdmin is a boolean if provided
+      if (updates.isAdmin !== undefined) {
+        updates.isAdmin = Boolean(updates.isAdmin);
+      }
+
+      const updatedUser = await storage.updateUser(userId, updates);
+      if (!updatedUser) {
+        console.error(`[Admin] User ${userId} not found`);
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      console.log(`[Admin] Successfully updated user ${userId}. isAdmin: ${updatedUser.isAdmin}`);
+
+      // Return safe user data (exclude password)
+      const { password, ...safeUser } = updatedUser;
+      res.json(safeUser);
+    } catch (error: any) {
+      console.error('[Admin] Error updating user:', error);
+      console.error('[Admin] Error stack:', error.stack);
+      res.status(500).json({ 
+        error: "Failed to update user",
+        message: error.message || "Unknown error",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  });
+
+  app.get("/api/admin/users/export", requireAuth, requireAdminAccess, async (_req, res) => {
+    try {
+      const users = await storage.getAllUsersForExport();
+      
+      // Convert to CSV
+      const headers = ['ID', 'Username', 'Email', 'First Name', 'Last Name', 'Status', 'Admin', 'Trust Score', 'Verification Level', 'Created At'];
+      const rows = users.map((user: any) => [
+        user.id,
+        user.username || '',
+        user.email || '',
+        user.firstName || '',
+        user.lastName || '',
+        user.sanctionedUntil ? 'Suspended' : 'Active',
+        user.isAdmin ? 'Yes' : 'No',
+        user.trustScore || '0.00',
+        user.verificationLevel || 'none',
+        user.createdAt ? new Date(user.createdAt).toISOString() : '',
+      ]);
+
+      const csv = [
+        headers.join(','),
+        ...rows.map((row: any[]) => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=users-export-${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csv);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to export users" });
+    }
+  });
+
+  // Admin Settings
+  app.get("/api/admin/settings", requireAuth, requireAdminAccess, async (req, res) => {
+    void req; // Reserved for future use
+    try {
+      const settings = await storage.getSystemSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/admin/settings", requireAuth, requireAdminAccess, async (req, res) => {
+    try {
+      const settings = await storage.updateSystemSettings(req.body);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to update settings" });
     }
   });
 

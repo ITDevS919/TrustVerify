@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../hooks/use-auth";
 import { Header} from "../../components/Header";
@@ -8,6 +8,8 @@ import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { 
   Users, 
   Shield, 
@@ -20,6 +22,12 @@ import {
   Save,
   Plus,
   Trash2,
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { apiRequest } from "../../lib/queryClient";
 import { useNavigate } from "react-router-dom";
@@ -28,7 +36,7 @@ import { useToast } from "../../hooks/use-toast";
 export const AdminDashboard = (): JSX.Element => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "security" | "logs" | "settings" | "homepage">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "security" | "settings" | "homepage">("overview");
 
   // Check admin access
   const isDevelopment = (import.meta as any).env?.DEV || (import.meta as any).env?.VITE_ALLOW_ALL_ADMIN === 'true';
@@ -179,7 +187,7 @@ export const AdminDashboard = (): JSX.Element => {
               Users
             </button>
             <button
-              onClick={() => setActiveTab("security")}
+              onClick={() => navigate("/security-dashboard")}
               className={`px-4 py-2 font-medium ${
                 activeTab === "security"
                   ? "text-[#003d2b] border-b-2 border-[#003d2b]"
@@ -187,19 +195,6 @@ export const AdminDashboard = (): JSX.Element => {
               }`}
             >
               Security
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("logs");
-                navigate("/admin/logs");
-              }}
-              className={`px-4 py-2 font-medium ${
-                activeTab === "logs"
-                  ? "text-[#003d2b] border-b-2 border-[#003d2b]"
-                  : "text-gray-600 hover:text-[#003d2b]"
-              }`}
-            >
-              Logs
             </button>
             <button
               onClick={() => setActiveTab("settings")}
@@ -269,19 +264,12 @@ export const AdminDashboard = (): JSX.Element => {
                       <Button 
                         variant="outline" 
                         className="w-full justify-start"
-                        onClick={() => navigate("/admin/users")}
+                        onClick={() => setActiveTab("users")}
                       >
                         <Users className="w-4 h-4 mr-2" />
                         Manage Users
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start"
-                        onClick={() => navigate("/admin/logs")}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Audit Logs
-                      </Button>
+
                     </CardContent>
                   </Card>
 
@@ -311,61 +299,11 @@ export const AdminDashboard = (): JSX.Element => {
             )}
 
             {activeTab === "users" && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>User Management</CardTitle>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Export
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4 flex gap-4">
-                    <Input
-                      placeholder="Search users..."
-                      className="flex-1"
-                    />
-                    <Select defaultValue="all">
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Users</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <p className="text-sm text-gray-600">User management interface coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {activeTab === "security" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Security Dashboard</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="p-8 text-center text-gray-500">
-                    <Shield className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p>Security monitoring dashboard</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <UserManagement />
             )}
 
             {activeTab === "settings" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">System configuration settings coming soon...</p>
-                </CardContent>
-              </Card>
+              <SystemSettings />
             )}
 
             {activeTab === "homepage" && (
@@ -579,6 +517,16 @@ const HomepageContentManager = () => {
                   section={selectedSection}
                 />
               )}
+              {selectedSection === "features" && (
+                <FeaturesSectionEditor 
+                  content={homepageContent || []} 
+                  onUpdate={updateMutation.mutate}
+                  onCreate={createMutation.mutate}
+                  onDelete={deleteMutation.mutate}
+                  onImageUpload={handleImageUpload}
+                  section={selectedSection}
+                />
+              )}
               {selectedSection === "decorative_images" && (
                 <DecorativeImagesEditor 
                   content={homepageContent || []} 
@@ -601,6 +549,23 @@ const HomepageContentManager = () => {
 const HeroSliderEditor = ({ content, onUpdate, onCreate, onDelete, onImageUpload, section }: any) => {
   const slides = [1, 2, 3];
   const [formData, setFormData] = useState<Record<string, Record<string, string>>>({});
+  
+  // Initialize form data from content
+  useEffect(() => {
+    if (content && content.length > 0) {
+      const initialData: Record<string, Record<string, string>> = {};
+      slides.forEach((slideNum) => {
+        const slideContent = content.filter((c: any) => c.key?.startsWith(`slide_${slideNum}`));
+        const badgeText = slideContent.find((c: any) => c.key === `slide_${slideNum}_badge_text`);
+        const description = slideContent.find((c: any) => c.key === `slide_${slideNum}_description`);
+        initialData[slideNum] = {
+          badge_text: badgeText?.value || "",
+          description: description?.value || "",
+        };
+      });
+      setFormData(initialData);
+    }
+  }, [content]);
   
   const handleInputChange = (slideNum: number, field: string, value: string) => {
     setFormData(prev => ({
@@ -683,7 +648,7 @@ const HeroSliderEditor = ({ content, onUpdate, onCreate, onDelete, onImageUpload
               <div>
                 <label className="block text-sm font-medium mb-2">Badge Text</label>
                 <Input
-                  defaultValue={badgeText?.value || ""}
+                  value={formData[slideNum]?.['badge_text'] ?? badgeText?.value ?? ""}
                   onChange={(e) => handleInputChange(slideNum, 'badge_text', e.target.value)}
                   placeholder="Enter badge text"
                 />
@@ -693,7 +658,7 @@ const HeroSliderEditor = ({ content, onUpdate, onCreate, onDelete, onImageUpload
                 <Textarea
                   className="w-full"
                   rows={3}
-                  defaultValue={description?.value || ""}
+                  value={formData[slideNum]?.['description'] ?? description?.value ?? ""}
                   onChange={(e) => handleInputChange(slideNum, 'description', e.target.value)}
                   placeholder="Enter description"
                 />
@@ -770,6 +735,17 @@ const PartnersSectionEditor = ({ content, onUpdate, onCreate, onDelete, onImageU
   const logos = content.filter((c: any) => c.key?.startsWith('partner_logo_'));
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [newLogoKey, setNewLogoKey] = useState("");
+
+  // Initialize form data from content
+  useEffect(() => {
+    if (content && content.length > 0) {
+      setFormData({
+        badge_text: badgeText?.value || "",
+        title: title?.value || "",
+        description: description?.value || "",
+      });
+    }
+  }, [content, badgeText, title, description]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -860,7 +836,7 @@ const PartnersSectionEditor = ({ content, onUpdate, onCreate, onDelete, onImageU
           <div>
             <label className="block text-sm font-medium mb-2">Badge Text</label>
             <Input
-              defaultValue={badgeText?.value || "OUR PARTNERS"}
+              value={formData['badge_text'] ?? badgeText?.value ?? "OUR PARTNERS"}
               onChange={(e) => handleInputChange('badge_text', e.target.value)}
               placeholder="Enter badge text"
             />
@@ -869,7 +845,7 @@ const PartnersSectionEditor = ({ content, onUpdate, onCreate, onDelete, onImageU
           <div>
             <label className="block text-sm font-medium mb-2">Title</label>
             <Input
-              defaultValue={title?.value || ""}
+              value={formData['title'] ?? title?.value ?? ""}
               onChange={(e) => handleInputChange('title', e.target.value)}
               placeholder="Enter title"
             />
@@ -880,7 +856,7 @@ const PartnersSectionEditor = ({ content, onUpdate, onCreate, onDelete, onImageU
             <Textarea
               className="w-full"
               rows={3}
-              defaultValue={description?.value || ""}
+              value={formData['description'] ?? description?.value ?? ""}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Enter description"
             />
@@ -1018,6 +994,631 @@ const DecorativeImagesEditor = ({ content, onUpdate: _onUpdate, onCreate: _onCre
           );
         })}
       </div>
+    </div>
+  );
+};
+
+// Features Section Editor Component
+const FeaturesSectionEditor = ({ content, onUpdate, onCreate, onDelete, onImageUpload, section }: any) => {
+  const features = content.filter((c: any) => c.key?.startsWith('feature_') && c.contentType === 'json');
+  const [newFeatureTitle, setNewFeatureTitle] = useState("");
+  const [newFeatureDescription, setNewFeatureDescription] = useState("");
+  const [editingFeature, setEditingFeature] = useState<any>(null);
+
+  const handleAddFeature = () => {
+    if (!newFeatureTitle.trim()) return;
+    const featureKey = `feature_${Date.now()}`;
+    const featureData = {
+      title: newFeatureTitle,
+      description: newFeatureDescription,
+      icon: "",
+    };
+    onCreate({
+      section,
+      key: featureKey,
+      contentType: 'json',
+      jsonData: featureData,
+      isActive: true,
+    });
+    setNewFeatureTitle("");
+    setNewFeatureDescription("");
+  };
+
+  const handleUpdateFeature = (feature: any, updates: any) => {
+    onUpdate({
+      id: feature.id,
+      data: {
+        jsonData: { ...feature.jsonData, ...updates },
+      },
+    });
+    setEditingFeature(null);
+  };
+
+  const handleDeleteFeature = (featureId: number) => {
+    onDelete(featureId);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold">Features Section</h3>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Add New Feature</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Feature Title</label>
+            <Input
+              value={newFeatureTitle}
+              onChange={(e) => setNewFeatureTitle(e.target.value)}
+              placeholder="Enter feature title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Feature Description</label>
+            <Textarea
+              className="w-full"
+              rows={3}
+              value={newFeatureDescription}
+              onChange={(e) => setNewFeatureDescription(e.target.value)}
+              placeholder="Enter feature description"
+            />
+          </div>
+          <Button onClick={handleAddFeature} className="bg-app-primary text-white">
+            <Plus className="w-4 h-4 mr-1" />
+            Add Feature
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Existing Features</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {features.length > 0 ? (
+              features.map((feature: any) => (
+                <div key={feature.id} className="p-4 border rounded-lg">
+                  {editingFeature?.id === feature.id ? (
+                    <FeatureEditForm
+                      feature={feature}
+                      onSave={(updates: any) => handleUpdateFeature(feature, updates)}
+                      onCancel={() => setEditingFeature(null)}
+                      onImageUpload={(file: File) => onImageUpload(file, feature.id, 'imageUrl', section, feature.key)}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{feature.jsonData?.title || 'Untitled Feature'}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{feature.jsonData?.description || ''}</p>
+                        {feature.jsonData?.icon && (
+                          <img src={feature.jsonData.icon} alt="Feature icon" className="w-8 h-8 mt-2" />
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingFeature(feature)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteFeature(feature.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">No features configured. Add a new feature above.</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Feature Edit Form Component
+const FeatureEditForm = ({ feature, onSave, onCancel, onImageUpload }: any) => {
+  const [title, setTitle] = useState(feature.jsonData?.title || "");
+  const [description, setDescription] = useState(feature.jsonData?.description || "");
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-2">Title</label>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter feature title"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Description</label>
+        <Textarea
+          className="w-full"
+          rows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter feature description"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Icon Image</label>
+        {feature.jsonData?.icon && (
+          <img src={feature.jsonData.icon} alt="Icon" className="w-16 h-16 mb-2 rounded" />
+        )}
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              onImageUpload(file);
+            }
+          }}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={() => onSave({ title, description })}
+          className="bg-app-primary text-white"
+        >
+          <Save className="w-4 h-4 mr-1" />
+          Save
+        </Button>
+        <Button variant="outline" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// User Management Component
+const UserManagement = () => {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const limit = 10;
+
+  const { data: usersData, isLoading, refetch } = useQuery({
+    queryKey: ['admin', 'users', page, searchQuery, statusFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(searchQuery && { search: searchQuery }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+      });
+      const response = await apiRequest('GET', `/api/admin/users?${params}`);
+      return await response.json();
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await apiRequest('PATCH', `/api/admin/users/${id}`, {
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update user' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    },
+    onSuccess: (_data, variables) => {
+      refetch();
+      const action = variables.data.isAdmin ? "granted admin role to" : "removed admin role from";
+      toast({
+        title: "Success",
+        description: `Successfully ${action} user`,
+      });
+      setSelectedUser(null);
+    },
+    onError: (error: any) => {
+      console.error('Failed to update user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user. Please check the console for details.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/admin/users/export', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `users-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Success",
+        description: "Users exported successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export users",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSetAdmin = async (userId: number, isAdmin: boolean) => {
+    const user = usersData?.users?.find((u: any) => u.id === userId);
+    const action = isAdmin ? "grant admin role to" : "remove admin role from";
+    const confirmMessage = `Are you sure you want to ${action} ${user?.email || `user ${userId}`}?`;
+    
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    updateUserMutation.mutate({
+      id: userId,
+      data: { isAdmin },
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>User Management</CardTitle>
+            <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search users by username or email..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(value) => {
+              setStatusFilter(value);
+              setPage(1);
+            }}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="admin">Admins</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <p className="text-sm text-gray-600 text-center py-8">Loading users...</p>
+          ) : usersData?.users && usersData.users.length > 0 ? (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Admin</TableHead>
+                    <TableHead>Trust Score</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usersData.users.map((user: any) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.id}</TableCell>
+                      <TableCell>{user.username || 'N/A'}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.sanctionedUntil ? "destructive" : "default"} className="bg-green-500 text-white">
+                          {user.sanctionedUntil ? "Suspended" : "Active"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.isAdmin ? (
+                          <Badge variant="default" className="bg-blue-500">Admin</Badge>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{user.trustScore || '0.00'}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedUser(user)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSetAdmin(user.id, !user.isAdmin)}
+                            disabled={updateUserMutation.isPending}
+                            title={user.isAdmin ? "Remove Admin Role" : "Grant Admin Role"}
+                          >
+                            {updateUserMutation.isPending ? (
+                              <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                            ) : user.isAdmin ? (
+                              <XCircle className="w-4 h-4" />
+                            ) : (
+                              <CheckCircle className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {usersData.pagination && usersData.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-sm text-gray-600">
+                    Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, usersData.pagination.total)} of {usersData.pagination.total} users
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(usersData.pagination.totalPages, p + 1))}
+                      disabled={page >= usersData.pagination.totalPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-gray-600 text-center py-8">No users found</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* User Details Dialog */}
+      {selectedUser && (
+        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Username</label>
+                <p className="text-sm text-gray-600">{selectedUser.username || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <p className="text-sm text-gray-600">{selectedUser.email}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Trust Score</label>
+                <p className="text-sm text-gray-600">{selectedUser.trustScore || '0.00'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Verification Level</label>
+                <p className="text-sm text-gray-600">{selectedUser.verificationLevel || 'none'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <p className="text-sm text-gray-600">
+                  {selectedUser.sanctionedUntil ? `Suspended until ${new Date(selectedUser.sanctionedUntil).toLocaleDateString()}` : 'Active'}
+                </p>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => {
+                    const action = selectedUser.isAdmin ? "remove admin role from" : "grant admin role to";
+                    const confirmMessage = `Are you sure you want to ${action} ${selectedUser.email}?`;
+                    if (window.confirm(confirmMessage)) {
+                      handleSetAdmin(selectedUser.id, !selectedUser.isAdmin);
+                    }
+                  }}
+                  variant={selectedUser.isAdmin ? "destructive" : "default"}
+                  disabled={updateUserMutation.isPending}
+                >
+                  {updateUserMutation.isPending ? "Processing..." : selectedUser.isAdmin ? "Remove Admin" : "Make Admin"}
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+};
+
+// System Settings Component
+const SystemSettings = () => {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { data: settingsData, refetch } = useQuery({
+    queryKey: ['admin', 'settings'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/settings');
+      return await response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (settingsData) {
+      setSettings(settingsData);
+      setIsLoading(false);
+    }
+  }, [settingsData]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PUT', '/api/admin/settings', {
+        body: JSON.stringify(data),
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      refetch();
+      toast({
+        title: "Success",
+        description: "Settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSave = () => {
+    updateSettingsMutation.mutate(settings);
+  };
+
+  if (isLoading) {
+    return <p className="text-sm text-gray-600">Loading settings...</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>System Settings</CardTitle>
+            <Button onClick={handleSave} className="bg-app-primary text-white">
+              <Save className="w-4 h-4 mr-1" />
+              Save Settings
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">General Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium">Maintenance Mode</label>
+                  <p className="text-xs text-gray-500">Enable to put the system in maintenance mode</p>
+                </div>
+                <Select
+                  value={settings.maintenanceMode ? "enabled" : "disabled"}
+                  onValueChange={(value) => setSettings({ ...settings, maintenanceMode: value === "enabled" })}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="disabled">Disabled</SelectItem>
+                    <SelectItem value="enabled">Enabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium">Registration Enabled</label>
+                  <p className="text-xs text-gray-500">Allow new user registrations</p>
+                </div>
+                <Select
+                  value={settings.registrationEnabled !== false ? "enabled" : "disabled"}
+                  onValueChange={(value) => setSettings({ ...settings, registrationEnabled: value === "enabled" })}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="enabled">Enabled</SelectItem>
+                    <SelectItem value="disabled">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Security Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium">MFA Required</label>
+                  <p className="text-xs text-gray-500">Require multi-factor authentication for all users</p>
+                </div>
+                <Select
+                  value={settings.mfaRequired ? "required" : "optional"}
+                  onValueChange={(value) => setSettings({ ...settings, mfaRequired: value === "required" })}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="optional">Optional</SelectItem>
+                    <SelectItem value="required">Required</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Minimum Password Length</label>
+                <Input
+                  type="number"
+                  value={settings.minPasswordLength || 8}
+                  onChange={(e) => setSettings({ ...settings, minPasswordLength: parseInt(e.target.value) || 8 })}
+                  className="w-32 mt-2"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

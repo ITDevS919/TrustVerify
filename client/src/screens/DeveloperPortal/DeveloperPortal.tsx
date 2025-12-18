@@ -2234,7 +2234,7 @@ const trustverify = new TrustVerify({
                         className="flex items-center justify-start gap-3 h-[60px] px-4 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] hover:border-[#003d2b] [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base"
                       >
                         <Mail className="w-6 h-6 text-[#003d2b]" />
-                        <span>Email Support (api-support@trustverify.com)</span>
+                        <span>Email Support</span>
                         <ExternalLink className="w-4 h-4 ml-auto text-[#808080]" />
                       </Button>
                       <Button

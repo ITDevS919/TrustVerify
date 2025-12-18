@@ -204,6 +204,11 @@ import {
     getUserCount(): Promise<number>;
     getActiveTransactionCount(): Promise<number>;
     getPendingKycCount(): Promise<number>;
+    getUsers(page: number, limit: number, filters?: { search?: string; status?: string }): Promise<{ users: User[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>;
+    getAllUsersForExport(): Promise<User[]>;
+    getAdminActivities(limit?: number): Promise<any[]>;
+    getSystemSettings(): Promise<any>;
+    updateSystemSettings(settings: any): Promise<any>;
 
     // CRM methods
     getCrmContacts(userId: number, page: number, limit: number): Promise<{ contacts: CrmContact[]; total: number; page: number; limit: number }>;
@@ -902,6 +907,75 @@ import {
       ).length;
     }
 
+    async getUsers(page: number, limit: number, filters?: { search?: string; status?: string }): Promise<{ users: User[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+      let userList = Array.from(this.users.values());
+
+      // Apply search filter
+      if (filters?.search) {
+        const searchLower = filters.search.toLowerCase();
+        userList = userList.filter(user => 
+          (user.username?.toLowerCase().includes(searchLower)) ||
+          (user.email?.toLowerCase().includes(searchLower))
+        );
+      }
+
+      // Apply status filter
+      if (filters?.status) {
+        if (filters.status === 'active') {
+          userList = userList.filter(user => !user.sanctionedUntil);
+        } else if (filters.status === 'suspended') {
+          userList = userList.filter(user => !!user.sanctionedUntil);
+        } else if (filters.status === 'admin') {
+          userList = userList.filter(user => user.isAdmin);
+        }
+      }
+
+      const total = userList.length;
+      const totalPages = Math.ceil(total / limit);
+      const offset = (page - 1) * limit;
+      const paginatedUsers = userList.slice(offset, offset + limit);
+
+      // Remove passwords from response
+      const safeUsers = paginatedUsers.map(({ password, ...user }) => user);
+
+      return {
+        users: safeUsers as User[],
+        pagination: { page, limit, total, totalPages }
+      };
+    }
+
+    async getAllUsersForExport(): Promise<User[]> {
+      const userList = Array.from(this.users.values());
+      return userList.map(({ password, ...user }) => user) as User[];
+    }
+
+    async getAdminActivities(limit: number = 50): Promise<any[]> {
+      // Return mock activities for MemStorage
+      return [
+        {
+          action: "System initialized",
+          timestamp: new Date().toISOString(),
+          type: "info"
+        }
+      ];
+    }
+
+    private systemSettings: any = {
+      maintenanceMode: false,
+      registrationEnabled: true,
+      mfaRequired: false,
+      minPasswordLength: 8,
+    };
+
+    async getSystemSettings(): Promise<any> {
+      return this.systemSettings;
+    }
+
+    async updateSystemSettings(settings: any): Promise<any> {
+      this.systemSettings = { ...this.systemSettings, ...settings };
+      return this.systemSettings;
+    }
+
     // Workflow Configuration methods
     async createWorkflowConfiguration(_config: { developerId: number; name: string; description?: string; industry: string; useCase: string; workflowSteps: any; rules?: any; triggers?: any; isActive?: boolean; isTemplate?: boolean; version?: number }): Promise<any> {
       throw new Error("Workflow configurations not supported in MemStorage");
@@ -1292,12 +1366,50 @@ import {
     }
   
     async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
-      const [user] = await db
-        .update(users)
-        .set(updates)
-        .where(eq(users.id, id))
-        .returning();
-      return user || undefined;
+      try {
+        // Filter out undefined values and ensure proper types
+        const cleanUpdates: any = {};
+        for (const [key, value] of Object.entries(updates)) {
+          if (value !== undefined) {
+            // Ensure isAdmin is a boolean
+            if (key === 'isAdmin') {
+              cleanUpdates[key] = Boolean(value);
+            } else {
+              cleanUpdates[key] = value;
+            }
+          }
+        }
+
+        if (Object.keys(cleanUpdates).length === 0) {
+          console.warn('[DatabaseStorage] No valid updates provided');
+          return await this.getUser(id);
+        }
+
+        console.log(`[DatabaseStorage] Updating user ${id} with:`, cleanUpdates);
+
+        const [user] = await db
+          .update(users)
+          .set(cleanUpdates)
+          .where(eq(users.id, id))
+          .returning();
+        
+        if (!user) {
+          console.error(`[DatabaseStorage] User ${id} not found after update`);
+          return undefined;
+        }
+
+        console.log(`[DatabaseStorage] Successfully updated user ${id}. isAdmin: ${user.isAdmin}`);
+        return user;
+      } catch (error: any) {
+        console.error('[DatabaseStorage] Error updating user:', error);
+        console.error('[DatabaseStorage] Error message:', error.message);
+        console.error('[DatabaseStorage] Error code:', error.code);
+        console.error('[DatabaseStorage] Update data:', updates);
+        if (error.stack) {
+          console.error('[DatabaseStorage] Stack trace:', error.stack);
+        }
+        throw error;
+      }
     }
   
     async updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined> {
@@ -1714,6 +1826,110 @@ import {
         .from(kycVerifications)
         .where(eq(kycVerifications.status, 'pending'));
       return result[0]?.count || 0;
+    }
+
+    async getUsers(page: number, limit: number, filters?: { search?: string; status?: string }): Promise<{ users: User[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+      const offset = (page - 1) * limit;
+      const conditions: any[] = [];
+
+      // Apply search filter
+      if (filters?.search) {
+        conditions.push(
+          or(
+            ilike(users.username, `%${filters.search}%`),
+            ilike(users.email, `%${filters.search}%`)
+          )!
+        );
+      }
+
+      // Apply status filter
+      if (filters?.status) {
+        if (filters.status === 'active') {
+          conditions.push(sql`${users.sanctionedUntil} IS NULL`);
+        } else if (filters.status === 'suspended') {
+          conditions.push(sql`${users.sanctionedUntil} IS NOT NULL`);
+        } else if (filters.status === 'admin') {
+          conditions.push(eq(users.isAdmin, true));
+        }
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+      // Get total count
+      const [totalResult] = await db
+        .select({ count: count() })
+        .from(users)
+        .where(whereClause);
+      const total = totalResult?.count || 0;
+
+      // Get paginated users
+      const userList = await db
+        .select()
+        .from(users)
+        .where(whereClause)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Remove passwords from response
+      const safeUsers = userList.map(({ password, ...user }) => user);
+
+      return {
+        users: safeUsers as User[],
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+    }
+
+    async getAllUsersForExport(): Promise<User[]> {
+      const userList = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.createdAt));
+      
+      // Remove passwords from response
+      return userList.map(({ password, ...user }) => user) as User[];
+    }
+
+    async getAdminActivities(limit: number = 50): Promise<any[]> {
+      // limit parameter reserved for future pagination
+      void limit;
+      // Return basic activities
+      // In production, this would fetch from audit logs
+      return [
+        {
+          action: "System operational",
+          timestamp: new Date().toISOString(),
+          type: "success"
+        }
+      ];
+    }
+
+    async getSystemSettings(): Promise<any> {
+      // For now, return default settings
+      // In production, these would be stored in a settings table
+      return {
+        maintenanceMode: false,
+        registrationEnabled: true,
+        mfaRequired: false,
+        minPasswordLength: 8,
+      };
+    }
+
+    async updateSystemSettings(settings: any): Promise<any> {
+      // For now, just return the updated settings
+      // In production, these would be stored in a settings table
+      return {
+        maintenanceMode: false,
+        registrationEnabled: true,
+        mfaRequired: false,
+        minPasswordLength: 8,
+        ...settings,
+      };
     }
 
     // Workflow Configuration methods
@@ -2522,16 +2738,14 @@ import {
 
     async uploadHomepageImage(file: Buffer, filename: string, mimeType: string): Promise<string> {
       // Use the file storage service to upload images
-      const fileStorage = await import('./services/file-storage.ts');
-      const fileId = `homepage-${Date.now()}-${filename}`;
-      const uploaded = await fileStorage.uploadFile({
-        fileId,
-        buffer: file,
+      const { fileStorageService } = await import('./services/file-storage');
+      const uploaded = await fileStorageService.uploadFile(
+        file,
         filename,
         mimeType,
-        userId: 0, // System user for homepage content
-        fileType: 'homepage_image',
-      });
+        0, // System user for homepage content
+        'document' // Use document type for homepage images
+      );
       return uploaded.url || `/uploads/${uploaded.storageKey}`;
     }
 
