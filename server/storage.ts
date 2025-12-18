@@ -1696,14 +1696,24 @@ import {
   
     // API Key methods
     async createApiKey(apiKey: { developerId: number; name: string; keyHash: string; keyPrefix: string; permissions?: string[]; expiresAt?: Date }): Promise<ApiKey> {
-      const [key] = await db
-        .insert(apiKeys)
-        .values({
-          ...apiKey,
-          permissions: apiKey.permissions || []
-        })
-        .returning();
-      return key;
+      try {
+        const [key] = await db
+          .insert(apiKeys)
+          .values({
+            developerId: apiKey.developerId,
+            name: apiKey.name,
+            keyHash: apiKey.keyHash,
+            keyPrefix: apiKey.keyPrefix,
+            permissions: Array.isArray(apiKey.permissions) ? apiKey.permissions : [],
+            expiresAt: apiKey.expiresAt || null,
+          })
+          .returning();
+        return key;
+      } catch (error: any) {
+        console.error('[DatabaseStorage] Error creating API key:', error);
+        console.error('[DatabaseStorage] API key data:', apiKey);
+        throw error;
+      }
     }
   
     async getApiKeysByDeveloperId(developerId: number): Promise<ApiKey[]> {
