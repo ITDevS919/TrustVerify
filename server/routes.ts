@@ -1593,20 +1593,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const { name, permissions = [] } = req.body;
-
+  
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: "API key name is required" });
       }
-
+  
       const account = await storage.getDeveloperAccountByUserId(userId);
       if (!account) {
         return res.status(404).json({ error: "Developer account not found" });
       }
-
+  
       if (account.status !== 'approved') {
         return res.status(403).json({ error: "Developer account must be approved to create API keys" });
       }
-
+  
       // Generate API key
       const keyPrefix = "tv_";
       const randomBytes = new Uint8Array(32);
@@ -1616,22 +1616,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Hash the key for storage
       const keyHash = crypto.createHash('sha256').update(fullKey).digest('hex');
-
+  
+      // Ensure permissions is an array
+      const permissionsArray = Array.isArray(permissions) ? permissions : [];
+  
       const apiKey = await storage.createApiKey({
         developerId: account.id,
         name: name.trim(),
         keyHash,
         keyPrefix,
-        permissions: Array.isArray(permissions) ? permissions : [],
+        permissions: permissionsArray,
         expiresAt: undefined
       });
-
+  
       res.status(201).json({
         ...apiKey,
         key: fullKey
       });
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to create API key" });
+      console.error('[API Key Creation] Error:', error);
+      console.error('[API Key Creation] Error message:', error.message);
+      console.error('[API Key Creation] Error stack:', error.stack);
+      console.error('[API Key Creation] Request body:', req.body);
+      res.status(500).json({ 
+        error: "Failed to create API key",
+        message: error.message || "Unknown error",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 
