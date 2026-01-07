@@ -1,3 +1,17 @@
 [
-
+  {
+    "submissionId": "KYC-1767039796329-7smb1tap0",
+    "userId": 19,
+    "userEmail": "tanyingying429@gmail.com",
+    "userName": "Emrah Fajkovic",
+    "userPhone": "",
+    "documentType": "drivers_license",
+    "documentNumber": "1222",
+    "frontImagePath": "kyc/19/1767039795443_2023-07-28-11-50-57-1152x646.jpg",
+    "backImagePath": "kyc/19/1767039795739_2023-07-28-11-50-57-1152x646.jpg",
+    "selfieImagePath": "kyc/19/1767039796035_2023-07-28-11-50-57-1152x646.jpg",
+    "submittedAt": "2025-12-29T20:23:16.329Z",
+    "status": "pending",
+    "userType": "beta_user"
+  }
 ]

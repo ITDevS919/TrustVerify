@@ -1,0 +1,1 @@
+export { KYBVerificationPage } from "./KYBVerification";

@@ -1593,33 +1593,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user!.id;
       const { name, permissions = [] } = req.body;
-  
+
+      console.log('[API Key Creation] Request received:', { userId, name, permissions });
+
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: "API key name is required" });
       }
-  
+
       const account = await storage.getDeveloperAccountByUserId(userId);
       if (!account) {
+        console.error('[API Key Creation] Developer account not found for user:', userId);
         return res.status(404).json({ error: "Developer account not found" });
       }
-  
+
+      console.log('[API Key Creation] Developer account found:', { id: account.id, status: account.status });
+
       if (account.status !== 'approved') {
         return res.status(403).json({ error: "Developer account must be approved to create API keys" });
       }
-  
+
       // Generate API key
       const keyPrefix = "tv_";
-      const randomBytes = new Uint8Array(32);
-      crypto.getRandomValues(randomBytes);
-      const keyBody = Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('');
+      // Use Node.js crypto.randomBytes instead of browser crypto.getRandomValues
+      const randomBytes = crypto.randomBytes(32);
+      const keyBody = randomBytes.toString('hex');
       const fullKey = keyPrefix + keyBody;
       
       // Hash the key for storage
       const keyHash = crypto.createHash('sha256').update(fullKey).digest('hex');
-  
+
       // Ensure permissions is an array
       const permissionsArray = Array.isArray(permissions) ? permissions : [];
-  
+
+      console.log('[API Key Creation] Creating API key with data:', {
+        developerId: account.id,
+        name: name.trim(),
+        keyHash: keyHash.substring(0, 20) + '...',
+        keyPrefix,
+        permissionsCount: permissionsArray.length
+      });
+
       const apiKey = await storage.createApiKey({
         developerId: account.id,
         name: name.trim(),
@@ -1628,7 +1641,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         permissions: permissionsArray,
         expiresAt: undefined
       });
-  
+
+      console.log('[API Key Creation] API key created successfully:', { id: apiKey.id, name: apiKey.name });
+
       res.status(201).json({
         ...apiKey,
         key: fullKey

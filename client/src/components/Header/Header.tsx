@@ -57,9 +57,10 @@ const navigationItems: NavigationItem[] = [
     path: "",
     subItems: [
       { label: "Identity Verification (KYC)", path: "/kyc-verification", description: "Verify identity with advanced KYC solutions" },
-      { label: "AML & Ongoing Monitoring", path: "/security-dashboard", description: "Comprehensive AML compliance and monitoring" },
+      { label: "AML & Ongoing Monitoring", path: "/aml-screening", description: "Comprehensive AML compliance and monitoring" },
       { label: "Fraud Prevention & Risk Scoring", path: "/fraud-prevention", description: "Advanced fraud detection and risk assessment" },
-      { label: "Business / KYB", path: "/solutions/kyb", description: "Know Your Business verification solutions" },
+      { label: "Business / KYB", path: "/kyb-verification", description: "Know Your Business verification solutions" },
+
     ]
   },
   { 

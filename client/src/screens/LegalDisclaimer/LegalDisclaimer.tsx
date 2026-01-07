@@ -158,7 +158,7 @@ export const LegalDisclaimer = (): JSX.Element => {
               </p>
 
               <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#d32030] text-lg tracking-[-0.20px] leading-7">
-              For questions about this disclaimer, contact our legal department <strong>at legal@trustverify.com.</strong>
+              For questions about this disclaimer, contact our legal department at<strong> legal@trustverify.co.uk.</strong>
               </p>
             </div>
           </div>

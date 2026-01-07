@@ -323,13 +323,13 @@ export const ContactUS = (): JSX.Element => {
                       <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
                         First Name *
                       </label>
-                      <Input
+                    <Input
                         value={formData.firstName}
                         onChange={(e) => handleInputChange("firstName", e.target.value)}
-                        placeholder="First name"
-                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                      placeholder="First name"
+                      className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
                         required
-                      />
+                    />
                     </div>
                     <div className="flex-1 flex flex-col gap-2">
                       <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
@@ -364,24 +364,24 @@ export const ContactUS = (): JSX.Element => {
                       <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
                         Phone No.
                       </label>
-                      <Input
+                    <Input
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => handleInputChange("phone", e.target.value)}
-                        placeholder="Phone No."
-                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
-                      />
+                      placeholder="Phone No."
+                      className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                    />
                     </div>
                     <div className="flex-1 flex flex-col gap-2">
                       <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
                         Company
                       </label>
-                      <Input
+                    <Input
                         value={formData.company}
                         onChange={(e) => handleInputChange("company", e.target.value)}
                         placeholder="Your Company Name"
-                        className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
-                      />
+                      className="flex h-[51px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base"
+                    />
                     </div>
                   </div>
 
@@ -408,21 +408,21 @@ export const ContactUS = (): JSX.Element => {
                     <label className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm">
                       Message *
                     </label>
-                    <Textarea
+                  <Textarea
                       value={formData.message}
                       onChange={(e) => handleInputChange("message", e.target.value)}
                       placeholder="Tell us how we can help you..."
-                      className="h-[127px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base resize-none"
+                    className="h-[127px] bg-white rounded-md [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base resize-none"
                       required
-                    />
-                  </div>
+                  />
+              </div>
 
                   <Button type="submit" className="w-[215px] h-14 bg-app-primary hover:bg-app-primary/90 rounded-[10px]">
-                    <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
-                      Send Message
-                    </span>
-                    <TrendingUp className="ml-2 w-[30px] h-[30px]" />
-                  </Button>
+                <span className="[font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold text-white text-lg tracking-[-0.20px] leading-[18px]">
+                  Send Message
+                </span>
+                <TrendingUp className="ml-2 w-[30px] h-[30px]" />
+              </Button>
                 </form>
               </div>
 
@@ -499,13 +499,13 @@ export const ContactUS = (): JSX.Element => {
                 >
                   {buttons[0].label}
                 </Button>
-                <Button
+                  <Button
                   variant={buttons[1].variant}
                   className={buttons[1].className}
                   onClick={() => window.open("mailto:partnerships@trustverify.co.uk", "_blank")}
-                >
+                  >
                   {buttons[1].label}
-                </Button>
+                  </Button>
               </div>
               <div className="mt-4 text-sm text-white/80 text-center">
                 <p>Enterprise: enterprise@trustverify.co.uk | Partnerships: partnerships@trustverify.co.uk</p>

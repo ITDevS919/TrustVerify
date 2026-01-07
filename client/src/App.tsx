@@ -52,6 +52,7 @@ import DemoPage from "./screens/DemoPage/DemoPage";
 import { Solutions } from "./screens/solutions";
 import { ApiKeysPage } from "./screens/ApiKeys";
 import { ApiDocPage } from "./screens/ApiDoc";
+import { ApiDocumentationPage } from "./screens/ApiDoc";
 import CategoryPage from "./screens/solutions/[Category]";
 import { SDKDocumentation } from "./screens/SDK-Documentation";
 import { EnterpriseContact } from "./screens/EnterpriseContact";
@@ -66,7 +67,11 @@ import HREmployees from "./screens/HR/employees";
 import HRPerformance from "./screens/HR/performance";
 import HRRecruitment from "./screens/HR/recruitment";
 import HRTimeOff from "./screens/HR/time-off";
-
+import { IdentityVerification } from "./screens/IdentityVerification";
+import { EscrowServices } from "./screens/EscrowServices";
+import { BiometricVerification } from "./screens/BiometricVerification";
+import { KYBVerificationPage } from "./screens/KYBVerification";
+import { AMLScreeningPage } from "./screens/AMLScreening";
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -101,6 +106,7 @@ function App() {
               <Route path="/api-pricing" element={<ApiPricing />} />
               <Route path="/api-keys" element={<ApiKeysPage />} />
               <Route path="/api-docs" element={<ApiDocPage />} />
+              <Route path="/api-documentation" element={<ApiDocumentationPage />} />
               <Route path="/sdk-documentation" element={<SDKDocumentation />} />
               <Route path="/fraud-prevention" element={<FraudPrevention />} />
               <Route path="/live-demo" element={<LiveDemo />} />
@@ -117,9 +123,12 @@ function App() {
               <Route path="/demo" element={<DemoPage />} />
               <Route path="/solutions" element={<Solutions />} />
               <Route path="/solutions/:category" element={<CategoryPage />} />
-              
+              <Route path="/identity-verification" element={<IdentityVerification />} />
+              <Route path="/biometric-verification" element={<BiometricVerification />} />
+              <Route path="/escrow-services" element={<EscrowServices />} />
               <Route path="/website-integrity" element={<WebsiteIntegrityPage />} />
-
+              <Route path="/kyb-verification" element={<KYBVerificationPage />} />
+              <Route path="/aml-screening" element={<AMLScreeningPage />} />
               {/* Protected Routes */}
               <Route  
                 path="/dashboard" 
@@ -134,7 +143,7 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Messages />
-                  </ProtectedRoute>
+                  </ProtectedRoute>          
                 } 
               />
               <Route 

@@ -486,7 +486,7 @@ export const DeveloperCenter = (): JSX.Element => {
                           <Button
                             variant="outline"
                             className="relative w-full sm:w-[174px] h-[45px] rounded-lg border-none before:content-[''] before:absolute before:inset-0 before:p-px before:rounded-lg before:[background:linear-gradient(118deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] before:[-webkit-mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] before:[-webkit-mask-composite:xor] before:[mask-composite:exclude] hover:bg-gray-50"
-                            onClick={() => navigate("/api-docs")}
+                            onClick={() => navigate("/api-documentation")}
                           >
                             <span className="bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] bg-clip-text text-transparent font-semibold text-sm text-center leading-[18px]">
                               View Documentation

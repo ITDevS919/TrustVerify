@@ -230,15 +230,15 @@ export const AdminDashboard = (): JSX.Element => {
                     <div className="space-y-4">
                       {activities && activities.length > 0 ? (
                         activities.slice(0, 10).map((activity, index: number) => (
-                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div>
-                              <p className="font-medium">{activity.action}</p>
-                              <p className="text-sm text-gray-600">{activity.timestamp}</p>
-                            </div>
-                            <Badge variant={activity.type === "success" ? "default" : "destructive"}>
-                              {activity.type}
-                            </Badge>
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{activity.action}</p>
+                            <p className="text-sm text-gray-600">{activity.timestamp}</p>
                           </div>
+                          <Badge variant={activity.type === "success" ? "default" : "destructive"}>
+                            {activity.type}
+                          </Badge>
+                        </div>
                         ))
                       ) : (
                         <p className="text-sm text-gray-600 text-center py-4">No recent activities</p>
@@ -1283,21 +1283,21 @@ const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>User Management</CardTitle>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>User Management</CardTitle>
             <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
+                      <Download className="w-4 h-4 mr-2" />
               Export CSV
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex gap-4">
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4 flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
+                    <Input
                 placeholder="Search users by username or email..."
                 value={searchQuery}
                 onChange={(e) => {
@@ -1305,23 +1305,23 @@ const UserManagement = () => {
                   setPage(1);
                 }}
                 className="pl-10"
-              />
+                    />
             </div>
             <Select value={statusFilter} onValueChange={(value) => {
               setStatusFilter(value);
               setPage(1);
             }}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Users</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Users</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
                 <SelectItem value="admin">Admins</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
           {isLoading ? (
             <p className="text-sm text-gray-600 text-center py-8">Loading users...</p>
@@ -1419,8 +1419,8 @@ const UserManagement = () => {
           ) : (
             <p className="text-sm text-gray-600 text-center py-8">No users found</p>
           )}
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
 
       {/* User Details Dialog */}
       {selectedUser && (
@@ -1532,16 +1532,16 @@ const SystemSettings = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
+              <Card>
+                <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>System Settings</CardTitle>
+                  <CardTitle>System Settings</CardTitle>
             <Button onClick={handleSave} className="bg-app-primary text-white">
               <Save className="w-4 h-4 mr-1" />
               Save Settings
             </Button>
           </div>
-        </CardHeader>
+                </CardHeader>
         <CardContent className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">General Settings</h3>
@@ -1550,7 +1550,7 @@ const SystemSettings = () => {
                 <div>
                   <label className="text-sm font-medium">Maintenance Mode</label>
                   <p className="text-xs text-gray-500">Enable to put the system in maintenance mode</p>
-                </div>
+          </div>
                 <Select
                   value={settings.maintenanceMode ? "enabled" : "disabled"}
                   onValueChange={(value) => setSettings({ ...settings, maintenanceMode: value === "enabled" })}
@@ -1563,12 +1563,12 @@ const SystemSettings = () => {
                     <SelectItem value="enabled">Enabled</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+        </div>
               <div className="flex items-center justify-between">
                 <div>
                   <label className="text-sm font-medium">Registration Enabled</label>
                   <p className="text-xs text-gray-500">Allow new user registrations</p>
-                </div>
+      </div>
                 <Select
                   value={settings.registrationEnabled !== false ? "enabled" : "disabled"}
                   onValueChange={(value) => setSettings({ ...settings, registrationEnabled: value === "enabled" })}

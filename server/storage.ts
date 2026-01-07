@@ -1387,11 +1387,11 @@ import {
 
         console.log(`[DatabaseStorage] Updating user ${id} with:`, cleanUpdates);
 
-        const [user] = await db
-          .update(users)
+      const [user] = await db
+        .update(users)
           .set(cleanUpdates)
-          .where(eq(users.id, id))
-          .returning();
+        .where(eq(users.id, id))
+        .returning();
         
         if (!user) {
           console.error(`[DatabaseStorage] User ${id} not found after update`);
@@ -1697,21 +1697,50 @@ import {
     // API Key methods
     async createApiKey(apiKey: { developerId: number; name: string; keyHash: string; keyPrefix: string; permissions?: string[]; expiresAt?: Date }): Promise<ApiKey> {
       try {
-        const [key] = await db
-          .insert(apiKeys)
-          .values({
+        // Ensure permissions is properly formatted as an array
+        const permissionsArray = Array.isArray(apiKey.permissions) ? apiKey.permissions : [];
+
+        console.log('[DatabaseStorage] Creating API key:', {
+          developerId: apiKey.developerId,
+          name: apiKey.name,
+          keyHash: apiKey.keyHash.substring(0, 20) + '...',
+          keyPrefix: apiKey.keyPrefix,
+          permissions: permissionsArray
+        });
+
+      const [key] = await db
+        .insert(apiKeys)
+        .values({
             developerId: apiKey.developerId,
             name: apiKey.name,
             keyHash: apiKey.keyHash,
             keyPrefix: apiKey.keyPrefix,
-            permissions: Array.isArray(apiKey.permissions) ? apiKey.permissions : [],
+            permissions: permissionsArray, // Drizzle will handle JSONB serialization
             expiresAt: apiKey.expiresAt || null,
-          })
-          .returning();
-        return key;
+            // All other fields have defaults in the schema
+        })
+        .returning();
+        
+        if (!key) {
+          throw new Error('Failed to create API key - no key returned from database');
+        }
+
+        console.log('[DatabaseStorage] API key created successfully:', { id: key.id, name: key.name });
+      return key;
       } catch (error: any) {
         console.error('[DatabaseStorage] Error creating API key:', error);
-        console.error('[DatabaseStorage] API key data:', apiKey);
+        console.error('[DatabaseStorage] Error message:', error.message);
+        console.error('[DatabaseStorage] Error code:', error.code);
+        console.error('[DatabaseStorage] API key data:', {
+          developerId: apiKey.developerId,
+          name: apiKey.name,
+          keyHash: apiKey.keyHash.substring(0, 20) + '...',
+          keyPrefix: apiKey.keyPrefix,
+          permissions: apiKey.permissions
+        });
+        if (error.stack) {
+          console.error('[DatabaseStorage] Stack trace:', error.stack);
+        }
         throw error;
       }
     }

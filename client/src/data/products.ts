@@ -200,8 +200,8 @@ import {
           ],
           pricing: {
             tier: "Enterprise",
-            price: "£1,999+",
-            period: "month"
+            price: "",
+            period: ""
           },
           cta: {
             text: "View Documentation",
@@ -361,29 +361,6 @@ import {
           category: "business-services"
         },
         {
-          id: "b2b-fraud-protection",
-          name: "B2B Fraud Protection",
-          description: "Enterprise fraud protection for business-to-business transactions and partnerships",
-          icon: Users,
-          features: [
-            "Transaction monitoring",
-            "Partner verification",
-            "Supply chain security",
-            "Risk assessment tools"
-          ],
-          pricing: {
-            tier: "Enterprise",
-            price: "£1,999+",
-            period: "month"
-          },
-          cta: {
-            text: "Enterprise Demo",
-            href: "/enterprise-contact"
-          },
-          category: "business-services",
-          popular: true
-        },
-        {
           id: "custom-solutions",
           name: "Custom Solutions",
           description: "Tailored fraud prevention solutions designed for specific industry requirements",
@@ -413,29 +390,6 @@ import {
       description: "Comprehensive fraud prevention and compliance solutions for financial technology companies",
       icon: CreditCard,
       products: [
-        {
-          id: "banking-kyc",
-          name: "Banking KYC Verification",
-          description: "Complete Know Your Customer verification for banking and financial services",
-          icon: UserCheck,
-          features: [
-            "Real-time identity verification",
-            "Document authentication",
-            "AML screening",
-            "Regulatory compliance"
-          ],
-          pricing: {
-            tier: "Enterprise",
-            price: "£1,999+",
-            period: "month"
-          },
-          cta: {
-            text: "Get Started",
-            href: "/kyc-verification"
-          },
-          category: "fintech",
-          popular: true
-        },
         {
           id: "payment-fraud-detection",
           name: "Payment Fraud Detection",
@@ -490,29 +444,6 @@ import {
       icon: ShoppingBag,
       products: [
         {
-          id: "user-verification",
-          name: "User Verification Suite",
-          description: "Comprehensive user identity verification for marketplace platforms",
-          icon: UserCheck,
-          features: [
-            "ID document verification",
-            "Biometric authentication",
-            "Background checks",
-            "Reputation scoring"
-          ],
-          pricing: {
-            tier: "Professional",
-            price: "£999",
-            period: "month"
-          },
-          cta: {
-            text: "Get Started",
-            href: "/kyc-verification"
-          },
-          category: "marketplaces",
-          popular: true
-        },
-        {
           id: "transaction-protection",
           name: "Transaction Protection",
           description: "Secure escrow and payment protection for marketplace transactions",
@@ -564,29 +495,6 @@ import {
       description: "Fraud prevention and identity verification solutions for online retail businesses",
       icon: ShoppingBag,
       products: [
-        {
-          id: "checkout-fraud-prevention",
-          name: "Checkout Fraud Prevention",
-          description: "Real-time fraud detection at checkout to reduce chargebacks and losses",
-          icon: CreditCard,
-          features: [
-            "Real-time risk scoring",
-            "Card fraud detection",
-            "Address verification",
-            "Device fingerprinting"
-          ],
-          pricing: {
-            tier: "Professional",
-            price: "£999",
-            period: "month"
-          },
-          cta: {
-            text: "Get Started",
-            href: "/fraud-prevention"
-          },
-          category: "ecommerce",
-          popular: true
-        },
         {
           id: "guest-checkout-verification",
           name: "Guest Checkout Verification",
@@ -706,158 +614,6 @@ import {
             href: "/demo"
           },
           category: "travel"
-        }
-      ]
-    },
-    {
-      id: "crypto",
-      name: "Crypto / Digital Assets",
-      description: "Compliance and fraud prevention solutions for cryptocurrency and digital asset platforms",
-      icon: Coins,
-      products: [
-        {
-          id: "crypto-kyc-compliance",
-          name: "Crypto KYC Compliance",
-          description: "Regulatory compliant KYC/AML verification for cryptocurrency exchanges",
-          icon: FileCheck,
-          features: [
-            "Regulatory compliance",
-            "AML screening",
-            "Sanctions checking",
-            "Transaction monitoring"
-          ],
-          pricing: {
-            tier: "Enterprise",
-            price: "£1,999+",
-            period: "month"
-          },
-          cta: {
-            text: "Get Started",
-            href: "/kyc-verification"
-          },
-          category: "crypto",
-          popular: true
-        },
-        {
-          id: "wallet-verification",
-          name: "Wallet Verification",
-          description: "Verify cryptocurrency wallet ownership and authenticity",
-          icon: Wallet,
-          features: [
-            "Wallet address validation",
-            "Ownership verification",
-            "Transaction history analysis",
-            "Risk assessment"
-          ],
-          pricing: {
-            tier: "Professional",
-            price: "£999",
-            period: "month"
-          },
-          cta: {
-            text: "Learn More",
-            href: "/developers"
-          },
-          category: "crypto"
-        },
-        {
-          id: "crypto-fraud-detection",
-          name: "Crypto Fraud Detection",
-          description: "Advanced fraud detection for cryptocurrency transactions and exchanges",
-          icon: AlertTriangle,
-          features: [
-            "Transaction pattern analysis",
-            "Suspicious activity detection",
-            "Money laundering prevention",
-            "Real-time alerts"
-          ],
-          pricing: {
-            tier: "Essential",
-            price: "£499",
-            period: "month"
-          },
-          cta: {
-            text: "View Demo",
-            href: "/demo"
-          },
-          category: "crypto",
-          new: true
-        }
-      ]
-    },
-    {
-      id: "kyb",
-      name: "Business / KYB",
-      description: "Know Your Business verification and compliance solutions for B2B platforms",
-      icon: Building2,
-      products: [
-        {
-          id: "business-verification",
-          name: "Business Verification",
-          description: "Complete business entity verification and KYB compliance",
-          icon: Building,
-          features: [
-            "Company registration verification",
-            "UBO identification",
-            "Business document verification",
-            "Regulatory compliance"
-          ],
-          pricing: {
-            tier: "Enterprise",
-            price: "£1,999+",
-            period: "month"
-          },
-          cta: {
-            text: "Get Started",
-            href: "/business"
-          },
-          category: "kyb",
-          popular: true
-        },
-        {
-          id: "corporate-kyc",
-          name: "Corporate KYC",
-          description: "KYC verification for corporate accounts and business relationships",
-          icon: FileText,
-          features: [
-            "Corporate identity verification",
-            "Authorized signatory verification",
-            "Beneficial ownership checks",
-            "Compliance reporting"
-          ],
-          pricing: {
-            tier: "Professional",
-            price: "£999",
-            period: "month"
-          },
-          cta: {
-            text: "Learn More",
-            href: "/kyc-verification"
-          },
-          category: "kyb"
-        },
-        {
-          id: "b2b-onboarding",
-          name: "B2B Onboarding Automation",
-          description: "Automated business onboarding with KYB verification",
-          icon: Zap,
-          features: [
-            "Automated verification workflows",
-            "Document collection",
-            "Risk assessment",
-            "API integration"
-          ],
-          pricing: {
-            tier: "Essential",
-            price: "£499",
-            period: "month"
-          },
-          cta: {
-            text: "View Demo",
-            href: "/onboarding-demo"
-          },
-          category: "kyb",
-          new: true
         }
       ]
     }
