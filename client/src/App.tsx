@@ -49,11 +49,15 @@ import { OnboardingDemo } from "./screens/OnboardingDemo";
 import { IntegrationExamples } from "./screens/IntegrationExample";
 import { Features } from "./screens/EnterpriseFeatures";
 import DemoPage from "./screens/DemoPage/DemoPage";
-import { Solutions } from "./screens/solutions";
+import { Solutions } from "./screens/Solutions";
 import { ApiKeysPage } from "./screens/ApiKeys";
 import { ApiDocPage } from "./screens/ApiDoc";
 import { ApiDocumentationPage } from "./screens/ApiDoc";
-import CategoryPage from "./screens/solutions/[Category]";
+import CategoryPage from "./screens/Solutions/[Category]";
+import  Aml from "./screens/Solutions/Aml";
+import  Fraud from "./screens/Solutions/Fraud";
+import  Kyb from "./screens/Solutions/Kyb";
+import  Kyc from "./screens/Solutions/Kyc";
 import { SDKDocumentation } from "./screens/SDK-Documentation";
 import { EnterpriseContact } from "./screens/EnterpriseContact";
 import { WebsiteIntegrityPage } from "./screens/WebsiteIntegrity";
@@ -72,6 +76,14 @@ import { EscrowServices } from "./screens/EscrowServices";
 import { BiometricVerification } from "./screens/BiometricVerification";
 import { KYBVerificationPage } from "./screens/KYBVerification";
 import { AMLScreeningPage } from "./screens/AMLScreening";
+import { FraudDemo } from "./screens/FraudPrevention";
+import { MenuPage } from "./screens/Menu";
+import { Crypto, Fintech, Gaming, Insurance, Institutional, Travel, Ecommerce, Logistics } from "./screens/Industry";
+import {TrustGraphDashboard, RegulatoryPulseDashboard, TransactionIntegrityDashboard, VendorDiligenceDashboard, GlobalRiskDashboard, CyberTrustDashboard} from "./screens/IntelligenceDashboards"
+import { CaseManagementDashboard, DecisionEngineDashboard, MonitoringDashboard, SignalProviders } from "./screens/Compliance";
+import BankOnboardingDemo from "./screens/DemoPage/BackOnboardingDemo";
+import InstitutionalCheckout from "./screens/Industry/InstitutionalCheckout";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -81,8 +93,74 @@ function App() {
           <Router>
             <Routes>
               <Route path="/" element={<Home />} />
+
+            
+              {/* Auth Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Signup />} />
+
+              {/* Dashboards Routes */}
+
+              <Route path="/security-dashboard" element={<SecurityDashboard />} />
+              <Route path="/fraud-prevention" element={<FraudPrevention />} />
+
+              <Route path="/trustgraph" element={<TrustGraphDashboard />} />
+              <Route path="/regulatory-pulse" element={<RegulatoryPulseDashboard />} />
+              <Route path="/transaction-integrity" element={<TransactionIntegrityDashboard />} />
+              <Route path="/vendor-diligence" element={<VendorDiligenceDashboard />} />
+              <Route path="/global-risk" element={<GlobalRiskDashboard />} />
+              <Route path="/cybertrust" element={<CyberTrustDashboard />} />
+
+              {/* Solutions Routes */}
+              <Route path="/solutions" element={<Solutions />} />
+              <Route path="/solutions/kyb" element={<Kyb />} />
+              <Route path="/solutions/kyc" element={<Kyc />} />
+              <Route path="/solutions/aml" element={<Aml />} />
+              <Route path="/solutions/fraud" element={<Fraud />} />
+              <Route path="/solutions/:category" element={<CategoryPage />} />
+
+              {/* Industries Routes */}
+              <Route path="/industries/crypto" element={<Crypto />} />
+              <Route path="/industries/fintech" element={<Fintech />} />
+              <Route path="/industries/gaming" element={<Gaming />} />
+              <Route path="/industries/insurance" element={<Insurance />} />
+              <Route path="/industries/institutional" element={<Institutional />} />
+              <Route path="/industries/travel" element={<Travel />} />
+              <Route path="/industries/ecommerce" element={<Ecommerce />} />
+              <Route path="/industries/logistics" element={<Logistics />} />
+
+              <Route path="/institutional-checkout" element={<InstitutionalCheckout />} />
+              <Route path="/compliance/cases" element={<CaseManagementDashboard />} />
+              <Route path="/compliance/decision-engine" element={<DecisionEngineDashboard />} />
+              <Route path="/compliance/monitoring" element={<MonitoringDashboard />} />
+              <Route path="/compliance/providers" element={<SignalProviders />} />
+
+              {/* Developers Routes */}
+              <Route path="/developers" element={<DeveloperCenter />} />
+              <Route path="/developers/api" element={<ApiReferences />} />
+              <Route path="/developers/webhooks" element={<Webhook />} />
+              <Route path="/developers/workflow" element={<OnboardingDemo />} />
+              <Route path="/developers/demo" element={<DemoPage />} />
+
+              {/* Enterprise Routes */}
+              <Route path="/enterprise/features" element={<Features />} />
+              <Route path="/enterprise/compliance" element={<RegulatoryCompliances />} />
+              <Route path="/enterprise/case-studies" element={<Resources />} />
+              <Route path="/enterprise/integration" element={<IntegrationExamples />} />
+              <Route path="/enterprise-contact" element={<EnterpriseContact />} />
+
+              {/* Pricing Routes */}
+              <Route path="/pricing" element={<PricingDetail />} />
+              <Route path="/business" element={<Business />} />
+              <Route path="/api-pricing" element={<ApiPricing />} />
+
+              {/* Subscription Routes */}
+              <Route path="/subscription/manage" element={<SubscriptionManagement />} />
+              <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+              <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
+
+              {/* Legal Routes */}
+
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<ContactUS />} />
               <Route path="/help" element={<HelpCenter />} />
@@ -91,50 +169,46 @@ function App() {
               <Route path="/our-mission" element={<OurMission />} />
               <Route path="/platform" element={<PlatformSuite />} />
               <Route path="/media" element={<PressMedia />} />
-              <Route path="/pricing" element={<PricingDetail />} />
-              <Route path="/subscription/manage" element={<SubscriptionManagement />} />
-              <Route path="/subscription/success" element={<SubscriptionSuccess />} />
-              <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
               <Route path="/policies" element={<PrivacyPolicy />} />
-              <Route path="/regulatory-compliance" element={<RegulatoryCompliances />} />
               <Route path="/terms" element={<TermsOfServices />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/training" element={<Training />} />
               <Route path="/consumer-protection" element={<ConsumerProtection />} />
-              <Route path="/developers" element={<DeveloperCenter />} />
-              <Route path="/reference-api" element={<ApiReferences />} />
-              <Route path="/api-pricing" element={<ApiPricing />} />
-              <Route path="/api-keys" element={<ApiKeysPage />} />
+              <Route path="/not-found" element={<NotFound />} />
+
+              {/* Documentation Routes */}
               <Route path="/api-docs" element={<ApiDocPage />} />
               <Route path="/api-documentation" element={<ApiDocumentationPage />} />
               <Route path="/sdk-documentation" element={<SDKDocumentation />} />
-              <Route path="/fraud-prevention" element={<FraudPrevention />} />
+
+              {/* Demo Routes */}
               <Route path="/live-demo" element={<LiveDemo />} />
-              <Route path="/not-found" element={<NotFound />} />
-              {/* New Routes for Updated Pages */}
-              <Route path="/business" element={<Business />} />
-              <Route path="/resources" element={<Resources />} />
-              <Route path="/security-dashboard" element={<SecurityDashboard />} />
-              <Route path="/webhooks" element={<Webhook />} />
-              <Route path="/onboarding-demo" element={<OnboardingDemo />} />
-              <Route path="/integration-examples" element={<IntegrationExamples />} />
-              <Route path="/enterprise/features" element={<Features />} />
-              <Route path="/enterprise-contact" element={<EnterpriseContact />} />
-              <Route path="/demo" element={<DemoPage />} />
-              <Route path="/solutions" element={<Solutions />} />
-              <Route path="/solutions/:category" element={<CategoryPage />} />
+              <Route path="/bank-onboarding-demo" element={<BankOnboardingDemo />} />
+              <Route path="/fraud-demo" element={<FraudDemo />} />
+
+              {/* Routes for Updated Pages */}
               <Route path="/identity-verification" element={<IdentityVerification />} />
               <Route path="/biometric-verification" element={<BiometricVerification />} />
               <Route path="/escrow-services" element={<EscrowServices />} />
               <Route path="/website-integrity" element={<WebsiteIntegrityPage />} />
               <Route path="/kyb-verification" element={<KYBVerificationPage />} />
               <Route path="/aml-screening" element={<AMLScreeningPage />} />
+              <Route path="/api-keys" element={<ApiKeysPage />} />
+
               {/* Protected Routes */}
               <Route  
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route  
+                path="/menu" 
+                element={
+                  <ProtectedRoute>
+                    <MenuPage />
                   </ProtectedRoute>
                 } 
               />

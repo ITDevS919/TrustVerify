@@ -157,7 +157,7 @@
   </url>
   
   <url>
-    <loc>https://www.trustverify.co.uk/reference-api</loc>
+    <loc>https://www.trustverify.co.uk/developers/api</loc>
     <lastmod>2025-01-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
@@ -206,7 +206,7 @@
   </url>
   
   <url>
-    <loc>https://www.trustverify.co.uk/integration-examples</loc>
+    <loc>https://www.trustverify.co.uk/enterprise/integration</loc>
     <lastmod>2025-01-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -214,7 +214,7 @@
   
   <!-- Resources & Support Pages -->
   <url>
-    <loc>https://www.trustverify.co.uk/resources</loc>
+    <loc>https://www.trustverify.co.uk/enterprise/case-studies</loc>
     <lastmod>2025-01-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -293,7 +293,7 @@
   </url>
   
   <url>
-    <loc>https://www.trustverify.co.uk/regulatory-compliance</loc>
+    <loc>https://www.trustverify.co.uk/enterprise/compliance</loc>
     <lastmod>2025-01-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>

@@ -169,7 +169,7 @@ export function Features() {
         {
           title: 'RESTful API Suite',
           description: 'Comprehensive fraud prevention APIs with authentication, rate limiting, and detailed documentation',
-          path: '/reference-api',
+          path: '/developers/api',
           badge: 'Enterprise',
           icon: Server,
           demo: 'View API docs',
@@ -184,7 +184,7 @@ export function Features() {
         {
           title: 'Developer Portal',
           description: 'Complete developer experience with API keys, testing sandbox, and usage monitoring',
-          path: '/reference-api',
+          path: '/developers/api',
           badge: 'Developer Tools',
           icon: Settings,
           demo: 'Access portal',
@@ -222,7 +222,7 @@ export function Features() {
         {
           title: 'International Compliance',
           description: 'GDPR, CCPA, and international data protection compliance with regional adaptation',
-          path: '/regulatory-compliance',
+          path: '/enterprise/compliance',
           badge: 'Compliant',
           icon: Lock,
           demo: 'View compliance',
@@ -304,7 +304,7 @@ export function Features() {
               <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium">Fraud Prevention</span>
             </Button>
             <Button
-              onClick={() => handleNavigate('/reference-api')}
+              onClick={() => handleNavigate('/developers/api')}
               variant="outline"
               className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] rounded-[10px] min-h-[46px]"
             >
@@ -442,7 +442,7 @@ export function Features() {
             </Button>
             
             <Button
-              onClick={() => handleNavigate('/reference-api')}
+              onClick={() => handleNavigate('/developers/api')}
               variant="outline"
               className="border-[#0b3a78] text-[#0b3a78] hover:bg-[#0b3a780d] h-auto py-4 flex flex-col items-center gap-2 rounded-[10px]"
             >

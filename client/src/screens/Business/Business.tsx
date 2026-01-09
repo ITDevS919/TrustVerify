@@ -119,7 +119,7 @@ export default function Business() {
         'Risk scoring algorithms',
         'Audit trail management'
       ],
-      path: '/regulatory-compliance'
+      path: '/enterprise/compliance'
     }
   ];
 

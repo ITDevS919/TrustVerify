@@ -205,7 +205,7 @@ import {
           },
           cta: {
             text: "View Documentation",
-            href: "/api-docs"
+            href: "/api-documentation"
           },
           category: "fraud-prevention",
           popular: true
@@ -228,7 +228,7 @@ import {
           },
           cta: {
             text: "Scan Website",
-            href: "/demo"
+            href: "/developers/demo"
           },
           category: "fraud-prevention"
         }
@@ -334,7 +334,7 @@ import {
           },
           cta: {
             text: "View API Docs",
-            href: "/api-docs"
+            href: "/api-documentation"
           },
           category: "business-services"
         },
@@ -356,7 +356,7 @@ import {
           },
           cta: {
             text: "Compliance Demo",
-            href: "/demo"
+            href: "/developers/demo"
           },
           category: "business-services"
         },
@@ -408,7 +408,7 @@ import {
           },
           cta: {
             text: "View Demo",
-            href: "/demo"
+            href: "/developers/demo"
           },
           category: "fintech"
         },
@@ -483,7 +483,7 @@ import {
           },
           cta: {
             text: "View Demo",
-            href: "/demo"
+            href: "/developers/demo"
           },
           category: "marketplaces"
         }
@@ -535,7 +535,7 @@ import {
           },
           cta: {
             text: "View Demo",
-            href: "/demo"
+            href: "/developers/demo"
           },
           category: "ecommerce",
           new: true
@@ -611,7 +611,7 @@ import {
           },
           cta: {
             text: "View Demo",
-            href: "/demo"
+            href: "/developers/demo"
           },
           category: "travel"
         }

@@ -56,10 +56,10 @@ const navigationItems: NavigationItem[] = [
     hasDropdown: true, 
     path: "",
     subItems: [
-      { label: "Identity Verification (KYC)", path: "/kyc-verification", description: "Verify identity with advanced KYC solutions" },
-      { label: "AML & Ongoing Monitoring", path: "/aml-screening", description: "Comprehensive AML compliance and monitoring" },
-      { label: "Fraud Prevention & Risk Scoring", path: "/fraud-prevention", description: "Advanced fraud detection and risk assessment" },
-      { label: "Business / KYB", path: "/kyb-verification", description: "Know Your Business verification solutions" },
+      { label: "Identity Verification (KYC)", path: "/solutions/kyc", description: "Verify identity with advanced KYC solutions" },
+      { label: "AML & Ongoing Monitoring", path: "/solutions/aml", description: "Continuous compliance screening" },
+      { label: "Fraud Prevention & Risk Scoring", path: "/solutions/fraud", description: "AI-powered fraud detection" },
+      { label: "Business Verification (KYB)", path: "/solutions/kyb", description: "Company due diligence" },
 
     ]
   },
@@ -68,23 +68,27 @@ const navigationItems: NavigationItem[] = [
     hasDropdown: true, 
     path: "/",
     subItems: [
-      { label: "Fintech & Banking", path: "/solutions/fintech", description: "Solutions for financial services" },
-      { label: "Marketplaces & Sharing Economy", path: "/solutions/marketplaces", description: "Trust and safety for platforms" },
-      { label: "eCommerce & Retail", path: "/solutions/ecommerce", description: "Retail fraud prevention" },
-      { label: "Travel & Hospitality", path: "/solutions/travel", description: "Identity verification for travel" },
-      { label: "Crypto / Digital Assets", path: "/solutions/crypto", description: "Compliance for digital assets" },
+      { label: "Investment Firms & Hedge Funds", path: "/industries/institutional", description: "Institutional compliance" },
+      { label: "Fintech & Banking", path: "/industries/fintech", description: "Financial services solutions" },
+      { label: "Crypto & Digital Assets", path: "/industries/crypto", description: "Web3 & blockchain protection" },
+      { label: "E-commerce & Marketplaces", path: "/industries/ecommerce", description: "Platform protection" },
+      { label: "iGaming & Online Gambling", path: "/industries/gaming", description: "Player verification & compliance" },
+      { label: "Travel & Hospitality", path: "/industries/travel", description: "Booking fraud prevention" },
+      { label: "Insurance", path: "/industries/insurance", description: "Claims fraud prevention" },
+      { label: "Logistics & Supply Chain", path: "/industries/logistics", description: "Shipment verification" },
+
     ]
-  },
+  },  
   { 
     label: "Developers", 
     hasDropdown: true, 
     path: "/developer-center",
     subItems: [
       { label: "Quick Start", path: "/developers", description: "Get started in minutes" },
-      { label: "API Reference / SDKs", path: "/reference-api", description: "Complete API documentation" },
-      { label: "Webhooks & Events", path: "/webhooks", description: "Real-time event notifications" },
-      { label: "Workflow / Orchestration", path: "/onboarding-demo", description: "Build custom verification workflows" },
-      { label: "Sandbox / Demo", path: "/demo", description: "Test in our sandbox environment" },
+      { label: "API Reference & SDKs", path: "/developers/api", description: "Complete API documentation" },
+      { label: "Webhooks & Events", path: "/developers/webhooks", description: "Real-time notifications" },
+      { label: "Workflow Orchestration", path: "/developers/workflow", description: "Custom verification flows" },
+      { label: "Sandbox & Demo", path: "/developers/demo", description: "Test environment" },
     ]
   },
   { 
@@ -92,11 +96,11 @@ const navigationItems: NavigationItem[] = [
     hasDropdown: true, 
     path: "/enterprise",
     subItems: [
-      { label: "Enterprise Features & Benefits", path: "/enterprise/features", description: "Powerful features for large organizations" },
-      { label: "Compliance & Data Security", path: "/regulatory-compliance", description: "Enterprise-grade security and compliance" },
-      { label: "Integration & Onboarding Support", path: "/integration-examples", description: "Dedicated support for seamless integration" },
-      { label: "Case Studies / Testimonials", path: "/resources", description: "Success stories from our customers" },
-      { label: "Contact / Sales / Support", path: "/contact", description: "Get in touch with our team" },
+      { label: "Enterprise Features", path: "/enterprise/features", description: "Advanced capabilities" },
+      { label: "Compliance & Security", path: "/enterprise/compliance", description: "SOC 2, ISO 27001, GDPR" },
+      { label: "Integration Support", path: "/enterprise/integration", description: "Dedicated onboarding" },
+      { label: "Case Studies", path: "/enterprise/case-studies", description: "Customer success stories" },
+      { label: "Contact Sales", path: "/contact", description: "Talk to our team" },
     ]
   },
   { 
@@ -106,7 +110,7 @@ const navigationItems: NavigationItem[] = [
     subItems: [
       { label: "Self-Serve / SME", path: "/pricing", description: "Plans for small and medium businesses" },
       { label: "Volume / Enterprise", path: "/business", description: "Custom pricing for high volume" },
-      { label: "Add-ons & Optional Modules", path: "/api-pricing", description: "Additional features and modules" },
+      { label: "Add-ons & Modules", path: "/api-pricing", description: "Additional features and modules" },
     ]
   },
 ];
@@ -389,6 +393,15 @@ export const Header = ({ backgroundImage, content }: HeaderProps): JSX.Element =
                     >
                       <div className="font-medium text-gray-900 [font-family:'DM_Sans_18pt-Medium',Helvetica] text-base">
                         Dashboard
+                      </div>
+                    </Link>
+                    <Link
+                      to="/menu"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block px-4 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="font-medium text-gray-900 [font-family:'DM_Sans_18pt-Medium',Helvetica] text-base">
+                        Menu
                       </div>
                     </Link>
                     <button

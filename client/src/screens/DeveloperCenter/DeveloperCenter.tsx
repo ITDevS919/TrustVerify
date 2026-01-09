@@ -1163,7 +1163,7 @@ export const DeveloperCenter = (): JSX.Element => {
                                 {example.description}
                               </p>
                               <Button
-                                onClick={() => navigate("/integration-examples")}
+                                onClick={() => navigate("/enterprise/integration")}
                                 variant="outline"
                                 className="w-full h-[45px] rounded-lg border border-[#27ae60] hover:bg-[#27ae60]/10"
                               >

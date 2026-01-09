@@ -78,7 +78,7 @@ export default function CategoryPage() {
                 Talk to an Expert
               </Button>
             </Link>
-            <Link to="/demo">
+            <Link to="/developers/demolopers/demolopers/demolopers/demolopers/demo">
               <Button size="lg" variant="outline" className="border-l bg-transparent border-white text-white hover:bg-white hover:text-[#003d2b] rounded-[10px] [font-family:'DM_Sans_18pt-Bold',Helvetica] font-bold">
                 Try Live Demo
               </Button>

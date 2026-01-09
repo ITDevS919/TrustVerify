@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 export function EscrowServices() {
   const intelligenceModules = [
@@ -118,7 +118,7 @@ export function EscrowServices() {
               <span className="font-semibold text-white text-sm">See How It Works</span>
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Link href="/pricing">
+            <Link to="/pricing">
               <Button 
                 variant="outline" 
                 size="lg" 
@@ -522,7 +522,7 @@ export function EscrowServices() {
               Combined with Intelligence API subscriptions (from £99/month), TrustVerify delivers 
               comprehensive fraud protection and secure settlement for your marketplace.
             </p>
-            <Link href="/pricing">
+            <Link to="/pricing">
               <Button 
                 size="lg" 
                 className="h-[45px] rounded-lg bg-white text-[#003d2b] hover:opacity-90 px-8 py-6 text-lg font-bold"
@@ -606,7 +606,7 @@ export function EscrowServices() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/contact">
+            <Link to="/contact">
               <Button 
                 variant="outline" 
                 size="lg" 

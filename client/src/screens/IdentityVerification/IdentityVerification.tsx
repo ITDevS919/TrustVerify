@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Shield, Scan, UserCheck, FileText, Globe, Clock, CheckCircle, Award } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 export function IdentityVerification() {
   return (
@@ -29,7 +29,7 @@ export function IdentityVerification() {
             while providing seamless user experiences.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full mt-4">
-            <Link href="/biometric-verification">
+            <Link to="/biometric-verification">
               <Button 
                 size="lg" 
                 className="h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 px-8 py-4" 
@@ -38,7 +38,7 @@ export function IdentityVerification() {
                 <span className="font-semibold text-white text-sm">Start Verification</span>
               </Button>
             </Link>
-            <Link href="/regulatory-compliance">
+            <Link to="/enterprise/compliance">
               <Button 
                 variant="outline" 
                 size="lg" 
@@ -367,7 +367,7 @@ export function IdentityVerification() {
             Join leading companies that trust TrustVerify for secure, compliant identity verification.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/biometric-verification">
+            <Link to="/biometric-verification">
               <Button 
                 size="lg" 
                 className="rounded-lg bg-white text-app-primary hover:bg-white/80 px-8 py-4" 
@@ -376,12 +376,12 @@ export function IdentityVerification() {
                 Get Started Free
               </Button>
             </Link>
-            <Link href="/demo">
+            <Link to="/developers/demo">
               <Button 
                 variant="outline" 
                 size="lg" 
                 className="border-2 border-white text-white hover:bg-white bg-transparent hover:text-[#003d2b] px-8 py-4" 
-                data-testid="button-schedule-demo"
+                data-testid="button-schedule-demo"   
               >
                 <span className="font-semibold text-sm">Schedule Demo</span>
               </Button>

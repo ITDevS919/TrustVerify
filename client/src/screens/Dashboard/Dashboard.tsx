@@ -16,6 +16,8 @@ import {
   OctagonAlert,
   ShieldCheck,
   Eye,
+  Search,
+  Building2
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -348,7 +350,7 @@ export const Dashboard = (): JSX.Element => {
                       </h2>
                     </div>
 
-                    <div className="grid grid-cols-2 xl:grid-cols-4 gap-[19px] w-full">
+                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-[19px] w-full">
                         <Button
                           onClick={() => navigate("/transactions/new")}
                           variant="outline"
@@ -374,12 +376,36 @@ export const Dashboard = (): JSX.Element => {
                           </span>
                         </Button>
                         <Button
-                          onClick={() => navigate("/messages")}
+                          onClick={() => navigate("/kyb-verification")}
+                          variant="outline"
+                          className="h-[98px] rounded-[10px] border border-dashed border-neutral-300 flex flex-col items-center justify-center gap-4 hover:bg-accent/50"
+                        >
+                          <div className="w-9 h-9 flex items-center justify-center rounded-md bg-[#2563eb24]">
+                            <Building2 className="w-4 h-4 text-[#2563eb]" />
+                          </div>                          
+                          <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
+                            KYB Verification
+                          </span>
+                        </Button>
+                        <Button
+                          onClick={() => navigate("/aml-screening")}
                           variant="outline"
                           className="h-[98px] rounded-[10px] border border-dashed border-neutral-300 flex flex-col items-center justify-center gap-4 hover:bg-accent/50"
                         >
                           <div className="w-9 h-9 flex items-center justify-center rounded-md bg-[#D094DD24]">
-                            <MessageSquare className="w-4 h-4 text-[#D094DD]" />
+                            <Search className="w-4 h-4 text-[#D094DD]" />
+                          </div>                          
+                          <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
+                            AML Screening
+                          </span>
+                        </Button>
+                        <Button
+                          onClick={() => navigate("/messages")}
+                          variant="outline"
+                          className="h-[98px] rounded-[10px] border border-dashed border-neutral-300 flex flex-col items-center justify-center gap-4 hover:bg-accent/50"
+                        >
+                          <div className="w-9 h-9 flex items-center justify-center rounded-md bg-[#9ca3af24]">
+                            <MessageSquare className="w-4 h-4 text-[#9ca3af]" />
                           </div>                          
                           <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm tracking-[0] leading-5 whitespace-nowrap">
                             Messages

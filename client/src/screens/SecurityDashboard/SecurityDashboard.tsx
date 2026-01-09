@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// Note: Alert components may need to be replaced with Card or div if not available
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Shield, 
   AlertTriangle, 
@@ -17,9 +17,15 @@ import {
   Lock,
   Eye,
   FileText,
-  Zap
+  Zap,
+  Building2,
+  Search,
+  UserCheck,
+  Scan,
+  ArrowRight,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { Link } from 'react-router-dom';
 
 interface SecurityMetrics {
   configurationScore: number;
@@ -49,17 +55,12 @@ export default function SecurityDashboard() {
   const [loading, setLoading] = useState(true);
   const [runningPenTest, setRunningPenTest] = useState(false);
 
-  // Check admin access - same logic as AdminDashboard
-  const isDevelopment = (import.meta as any).env?.DEV || (import.meta as any).env?.VITE_ALLOW_ALL_ADMIN === 'true';
-  const hasAdminAccess = isDevelopment || user?.email?.includes('@trustverify.com') || user?.isAdmin;
-
   useEffect(() => {
-    if (hasAdminAccess) {
-      loadSecurityStatus();
-    } else {
-      setLoading(false);
-    }
-  }, [hasAdminAccess]);
+    loadSecurityStatus();
+  }, []);
+
+  const isDevelopment = (import.meta as any).env?.DEV || (import.meta as any).env?.VITE_ALLOW_ALL_ADMIN === 'true';
+  const hasAdminAccess = isDevelopment || user?.email?.includes('@trustverify.co.uk') || user?.isAdmin;
 
   const loadSecurityStatus = async () => {
     try {
@@ -87,95 +88,86 @@ export default function SecurityDashboard() {
   };
 
   const getSecurityScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
+    if (score >= 90) return 'text-[#27ae60]';
     if (score >= 70) return 'text-yellow-600';
     return 'text-red-600';
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'critical': return 'bg-red-100 text-red-800 border-red-200 rounded-full';
+      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200 rounded-full';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200 rounded-full';
+      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200 rounded-full';
+      default: return 'bg-[#e4e4e4] text-[#808080] border-[#e4e4e4] rounded-full';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pass': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'pass': return <CheckCircle className="h-4 w-4 text-[#27ae60]" />;
       case 'fail': return <XCircle className="h-4 w-4 text-red-600" />;
       case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      default: return <Eye className="h-4 w-4 text-gray-600" />;
+      default: return <Eye className="h-4 w-4 text-[#808080]" />;
     }
   };
 
   if (!user || !hasAdminAccess) {
     return (
-      <div className="min-h-screen bg-white">
+      <main className="bg-[#f6f6f6] overflow-hidden w-full mx-auto flex flex-col min-h-screen">
         <Header />
-        <div className="max-w-[1270px] mx-auto px-6 md:px-10 py-24">
-          <Card className="border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Shield className="h-4 w-4 text-[#FF4B26]" />
-                <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">Access Denied</CardTitle>
-              </div>
-              <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">
-                This security dashboard is only accessible to TrustVerify administrators.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+        <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-12">
+          <Alert className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+            <Shield className="h-4 w-4 text-[#27ae60]" />
+            <AlertTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">Access Denied</AlertTitle>
+            <AlertDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">
+              This security dashboard is only accessible to TrustVerify administrators.
+            </AlertDescription>
+          </Alert>
+        </section>
         <Footer />
-      </div>
+      </main>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <main className="bg-[#f6f6f6] overflow-hidden w-full mx-auto flex flex-col min-h-screen">
         <Header />
-        <div className="max-w-[1270px] mx-auto px-6 md:px-10 py-24">
+        <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-12">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-app-secondary"></div>
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#27ae60]"></div>
           </div>
-        </div>
+        </section>
         <Footer />
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <main className="bg-[#f6f6f6] overflow-hidden w-full mx-auto flex flex-col min-h-screen">
       <Header />
       
-      <div className="max-w-[1270px] mx-auto px-6 md:px-10 py-24">
-        <div className="mb-12 text-center">
-          <Badge className="h-[30px] bg-[#003d2b1a] hover:bg-[#003d2b1a] rounded-[800px] px-4 mb-6 border-0">
-            <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-sm leading-[14px] tracking-[0]">
-              SECURITY DASHBOARD
-            </span>
-          </Badge>
-          <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[42px] sm:text-[48px] lg:text-[54px] leading-[110%] text-[#003d2b] tracking-[-0.8px] flex items-center justify-center mb-4">
-            <Shield className="h-8 w-8 mr-3 text-[#0b3a78]" />
+      <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-8">
+        <div className="mb-8 w-full">
+          <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-3xl sm:text-4xl lg:text-5xl flex items-center">
+            <Shield className="h-8 w-8 mr-3 text-[#27ae60]" />
             Security Dashboard
           </h1>
-          <p className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080] text-lg">
+          <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080] mt-2 text-base sm:text-lg">
             Monitor and manage TrustVerify's security infrastructure
           </p>
         </div>
 
         {/* Security Score Overview */}
         {securityMetrics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 w-full">
+            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
               <CardHeader className="pb-2">
-                <CardTitle className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm font-normal text-[#808080]">Security Score</CardTitle>
+                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Security Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-3xl font-semibold mb-2">
+                <div className="text-3xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#003d2b] mb-2">
                   <span className={getSecurityScoreColor(securityMetrics.configurationScore)}>
                     {securityMetrics.configurationScore}/100
                   </span>
@@ -184,118 +176,409 @@ export default function SecurityDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
               <CardHeader className="pb-2">
-                <CardTitle className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm font-normal text-[#808080]">Critical Issues</CardTitle>
+                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Critical Issues</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-3xl font-semibold text-[#FF4B26] mb-2">
+                <div className="text-3xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-red-600 mb-2">
                   {securityMetrics.criticalIssues.length}
                 </div>
-                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm text-[#808080]">Require immediate attention</div>
+                <div className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Require immediate attention</div>
               </CardContent>
             </Card>
 
-            <Card className="border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
               <CardHeader className="pb-2">
-                <CardTitle className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm font-normal text-[#808080]">Warnings</CardTitle>
+                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Warnings</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-3xl font-semibold text-yellow-600 mb-2">
+                <div className="text-3xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-yellow-600 mb-2">
                   {securityMetrics.warnings.length}
                 </div>
-                <div className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm text-[#808080]">Should be addressed</div>
+                <div className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Should be addressed</div>
               </CardContent>
             </Card>
 
-            <Card className="border border-[#e4e4e4] rounded-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
               <CardHeader className="pb-2">
-                <CardTitle className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm font-normal text-[#808080]">Environment</CardTitle>
+                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Environment</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl font-semibold text-[#003d2b] mb-2 capitalize">
+                <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#003d2b] mb-2 capitalize">
                   {securityMetrics.environment}
                 </div>
-                <Badge className={securityMetrics.environment === 'production' ? 'bg-[#1DBF731a] text-[#003d2b] border-0 rounded-[800px]' : 'bg-[#003d2b1a] text-[#003d2b] border-0 rounded-[800px]'}>
-                  {securityMetrics.environment === 'production' ? 'Live' : 'Development'}
+                <Badge 
+                  variant={securityMetrics.environment === 'production' ? 'default' : 'secondary'}
+                  className="rounded-full"
+                >
+                  <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">
+                    {securityMetrics.environment === 'production' ? 'Live' : 'Development'}
+                  </span>
                 </Badge>
               </CardContent>
             </Card>
           </div>
         )}
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="issues">Issues & Warnings</TabsTrigger>
-            <TabsTrigger value="testing">Penetration Testing</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-6 w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-[#fcfcfc] rounded-lg border border-[#e4e4e4]">
+            <TabsTrigger value="overview" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="issues" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Issues & Warnings</TabsTrigger>
+            <TabsTrigger value="testing" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Penetration Testing</TabsTrigger>
+            <TabsTrigger value="compliance" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Compliance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Quick Actions */}
+            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+              <CardHeader>
+                <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                  <Zap className="h-5 w-5 mr-2 text-[#27ae60]" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Access verification and compliance tools</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Link to="/biometric-verification">
+                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-kyc">
+                      <div className="flex items-center justify-between mb-2">
+                        <UserCheck className="h-8 w-8 text-[#27ae60]" />
+                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                      </div>
+                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">KYC Verification</h4>
+                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Identity & biometric verification</p>
+                    </div>
+                  </Link>
+                  
+                  <Link to="/kyb-verification">
+                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-kyb">
+                      <div className="flex items-center justify-between mb-2">
+                        <Building2 className="h-8 w-8 text-[#27ae60]" />
+                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                      </div>
+                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">KYB Verification</h4>
+                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Business entity verification</p>
+                    </div>
+                  </Link>
+                  
+                  <Link to="/aml-screening">
+                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-aml">
+                      <div className="flex items-center justify-between mb-2">
+                        <Search className="h-8 w-8 text-[#27ae60]" />
+                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                      </div>
+                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">AML Screening</h4>
+                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Sanctions & PEP checks</p>
+                    </div>
+                  </Link>
+                  
+                  <Link to="/interactive-verification">
+                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-fraud">
+                      <div className="flex items-center justify-between mb-2">
+                        <Scan className="h-8 w-8 text-[#27ae60]" />
+                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                      </div>
+                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">Fraud Detection</h4>
+                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Real-time fraud analysis</p>
+                    </div>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* KYC/KYB/AML Verification Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* KYC Stats */}
+              <Card className="border-l-4 border-l-[#27ae60] bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                      <UserCheck className="h-5 w-5 mr-2 text-[#27ae60]" />
+                      KYC Verification
+                    </CardTitle>
+                    <Badge className="bg-[#e8f5e9] text-[#27ae60] rounded-full">
+                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Active</span>
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-[#e8f5e9] rounded-lg">
+                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#27ae60]">1,247</div>
+                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Verified</div>
+                    </div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-yellow-600">23</div>
+                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Pending</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                      <span className="text-[#808080]">Success Rate</span>
+                      <span className="font-medium text-[#27ae60]">98.2%</span>
+                    </div>
+                    <Progress value={98.2} className="h-2" />
+                  </div>
+                  <div className="flex items-center justify-between text-sm border-t border-[#e4e4e4] pt-3 [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                    <span className="text-[#808080]">Avg. Processing Time</span>
+                    <span className="font-medium text-[#003d2b]">2.3 mins</span>
+                  </div>
+                  <Link to="/biometric-verification">
+                    <Button variant="outline" className="w-full h-[45px] rounded-lg border border-[#e4e4e4] hover:bg-[#f6f6f6]" data-testid="kyc-start-btn">
+                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm text-[#003d2b]">Start KYC</span>
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* KYB Stats */}
+              <Card className="border-l-4 border-l-[#27ae60] bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                      <Building2 className="h-5 w-5 mr-2 text-[#27ae60]" />
+                      KYB Verification
+                    </CardTitle>
+                    <Badge className="bg-[#e8f5e9] text-[#27ae60] rounded-full">
+                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Active</span>
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-[#e8f5e9] rounded-lg">
+                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#27ae60]">384</div>
+                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Verified</div>
+                    </div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-yellow-600">12</div>
+                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">In Review</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                      <span className="text-[#808080]">Approval Rate</span>
+                      <span className="font-medium text-[#27ae60]">94.7%</span>
+                    </div>
+                    <Progress value={94.7} className="h-2" />
+                  </div>
+                  <div className="flex items-center justify-between text-sm border-t border-[#e4e4e4] pt-3 [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                    <span className="text-[#808080]">Avg. Processing Time</span>
+                    <span className="font-medium text-[#003d2b]">1.2 days</span>
+                  </div>
+                  <Link to="/kyb-verification">
+                    <Button variant="outline" className="w-full h-[45px] rounded-lg border border-[#e4e4e4] hover:bg-[#f6f6f6]" data-testid="kyb-start-btn">
+                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm text-[#003d2b]">Start KYB</span>
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* AML Stats */}
+              <Card className="border-l-4 border-l-[#27ae60] bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                      <Search className="h-5 w-5 mr-2 text-[#27ae60]" />
+                      AML Screening
+                    </CardTitle>
+                    <Badge className="bg-[#e8f5e9] text-[#27ae60] rounded-full">
+                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Active</span>
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-[#e8f5e9] rounded-lg">
+                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#27ae60]">5,892</div>
+                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Screened</div>
+                    </div>
+                    <div className="text-center p-3 bg-red-50 rounded-lg">
+                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-red-600">8</div>
+                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Flagged</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                      <span className="text-[#808080]">Clear Rate</span>
+                      <span className="font-medium text-[#27ae60]">99.86%</span>
+                    </div>
+                    <Progress value={99.86} className="h-2" />
+                  </div>
+                  <div className="flex items-center justify-between text-sm border-t border-[#e4e4e4] pt-3 [font-family:'DM_Sans_18pt-Regular',Helvetica]">
+                    <span className="text-[#808080]">Active Monitoring</span>
+                    <span className="font-medium text-[#003d2b]">1,823 entities</span>
+                  </div>
+                  <Link to="/aml-screening">
+                    <Button variant="outline" className="w-full h-[45px] rounded-lg border border-[#e4e4e4] hover:bg-[#f6f6f6]" data-testid="aml-start-btn">
+                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm text-[#003d2b]">Run Screening</span>
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Verification Panels */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Security Features Status */}
-              <Card>
+              {/* KYB Verification Details */}
+              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Lock className="h-5 w-5 mr-2" />
-                    Security Features
+                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                    <Building2 className="h-5 w-5 mr-2 text-[#27ae60]" />
+                    KYB Verification Status
                   </CardTitle>
-                  <CardDescription>Current security implementation status</CardDescription>
+                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Business entity verification checks</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">HTTPS Enforcement</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Company Registry Check</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">RBAC System</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Beneficial Owner Verification</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Rate Limiting</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Director/Officer Screening</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Input Sanitization</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Business Address Validation</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Audit Logging</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Financial Standing Check</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">2FA Infrastructure</span>
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Industry Risk Assessment</span>
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  </div>
+                  <div className="pt-3 border-t border-[#e4e4e4]">
+                    <Link to="/kyb-verification">
+                      <Button className="w-full h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90" data-testid="kyb-verify-btn">
+                        <Building2 className="mr-2 h-4 w-4" />
+                        <span className="font-semibold text-white text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica]">Start Business Verification</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AML Screening Details */}
+              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+                <CardHeader>
+                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                    <Search className="h-5 w-5 mr-2 text-[#27ae60]" />
+                    AML Screening Status
+                  </CardTitle>
+                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Anti-money laundering compliance checks</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Global Sanctions Lists</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">PEP Database Screening</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Adverse Media Monitoring</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Watchlist Checks</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Real-time Monitoring</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Enhanced Due Diligence</span>
+                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  </div>
+                  <div className="pt-3 border-t border-[#e4e4e4]">
+                    <Link to="/aml-screening">
+                      <Button className="w-full h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90" data-testid="aml-screen-btn">
+                        <Search className="mr-2 h-4 w-4" />
+                        <span className="font-semibold text-white text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica]">Run AML Screening</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Security Features Status */}
+              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+                <CardHeader>
+                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                    <Lock className="h-5 w-5 mr-2 text-[#27ae60]" />
+                    Security Features
+                  </CardTitle>
+                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Current security implementation status</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">HTTPS Enforcement</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">RBAC System</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Rate Limiting</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Input Sanitization</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Audit Logging</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">2FA Infrastructure</span>
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
                   </div>
                 </CardContent>
               </Card>
 
               {/* Compliance Status */}
-              <Card>
+              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="h-5 w-5 mr-2" />
+                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
+                    <FileText className="h-5 w-5 mr-2 text-[#27ae60]" />
                     Compliance Status
                   </CardTitle>
-                  <CardDescription>Regulatory compliance readiness</CardDescription>
+                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Regulatory compliance readiness</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">GDPR Compliance</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">GDPR Compliance</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">KYC/AML Standards</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">KYC/AML Standards</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">SOC 2 Readiness</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">SOC 2 Readiness</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Data Retention</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Data Retention</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                 </CardContent>
               </Card>
@@ -307,21 +590,21 @@ export default function SecurityDashboard() {
               <div className="space-y-6">
                 {/* Critical Issues */}
                 {securityMetrics.criticalIssues.length > 0 && (
-                  <Card>
+                  <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                     <CardHeader>
-                      <CardTitle className="text-red-600 flex items-center">
+                      <CardTitle className="text-red-600 flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold">
                         <XCircle className="h-5 w-5 mr-2" />
                         Critical Issues
                       </CardTitle>
-                      <CardDescription>These issues require immediate attention</CardDescription>
+                      <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">These issues require immediate attention</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         {securityMetrics.criticalIssues.map((issue, index) => (
-                          <div key={index} className="border border-[#FF4B26] bg-[#f3f3f3] rounded-lg p-3 flex items-start space-x-2">
-                            <AlertTriangle className="h-4 w-4 text-[#FF4B26] mt-0.5" />
-                            <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#FF4B26]">{issue}</p>
-                          </div>
+                          <Alert key={index} className="border-red-200 bg-red-50 rounded-lg">
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                            <AlertDescription className="text-red-800 [font-family:'DM_Sans_18pt-Regular',Helvetica]">{issue}</AlertDescription>
+                          </Alert>
                         ))}
                       </div>
                     </CardContent>
@@ -330,21 +613,21 @@ export default function SecurityDashboard() {
 
                 {/* Warnings */}
                 {securityMetrics.warnings.length > 0 && (
-                  <Card>
+                  <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                     <CardHeader>
-                      <CardTitle className="text-yellow-600 flex items-center">
+                      <CardTitle className="text-yellow-600 flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold">
                         <AlertTriangle className="h-5 w-5 mr-2" />
                         Warnings
                       </CardTitle>
-                      <CardDescription>These issues should be addressed when possible</CardDescription>
+                      <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">These issues should be addressed when possible</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         {securityMetrics.warnings.map((warning, index) => (
-                          <div key={index} className="border border-yellow-400 bg-[#f3f3f3] rounded-lg p-3 flex items-start space-x-2">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                            <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-yellow-800">{warning}</p>
-                          </div>
+                          <Alert key={index} className="border-yellow-200 bg-yellow-50 rounded-lg">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                            <AlertDescription className="text-yellow-800 [font-family:'DM_Sans_18pt-Regular',Helvetica]">{warning}</AlertDescription>
+                          </Alert>
                         ))}
                       </div>
                     </CardContent>
@@ -353,19 +636,19 @@ export default function SecurityDashboard() {
 
                 {/* Recommendations */}
                 {securityMetrics.recommendations.length > 0 && (
-                  <Card>
+                  <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                     <CardHeader>
-                      <CardTitle className="text-blue-600 flex items-center">
+                      <CardTitle className="text-[#27ae60] flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold">
                         <Zap className="h-5 w-5 mr-2" />
                         Recommendations
                       </CardTitle>
-                      <CardDescription>Suggested improvements for enhanced security</CardDescription>
+                      <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Suggested improvements for enhanced security</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         {securityMetrics.recommendations.map((recommendation, index) => (
-                          <div key={index} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800">{recommendation}</p>
+                          <div key={index} className="p-3 bg-[#e8f5e9] border border-[#27ae60] rounded-lg">
+                            <p className="text-sm text-[#003d2b] [font-family:'DM_Sans_18pt-Regular',Helvetica]">{recommendation}</p>
                           </div>
                         ))}
                       </div>
@@ -377,22 +660,24 @@ export default function SecurityDashboard() {
           </TabsContent>
 
           <TabsContent value="testing" className="space-y-6">
-            <Card>
+            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
                   <div className="flex items-center">
-                    <Bug className="h-5 w-5 mr-2" />
+                    <Bug className="h-5 w-5 mr-2 text-[#27ae60]" />
                     Penetration Testing
                   </div>
                   <Button 
                     onClick={runPenetrationTest} 
                     disabled={runningPenTest}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 px-8"
                   >
-                    {runningPenTest ? 'Running Tests...' : 'Run Pen Test'}
+                    <span className="font-semibold text-white text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica]">
+                      {runningPenTest ? 'Running Tests...' : 'Run Pen Test'}
+                    </span>
                   </Button>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">
                   Automated security testing to identify vulnerabilities
                 </CardDescription>
               </CardHeader>
@@ -400,27 +685,27 @@ export default function SecurityDashboard() {
                 {penTestResults.length > 0 ? (
                   <div className="space-y-4">
                     {penTestResults.map((result, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div key={index} className="border border-[#e4e4e4] rounded-lg p-4 bg-[#fcfcfc]">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
                             {getStatusIcon(result.status)}
-                            <h4 className="font-medium">{result.testName}</h4>
+                            <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">{result.testName}</h4>
                             <Badge className={getSeverityColor(result.severity)}>
-                              {result.severity}
+                              <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">{result.severity}</span>
                             </Badge>
                           </div>
-                          <span className="text-sm text-gray-500">{result.category}</span>
+                          <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">{result.category}</span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{result.description}</p>
-                        <p className="text-sm text-blue-600">{result.remediation}</p>
+                        <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080] mb-2">{result.description}</p>
+                        <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#27ae60]">{result.remediation}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Bug className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No penetration test results yet</p>
-                    <p className="text-sm text-gray-400">Run a penetration test to identify security vulnerabilities</p>
+                    <Bug className="h-12 w-12 text-[#808080] mx-auto mb-4" />
+                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">No penetration test results yet</p>
+                    <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Run a penetration test to identify security vulnerabilities</p>
                   </div>
                 )}
               </CardContent>
@@ -430,61 +715,61 @@ export default function SecurityDashboard() {
           <TabsContent value="compliance" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* GDPR */}
-              <Card>
+              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                 <CardHeader>
-                  <CardTitle>GDPR Compliance</CardTitle>
-                  <CardDescription>General Data Protection Regulation readiness</CardDescription>
+                  <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">GDPR Compliance</CardTitle>
+                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">General Data Protection Regulation readiness</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Data Subject Rights</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Data Subject Rights</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Lawful Basis Processing</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Lawful Basis Processing</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Data Retention Policy</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Data Retention Policy</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Breach Notification</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Breach Notification</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                 </CardContent>
               </Card>
 
               {/* SOC 2 */}
-              <Card>
+              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
                 <CardHeader>
-                  <CardTitle>SOC 2 Type I</CardTitle>
-                  <CardDescription>Service Organization Control readiness</CardDescription>
+                  <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">SOC 2 Type I</CardTitle>
+                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Service Organization Control readiness</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Security Controls</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Security Controls</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Availability Controls</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Availability Controls</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Processing Integrity</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Processing Integrity</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Confidentiality</span>
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Confidentiality</span>
+                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
                   </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </section>
       <Footer />
-    </div>
+    </main>
   );
 }

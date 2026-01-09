@@ -1,773 +1,881 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 import { 
   Shield, 
+  Search, 
   AlertTriangle, 
   CheckCircle, 
-  XCircle, 
-  Bug,
-  Lock,
-  Eye,
-  FileText,
-  Zap,
+  Clock, 
+  XCircle,
+  User,
   Building2,
-  Search,
-  UserCheck,
-  Scan,
-  ArrowRight,
-} from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
-import { Link } from 'wouter';
+  Globe,
+  FileText,
+  Bell,
+  RefreshCw,
+  Download,
+  Eye,
+  Flag,
+  Activity,
+  TrendingUp,
+  Users,
+  AlertCircle,
+  Filter,
+  Calendar
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-interface SecurityMetrics {
-  configurationScore: number;
-  criticalIssues: string[];
-  warnings: string[];
-  recommendations: string[];
-  timestamp: string;
-  environment: string;
+interface ScreeningResult {
+  id: string;
+  name: string;
+  type: 'individual' | 'business';
+  dateOfBirth?: string;
+  nationality?: string;
+  registrationNumber?: string;
+  screeningDate: string;
+  status: 'clear' | 'match' | 'potential_match' | 'pending';
+  pepStatus: boolean;
+  sanctionsMatch: boolean;
+  adverseMedia: boolean;
+  riskScore: number;
+  matchDetails?: string[];
 }
 
-interface PenTestResult {
-  testId: string;
-  testName: string;
-  category: string;
-  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
-  status: 'pass' | 'fail' | 'warning';
+interface MonitoringAlert {
+  id: string;
+  entityName: string;
+  entityType: 'individual' | 'business';
+  alertType: 'new_sanction' | 'pep_update' | 'adverse_media' | 'watchlist_addition';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  dateDetected: string;
+  status: 'new' | 'reviewing' | 'resolved' | 'escalated';
   description: string;
-  evidence?: any;
-  remediation: string;
-  timestamp: string;
 }
 
 export default function AMLScreeningPage() {
-  const { user } = useAuth();
-  const [securityMetrics, setSecurityMetrics] = useState<SecurityMetrics | null>(null);
-  const [penTestResults, setPenTestResults] = useState<PenTestResult[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [runningPenTest, setRunningPenTest] = useState(false);
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("screening");
+  const [screeningType, setScreeningType] = useState<'individual' | 'business'>('individual');
+  const [isScreening, setIsScreening] = useState(false);
+  const [screeningProgress, setScreeningProgress] = useState(0);
 
-  useEffect(() => {
-    loadSecurityStatus();
-  }, []);
+  // Individual screening fields
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [nationality, setNationality] = useState("");
 
-  const isDevelopment = (import.meta as any).env?.DEV || (import.meta as any).env?.VITE_ALLOW_ALL_ADMIN === 'true';
-  const hasAdminAccess = isDevelopment || user?.email?.includes('@trustverify.co.uk') || user?.isAdmin;
+  // Business screening fields
+  const [businessName, setBusinessName] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [registrationCountry, setRegistrationCountry] = useState("");
 
-  const loadSecurityStatus = async () => {
-    try {
-      const response = await apiRequest('GET', '/api/security/status');
-      const data = await response.json();
-      setSecurityMetrics(data);
-    } catch (error) {
-      console.error('Failed to load security status:', error);
-    } finally {
-      setLoading(false);
+  // Results
+  const [screeningResults, setScreeningResults] = useState<ScreeningResult[]>([
+    {
+      id: 'SCR-001',
+      name: 'John Smith',
+      type: 'individual',
+      dateOfBirth: '1985-03-15',
+      nationality: 'United Kingdom',
+      screeningDate: '2025-12-20',
+      status: 'clear',
+      pepStatus: false,
+      sanctionsMatch: false,
+      adverseMedia: false,
+      riskScore: 12
+    },
+    {
+      id: 'SCR-002',
+      name: 'Acme Holdings Ltd',
+      type: 'business',
+      registrationNumber: '12345678',
+      screeningDate: '2025-12-19',
+      status: 'potential_match',
+      pepStatus: false,
+      sanctionsMatch: false,
+      adverseMedia: true,
+      riskScore: 45,
+      matchDetails: ['Media mention: Regulatory investigation 2024']
+    },
+    {
+      id: 'SCR-003',
+      name: 'Viktor Petrov',
+      type: 'individual',
+      dateOfBirth: '1970-08-22',
+      nationality: 'Russia',
+      screeningDate: '2025-12-18',
+      status: 'match',
+      pepStatus: true,
+      sanctionsMatch: true,
+      adverseMedia: true,
+      riskScore: 95,
+      matchDetails: ['OFAC SDN List Match', 'EU Sanctions List Match', 'PEP: Former Government Official']
     }
-  };
+  ]);
 
-  const runPenetrationTest = async () => {
-    setRunningPenTest(true);
-    try {
-      const response = await apiRequest('POST', '/api/security/pentest');
-      const data = await response.json();
-      setPenTestResults(data.results);
-    } catch (error) {
-      console.error('Failed to run penetration test:', error);
-    } finally {
-      setRunningPenTest(false);
+  const [monitoringAlerts, _setMonitoringAlerts] = useState<MonitoringAlert[]>([
+    {
+      id: 'ALT-001',
+      entityName: 'Global Trade Corp',
+      entityType: 'business',
+      alertType: 'new_sanction',
+      severity: 'critical',
+      dateDetected: '2025-12-20T10:30:00Z',
+      status: 'new',
+      description: 'Entity added to EU consolidated sanctions list'
+    },
+    {
+      id: 'ALT-002',
+      entityName: 'Maria Santos',
+      entityType: 'individual',
+      alertType: 'pep_update',
+      severity: 'medium',
+      dateDetected: '2025-12-19T14:15:00Z',
+      status: 'reviewing',
+      description: 'PEP status changed: Appointed as government minister'
+    },
+    {
+      id: 'ALT-003',
+      entityName: 'Nexus Financial Services',
+      entityType: 'business',
+      alertType: 'adverse_media',
+      severity: 'high',
+      dateDetected: '2025-12-18T09:00:00Z',
+      status: 'escalated',
+      description: 'Multiple media reports of money laundering allegations'
     }
-  };
+  ]);
 
-  const getSecurityScoreColor = (score: number) => {
-    if (score >= 90) return 'text-[#27ae60]';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  const runScreening = async () => {
+    setIsScreening(true);
+    setScreeningProgress(0);
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200 rounded-full';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200 rounded-full';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200 rounded-full';
-      case 'low': return 'bg-blue-100 text-blue-800 border-blue-200 rounded-full';
-      default: return 'bg-[#e4e4e4] text-[#808080] border-[#e4e4e4] rounded-full';
+    const stages = [
+      { progress: 20, label: 'Checking global sanctions lists...' },
+      { progress: 40, label: 'Screening PEP databases...' },
+      { progress: 60, label: 'Searching adverse media...' },
+      { progress: 80, label: 'Analyzing watchlists...' },
+      { progress: 100, label: 'Compiling results...' }
+    ];
+
+    for (const stage of stages) {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setScreeningProgress(stage.progress);
     }
+
+    const newResult: ScreeningResult = {
+      id: `SCR-${Date.now().toString().slice(-6)}`,
+      name: screeningType === 'individual' ? `${firstName} ${lastName}` : businessName,
+      type: screeningType,
+      dateOfBirth: screeningType === 'individual' ? dateOfBirth : undefined,
+      nationality: screeningType === 'individual' ? nationality : undefined,
+      registrationNumber: screeningType === 'business' ? registrationNumber : undefined,
+      screeningDate: new Date().toISOString().split('T')[0],
+      status: 'clear',
+      pepStatus: false,
+      sanctionsMatch: false,
+      adverseMedia: false,
+      riskScore: Math.floor(Math.random() * 25)
+    };
+
+    setScreeningResults([newResult, ...screeningResults]);
+    setIsScreening(false);
+
+    toast({
+      title: "Screening Complete",
+      description: `${newResult.name} has been screened. Status: Clear`,
+    });
+
+    // Reset form
+    setFirstName("");
+    setLastName("");
+    setDateOfBirth("");
+    setNationality("");
+    setBusinessName("");
+    setRegistrationNumber("");
+    setRegistrationCountry("");
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusBadge = (status: ScreeningResult['status']) => {
     switch (status) {
-      case 'pass': return <CheckCircle className="h-4 w-4 text-[#27ae60]" />;
-      case 'fail': return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      default: return <Eye className="h-4 w-4 text-[#808080]" />;
+      case 'clear':
+        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Clear</Badge>;
+      case 'match':
+        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Match</Badge>;
+      case 'potential_match':
+        return <Badge className="bg-amber-500"><AlertTriangle className="h-3 w-3 mr-1" />Potential Match</Badge>;
+      case 'pending':
+        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
     }
   };
 
-  if (!user || !hasAdminAccess) {
-    return (
-      <main className="bg-[#f6f6f6] overflow-hidden w-full mx-auto flex flex-col min-h-screen">
-        <Header />
-        <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-12">
-          <Alert className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-            <Shield className="h-4 w-4 text-[#27ae60]" />
-            <AlertTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">Access Denied</AlertTitle>
-            <AlertDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">
-              This security dashboard is only accessible to TrustVerify administrators.
-            </AlertDescription>
-          </Alert>
-        </section>
-        <Footer />
-      </main>
-    );
-  }
+  const getSeverityBadge = (severity: MonitoringAlert['severity']) => {
+    switch (severity) {
+      case 'critical':
+        return <Badge variant="destructive">Critical</Badge>;
+      case 'high':
+        return <Badge className="bg-orange-500">High</Badge>;
+      case 'medium':
+        return <Badge className="bg-amber-500">Medium</Badge>;
+      case 'low':
+        return <Badge variant="secondary">Low</Badge>;
+    }
+  };
 
-  if (loading) {
-    return (
-      <main className="bg-[#f6f6f6] overflow-hidden w-full mx-auto flex flex-col min-h-screen">
-        <Header />
-        <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-12">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#27ae60]"></div>
-          </div>
-        </section>
-        <Footer />
-      </main>
-    );
-  }
+  const getAlertStatusBadge = (status: MonitoringAlert['status']) => {
+    switch (status) {
+      case 'new':
+        return <Badge className="bg-blue-500">New</Badge>;
+      case 'reviewing':
+        return <Badge className="bg-purple-500">Reviewing</Badge>;
+      case 'escalated':
+        return <Badge variant="destructive">Escalated</Badge>;
+      case 'resolved':
+        return <Badge className="bg-green-500">Resolved</Badge>;
+    }
+  };
+
+  const getRiskColor = (score: number) => {
+    if (score >= 70) return 'text-red-600';
+    if (score >= 40) return 'text-amber-600';
+    return 'text-green-600';
+  };
+
+  const countries = [
+    "United Kingdom", "United States", "Germany", "France", "Netherlands",
+    "Ireland", "Spain", "Italy", "Canada", "Australia", "Russia", "China", "Other"
+  ];
+
+  const stats = {
+    totalScreenings: screeningResults.length,
+    clearResults: screeningResults.filter(r => r.status === 'clear').length,
+    matchesFound: screeningResults.filter(r => r.status === 'match').length,
+    pendingReview: screeningResults.filter(r => r.status === 'potential_match').length,
+    activeAlerts: monitoringAlerts.filter(a => a.status !== 'resolved').length,
+    entitiesMonitored: 1247
+  };
 
   return (
     <main className="bg-[#f6f6f6] overflow-hidden w-full mx-auto flex flex-col min-h-screen">
       <Header />
       
-      <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-8">
-        <div className="mb-8 w-full">
-          <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-3xl sm:text-4xl lg:text-5xl flex items-center">
-            <Shield className="h-8 w-8 mr-3 text-[#27ae60]" />
-            Security Dashboard
-          </h1>
-          <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080] mt-2 text-base sm:text-lg">
-            Monitor and manage TrustVerify's security infrastructure
+      <section className="flex flex-col items-start gap-[30px] w-full max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-[110px] py-20">
+        {/* Header */}
+        <div className="mb-6 w-full">
+          <div className="flex items-center justify-center  gap-3 mb-3">
+            <Shield className="h-8 w-8 text-[#27ae60]" />
+            <div>
+              <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-3xl sm:text-4xl">
+                AML & PEP Screening
+              </h1>
+            </div>
+          </div>
+          <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080] text-center">
+            Anti-Money Laundering compliance and Politically Exposed Person screening
           </p>
         </div>
 
-        {/* Security Score Overview */}
-        {securityMetrics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 w-full">
-            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Security Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#003d2b] mb-2">
-                  <span className={getSecurityScoreColor(securityMetrics.configurationScore)}>
-                    {securityMetrics.configurationScore}/100
-                  </span>
-                </div>
-                <Progress value={securityMetrics.configurationScore} className="h-2" />
-              </CardContent>
-            </Card>
+        {/* Stats Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4 w-full">
+          <Card className="bg-[#fcfcfc] rounded-[16px] border border-[#e4e4e4]">
+            <CardContent className="p-4 text-center">
+              <Search className="h-6 w-6 text-[#27ae60] mx-auto mb-2" />
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl text-[#003d2b] font-semibold">{stats.totalScreenings}</p>
+              <p className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Total Screenings</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#fcfcfc] rounded-[16px] border border-[#e4e4e4]">
+            <CardContent className="p-4 text-center">
+              <CheckCircle className="h-6 w-6 text-[#27ae60] mx-auto mb-2" />
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl text-[#27ae60] font-semibold">{stats.clearResults}</p>
+              <p className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Clear Results</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#fcfcfc] rounded-[16px] border border-[#e4e4e4]">
+            <CardContent className="p-4 text-center">
+              <XCircle className="h-6 w-6 text-red-600 mx-auto mb-2" />
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl text-red-600 font-semibold">{stats.matchesFound}</p>
+              <p className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Matches Found</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#fcfcfc] rounded-[16px] border border-[#e4e4e4]">
+            <CardContent className="p-4 text-center">
+              <AlertTriangle className="h-6 w-6 text-amber-600 mx-auto mb-2" />
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl text-amber-600 font-semibold">{stats.pendingReview}</p>
+              <p className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Pending Review</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#fcfcfc] rounded-[16px] border border-[#e4e4e4]">
+            <CardContent className="p-4 text-center">
+              <Bell className="h-6 w-6 text-[#436cc8] mx-auto mb-2" />
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl text-[#436cc8] font-semibold">{stats.activeAlerts}</p>
+              <p className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Active Alerts</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-[#fcfcfc] rounded-[16px] border border-[#e4e4e4]">
+            <CardContent className="p-4 text-center">
+              <Activity className="h-6 w-6 text-[#27ae60] mx-auto mb-2" />
+              <p className="[font-family:'Suisse_Intl-SemiBold',Helvetica] text-2xl text-[#003d2b] font-semibold">{stats.entitiesMonitored.toLocaleString()}</p>
+              <p className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Monitored</p>
+            </CardContent>
+          </Card>
+        </div>
 
-            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Critical Issues</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-red-600 mb-2">
-                  {securityMetrics.criticalIssues.length}
-                </div>
-                <div className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Require immediate attention</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Warnings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-yellow-600 mb-2">
-                  {securityMetrics.warnings.length}
-                </div>
-                <div className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Should be addressed</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#808080]">Environment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#003d2b] mb-2 capitalize">
-                  {securityMetrics.environment}
-                </div>
-                <Badge 
-                  variant={securityMetrics.environment === 'production' ? 'default' : 'secondary'}
-                  className="rounded-full"
-                >
-                  <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">
-                    {securityMetrics.environment === 'production' ? 'Live' : 'Development'}
-                  </span>
-                </Badge>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        <Tabs defaultValue="overview" className="space-y-6 w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-[#fcfcfc] rounded-lg border border-[#e4e4e4]">
-            <TabsTrigger value="overview" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="issues" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Issues & Warnings</TabsTrigger>
-            <TabsTrigger value="testing" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Penetration Testing</TabsTrigger>
-            <TabsTrigger value="compliance" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Compliance</TabsTrigger>
+        {/* Main Content Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-200 rounded-lg p-1">
+            <TabsTrigger value="screening" data-testid="tab-screening">
+              <Search className="h-4 w-4 mr-2" />
+              New Screening
+            </TabsTrigger>
+            <TabsTrigger value="results" data-testid="tab-results">
+              <FileText className="h-4 w-4 mr-2" />
+              Results History
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" data-testid="tab-monitoring">
+              <Activity className="h-4 w-4 mr-2" />
+              Ongoing Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="alerts" data-testid="tab-alerts">
+              <Bell className="h-4 w-4 mr-2" />
+              Alerts ({stats.activeAlerts})
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Quick Actions */}
-            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
+          {/* New Screening Tab */}
+          <TabsContent value="screening">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 bg-[#fcfcfc] border border-[#e4e4e4] rounded-[20px]" data-testid="screening-form">
+                <CardHeader>
+                  <CardTitle>Run AML/PEP Screening</CardTitle>
+                  <CardDescription>
+                    Screen individuals or businesses against global sanctions lists, PEP databases, and adverse media
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Screening Type Toggle */}
+                  <div className="flex gap-4">
+                    <Button
+                      variant=  {screeningType === 'individual' ? 'outline' : 'default'}
+                      onClick={() => setScreeningType('individual')}
+                      className="flex-1"
+                      data-testid="button-type-individual"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Individual
+                    </Button>
+                    <Button
+                      variant={screeningType === 'business' ? 'outline' : 'default'}
+                      onClick={() => setScreeningType('business')}
+                      className="flex-1"
+                      data-testid="button-type-business"
+                    >
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Business
+                    </Button>
+                  </div>
+
+                  {screeningType === 'individual' ? (
+                    <div className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">First Name *</Label>
+                          <Input
+                            id="firstName"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="e.g., John"
+                            data-testid="input-first-name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Last Name *</Label>
+                          <Input
+                            id="lastName"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="e.g., Smith"
+                            data-testid="input-last-name"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dob">Date of Birth</Label>
+                          <Input
+                            id="dob"
+                            type="date"
+                            value={dateOfBirth}
+                            onChange={(e) => setDateOfBirth(e.target.value)}
+                            data-testid="input-dob"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="nationality">Nationality</Label>
+                          <Select value={nationality} onValueChange={setNationality}>
+                            <SelectTrigger data-testid="select-nationality">
+                              <SelectValue placeholder="Select nationality" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countries.map(c => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="businessName">Business Name *</Label>
+                        <Input
+                          id="businessName"
+                          value={businessName}
+                          onChange={(e) => setBusinessName(e.target.value)}
+                          placeholder="e.g., Acme Corporation Ltd"
+                          data-testid="input-business-name"
+                        />
+                      </div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="regNumber">Registration Number</Label>
+                          <Input
+                            id="regNumber"
+                            value={registrationNumber}
+                            onChange={(e) => setRegistrationNumber(e.target.value)}
+                            placeholder="e.g., 12345678"
+                            data-testid="input-reg-number"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="regCountry">Country of Registration</Label>
+                          <Select value={registrationCountry} onValueChange={setRegistrationCountry}>
+                            <SelectTrigger data-testid="select-reg-country">
+                              <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countries.map(c => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isScreening && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Screening in progress...</span>
+                        <span>{screeningProgress}%</span>
+                      </div>
+                      <Progress value={screeningProgress} className="h-2" />
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={runScreening}
+                    disabled={isScreening || (screeningType === 'individual' ? !firstName || !lastName : !businessName)}
+                    className="w-full h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 disabled:opacity-50"
+                    data-testid="button-run-screening"
+                  >
+                    {isScreening ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Screening...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-white text-sm">Run AML/PEP Screening</span>
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Screening Coverage Info */}
+              <Card className="bg-[#fcfcfc] border border-[#e4e4e4] rounded-[20px]">
+                <CardHeader>
+                  <CardTitle className="text-lg">Screening Coverage</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium">Global Sanctions Lists</h4>
+                        <p className="text-xs text-gray-500">OFAC, EU, UN, HMT + 200 more</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Users className="h-5 w-5 text-purple-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium">PEP Databases</h4>
+                        <p className="text-xs text-gray-500">2M+ politically exposed persons</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium">Adverse Media</h4>
+                        <p className="text-xs text-gray-500">Real-time news & media screening</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Flag className="h-5 w-5 text-red-600 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium">Watchlists</h4>
+                        <p className="text-xs text-gray-500">Law enforcement & regulatory lists</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="bg-blue-50 rounded-lg p-3">
+                    <h4 className="font-medium text-blue-900 text-sm mb-1">Real-Time Updates</h4>
+                    <p className="text-xs text-blue-700">
+                      Our databases are updated every 15 minutes with the latest sanctions and PEP data
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Results History Tab */}
+          <TabsContent value="results">
+            <Card className="bg-[#fcfcfc] border border-[#e4e4e4] rounded-[20px]">
               <CardHeader>
-                <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                  <Zap className="h-5 w-5 mr-2 text-[#27ae60]" />
-                  Quick Actions
-                </CardTitle>
-                <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Access verification and compliance tools</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Screening Results</CardTitle>
+                    <CardDescription>View and manage all screening results</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" data-testid="button-export-results">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                    <Button variant="outline" size="sm" data-testid="button-filter-results">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Link href="/biometric-verification">
-                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-kyc">
-                      <div className="flex items-center justify-between mb-2">
-                        <UserCheck className="h-8 w-8 text-[#27ae60]" />
-                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Name/Entity</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>PEP</TableHead>
+                      <TableHead>Sanctions</TableHead>
+                      <TableHead>Risk Score</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {screeningResults.map((result) => (
+                      <TableRow key={result.id} data-testid={`row-result-${result.id}`}>
+                        <TableCell className="font-mono text-xs">{result.id}</TableCell>
+                        <TableCell className="font-medium">{result.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {result.type === 'individual' ? <User className="h-3 w-3 mr-1" /> : <Building2 className="h-3 w-3 mr-1" />}
+                            {result.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">{result.screeningDate}</TableCell>
+                        <TableCell>{getStatusBadge(result.status)}</TableCell>
+                        <TableCell>
+                          {result.pepStatus ? (
+                            <Badge variant="destructive" className="text-xs">PEP</Badge>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {result.sanctionsMatch ? (
+                            <Badge variant="destructive" className="text-xs">Match</Badge>
+                          ) : (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-semibold ${getRiskColor(result.riskScore)}`}>
+                            {result.riskScore}/100
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" data-testid={`button-view-${result.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Ongoing Monitoring Tab */}
+          <TabsContent value="monitoring">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 bg-[#fcfcfc] border border-[#e4e4e4] rounded-[20px]">
+                <CardHeader>
+                  <CardTitle>Ongoing Monitoring</CardTitle>
+                  <CardDescription>
+                    Continuously monitor entities for changes in sanctions, PEP status, and adverse media
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Activity className="h-6 w-6 text-green-600" />
+                        <div>
+                          <h4 className="font-medium text-green-900">Monitoring Active</h4>
+                          <p className="text-sm text-green-700">{stats.entitiesMonitored.toLocaleString()} entities under continuous monitoring</p>
+                        </div>
                       </div>
-                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">KYC Verification</h4>
-                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Identity & biometric verification</p>
+                      <Badge className="bg-green-500">Live</Badge>
                     </div>
-                  </Link>
-                  
-                  <Link href="/kyb-verification">
-                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-kyb">
-                      <div className="flex items-center justify-between mb-2">
-                        <Building2 className="h-8 w-8 text-[#27ae60]" />
-                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Users className="h-5 w-5 text-blue-600" />
+                          <h4 className="font-medium">Individuals Monitored</h4>
+                        </div>
+                        <p className="text-3xl font-bold">892</p>
+                        <p className="text-sm text-gray-500">+23 added this month</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Building2 className="h-5 w-5 text-purple-600" />
+                          <h4 className="font-medium">Businesses Monitored</h4>
+                        </div>
+                        <p className="text-3xl font-bold">355</p>
+                        <p className="text-sm text-gray-500">+8 added this month</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="font-medium mb-4">Monitoring Schedule</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Globe className="h-5 w-5 text-blue-600" />
+                          <span>Sanctions List Updates</span>
+                        </div>
+                        <Badge variant="outline">Every 15 min</Badge>
                       </div>
-                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">KYB Verification</h4>
-                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Business entity verification</p>
-                    </div>
-                  </Link>
-                  
-                  <Link href="/aml-screening">
-                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-aml">
-                      <div className="flex items-center justify-between mb-2">
-                        <Search className="h-8 w-8 text-[#27ae60]" />
-                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Users className="h-5 w-5 text-purple-600" />
+                          <span>PEP Database Refresh</span>
+                        </div>
+                        <Badge variant="outline">Daily</Badge>
                       </div>
-                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">AML Screening</h4>
-                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Sanctions & PEP checks</p>
-                    </div>
-                  </Link>
-                  
-                  <Link href="/interactive-verification">
-                    <div className="p-4 border border-[#e4e4e4] rounded-lg hover:border-[#27ae60] hover:bg-[#e8f5e9] transition-colors cursor-pointer group bg-[#fcfcfc]" data-testid="quick-action-fraud">
-                      <div className="flex items-center justify-between mb-2">
-                        <Scan className="h-8 w-8 text-[#27ae60]" />
-                        <ArrowRight className="h-4 w-4 text-[#808080] group-hover:text-[#27ae60] transition-colors" />
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <AlertCircle className="h-5 w-5 text-amber-600" />
+                          <span>Adverse Media Scan</span>
+                        </div>
+                        <Badge variant="outline">Every 6 hours</Badge>
                       </div>
-                      <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">Fraud Detection</h4>
-                      <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Real-time fraud analysis</p>
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                          <span>Risk Score Recalculation</span>
+                        </div>
+                        <Badge variant="outline">Weekly</Badge>
+                      </div>
                     </div>
-                  </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#fcfcfc] border border-[#e4e4e4] rounded-[20px]">
+                <CardHeader>
+                  <CardTitle className="text-lg">Add to Monitoring</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Automatically monitor screened entities for ongoing changes
+                  </p>
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-add-individual">
+                      <User className="h-4 w-4 mr-2" />
+                      Add Individual
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-add-business">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Add Business
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start" data-testid="button-bulk-upload">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Bulk Upload (CSV)
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  <div className="bg-amber-50 rounded-lg p-3">
+                    <h4 className="font-medium text-amber-900 text-sm mb-1">Pricing</h4>
+                    <p className="text-xs text-amber-700">
+                      £0.05 per entity/month for ongoing monitoring
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Alerts Tab */}
+          <TabsContent value="alerts">
+            <Card className="bg-[#fcfcfc] border border-[#e4e4e4] rounded-[20px]">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Monitoring Alerts</CardTitle>
+                    <CardDescription>Review and action alerts from ongoing monitoring</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" data-testid="button-mark-all-read">
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Mark All Read
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {monitoringAlerts.map((alert) => (
+                    <div 
+                      key={alert.id}
+                      className={`border rounded-lg p-4 ${alert.severity === 'critical' ? 'border-red-300 bg-red-50' : ''}`}
+                      data-testid={`alert-${alert.id}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          {alert.entityType === 'individual' ? (
+                            <User className="h-5 w-5 text-gray-600 mt-1" />
+                          ) : (
+                            <Building2 className="h-5 w-5 text-gray-600 mt-1" />
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium">{alert.entityName}</h4>
+                              {getSeverityBadge(alert.severity)}
+                              {getAlertStatusBadge(alert.status)}
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{alert.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(alert.dateDetected).toLocaleDateString()}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {alert.alertType.replace(/_/g, ' ')}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" data-testid={`button-review-${alert.id}`}>
+                            <Eye className="h-4 w-4 mr-1" />
+                            Review
+                          </Button>
+                          <Button size="sm" data-testid={`button-action-${alert.id}`}>
+                            Take Action
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
-
-            {/* KYC/KYB/AML Verification Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* KYC Stats */}
-              <Card className="border-l-4 border-l-[#27ae60] bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                      <UserCheck className="h-5 w-5 mr-2 text-[#27ae60]" />
-                      KYC Verification
-                    </CardTitle>
-                    <Badge className="bg-[#e8f5e9] text-[#27ae60] rounded-full">
-                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Active</span>
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-[#e8f5e9] rounded-lg">
-                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#27ae60]">1,247</div>
-                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Verified</div>
-                    </div>
-                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-yellow-600">23</div>
-                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Pending</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                      <span className="text-[#808080]">Success Rate</span>
-                      <span className="font-medium text-[#27ae60]">98.2%</span>
-                    </div>
-                    <Progress value={98.2} className="h-2" />
-                  </div>
-                  <div className="flex items-center justify-between text-sm border-t border-[#e4e4e4] pt-3 [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                    <span className="text-[#808080]">Avg. Processing Time</span>
-                    <span className="font-medium text-[#003d2b]">2.3 mins</span>
-                  </div>
-                  <Link href="/biometric-verification">
-                    <Button variant="outline" className="w-full h-[45px] rounded-lg border border-[#e4e4e4] hover:bg-[#f6f6f6]" data-testid="kyc-start-btn">
-                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm text-[#003d2b]">Start KYC</span>
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
-              {/* KYB Stats */}
-              <Card className="border-l-4 border-l-[#27ae60] bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                      <Building2 className="h-5 w-5 mr-2 text-[#27ae60]" />
-                      KYB Verification
-                    </CardTitle>
-                    <Badge className="bg-[#e8f5e9] text-[#27ae60] rounded-full">
-                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Active</span>
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-[#e8f5e9] rounded-lg">
-                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#27ae60]">384</div>
-                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Verified</div>
-                    </div>
-                    <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-yellow-600">12</div>
-                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">In Review</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                      <span className="text-[#808080]">Approval Rate</span>
-                      <span className="font-medium text-[#27ae60]">94.7%</span>
-                    </div>
-                    <Progress value={94.7} className="h-2" />
-                  </div>
-                  <div className="flex items-center justify-between text-sm border-t border-[#e4e4e4] pt-3 [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                    <span className="text-[#808080]">Avg. Processing Time</span>
-                    <span className="font-medium text-[#003d2b]">1.2 days</span>
-                  </div>
-                  <Link href="/kyb-verification">
-                    <Button variant="outline" className="w-full h-[45px] rounded-lg border border-[#e4e4e4] hover:bg-[#f6f6f6]" data-testid="kyb-start-btn">
-                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm text-[#003d2b]">Start KYB</span>
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
-              {/* AML Stats */}
-              <Card className="border-l-4 border-l-[#27ae60] bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                      <Search className="h-5 w-5 mr-2 text-[#27ae60]" />
-                      AML Screening
-                    </CardTitle>
-                    <Badge className="bg-[#e8f5e9] text-[#27ae60] rounded-full">
-                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">Active</span>
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-[#e8f5e9] rounded-lg">
-                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-[#27ae60]">5,892</div>
-                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Screened</div>
-                    </div>
-                    <div className="text-center p-3 bg-red-50 rounded-lg">
-                      <div className="text-2xl font-bold [font-family:'Suisse_Intl-SemiBold',Helvetica] text-red-600">8</div>
-                      <div className="text-xs [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Flagged</div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                      <span className="text-[#808080]">Clear Rate</span>
-                      <span className="font-medium text-[#27ae60]">99.86%</span>
-                    </div>
-                    <Progress value={99.86} className="h-2" />
-                  </div>
-                  <div className="flex items-center justify-between text-sm border-t border-[#e4e4e4] pt-3 [font-family:'DM_Sans_18pt-Regular',Helvetica]">
-                    <span className="text-[#808080]">Active Monitoring</span>
-                    <span className="font-medium text-[#003d2b]">1,823 entities</span>
-                  </div>
-                  <Link href="/aml-screening">
-                    <Button variant="outline" className="w-full h-[45px] rounded-lg border border-[#e4e4e4] hover:bg-[#f6f6f6]" data-testid="aml-start-btn">
-                      <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm text-[#003d2b]">Run Screening</span>
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Detailed Verification Panels */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* KYB Verification Details */}
-              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader>
-                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                    <Building2 className="h-5 w-5 mr-2 text-[#27ae60]" />
-                    KYB Verification Status
-                  </CardTitle>
-                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Business entity verification checks</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Company Registry Check</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Beneficial Owner Verification</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Director/Officer Screening</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Business Address Validation</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Financial Standing Check</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Industry Risk Assessment</span>
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  </div>
-                  <div className="pt-3 border-t border-[#e4e4e4]">
-                    <Link href="/kyb-verification">
-                      <Button className="w-full h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90" data-testid="kyb-verify-btn">
-                        <Building2 className="mr-2 h-4 w-4" />
-                        <span className="font-semibold text-white text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica]">Start Business Verification</span>
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* AML Screening Details */}
-              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader>
-                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                    <Search className="h-5 w-5 mr-2 text-[#27ae60]" />
-                    AML Screening Status
-                  </CardTitle>
-                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Anti-money laundering compliance checks</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Global Sanctions Lists</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">PEP Database Screening</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Adverse Media Monitoring</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Watchlist Checks</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Real-time Monitoring</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Enhanced Due Diligence</span>
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  </div>
-                  <div className="pt-3 border-t border-[#e4e4e4]">
-                    <Link href="/aml-screening">
-                      <Button className="w-full h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90" data-testid="aml-screen-btn">
-                        <Search className="mr-2 h-4 w-4" />
-                        <span className="font-semibold text-white text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica]">Run AML Screening</span>
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Security Features Status */}
-              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader>
-                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                    <Lock className="h-5 w-5 mr-2 text-[#27ae60]" />
-                    Security Features
-                  </CardTitle>
-                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Current security implementation status</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">HTTPS Enforcement</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">RBAC System</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Rate Limiting</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Input Sanitization</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Audit Logging</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">2FA Infrastructure</span>
-                    <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Compliance Status */}
-              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader>
-                  <CardTitle className="flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                    <FileText className="h-5 w-5 mr-2 text-[#27ae60]" />
-                    Compliance Status
-                  </CardTitle>
-                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Regulatory compliance readiness</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">GDPR Compliance</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">KYC/AML Standards</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">SOC 2 Readiness</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Data Retention</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="issues" className="space-y-6">
-            {securityMetrics && (
-              <div className="space-y-6">
-                {/* Critical Issues */}
-                {securityMetrics.criticalIssues.length > 0 && (
-                  <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                    <CardHeader>
-                      <CardTitle className="text-red-600 flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold">
-                        <XCircle className="h-5 w-5 mr-2" />
-                        Critical Issues
-                      </CardTitle>
-                      <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">These issues require immediate attention</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {securityMetrics.criticalIssues.map((issue, index) => (
-                          <Alert key={index} className="border-red-200 bg-red-50 rounded-lg">
-                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                            <AlertDescription className="text-red-800 [font-family:'DM_Sans_18pt-Regular',Helvetica]">{issue}</AlertDescription>
-                          </Alert>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Warnings */}
-                {securityMetrics.warnings.length > 0 && (
-                  <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                    <CardHeader>
-                      <CardTitle className="text-yellow-600 flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold">
-                        <AlertTriangle className="h-5 w-5 mr-2" />
-                        Warnings
-                      </CardTitle>
-                      <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">These issues should be addressed when possible</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {securityMetrics.warnings.map((warning, index) => (
-                          <Alert key={index} className="border-yellow-200 bg-yellow-50 rounded-lg">
-                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                            <AlertDescription className="text-yellow-800 [font-family:'DM_Sans_18pt-Regular',Helvetica]">{warning}</AlertDescription>
-                          </Alert>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Recommendations */}
-                {securityMetrics.recommendations.length > 0 && (
-                  <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                    <CardHeader>
-                      <CardTitle className="text-[#27ae60] flex items-center [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold">
-                        <Zap className="h-5 w-5 mr-2" />
-                        Recommendations
-                      </CardTitle>
-                      <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Suggested improvements for enhanced security</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {securityMetrics.recommendations.map((recommendation, index) => (
-                          <div key={index} className="p-3 bg-[#e8f5e9] border border-[#27ae60] rounded-lg">
-                            <p className="text-sm text-[#003d2b] [font-family:'DM_Sans_18pt-Regular',Helvetica]">{recommendation}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="testing" className="space-y-6">
-            <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between [font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">
-                  <div className="flex items-center">
-                    <Bug className="h-5 w-5 mr-2 text-[#27ae60]" />
-                    Penetration Testing
-                  </div>
-                  <Button 
-                    onClick={runPenetrationTest} 
-                    disabled={runningPenTest}
-                    className="h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90 px-8"
-                  >
-                    <span className="font-semibold text-white text-sm [font-family:'DM_Sans_18pt-Medium',Helvetica]">
-                      {runningPenTest ? 'Running Tests...' : 'Run Pen Test'}
-                    </span>
-                  </Button>
-                </CardTitle>
-                <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">
-                  Automated security testing to identify vulnerabilities
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {penTestResults.length > 0 ? (
-                  <div className="space-y-4">
-                    {penTestResults.map((result, index) => (
-                      <div key={index} className="border border-[#e4e4e4] rounded-lg p-4 bg-[#fcfcfc]">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(result.status)}
-                            <h4 className="font-medium [font-family:'DM_Sans_18pt-Medium',Helvetica] text-[#003d2b]">{result.testName}</h4>
-                            <Badge className={getSeverityColor(result.severity)}>
-                              <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm">{result.severity}</span>
-                            </Badge>
-                          </div>
-                          <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">{result.category}</span>
-                        </div>
-                        <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080] mb-2">{result.description}</p>
-                        <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#27ae60]">{result.remediation}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Bug className="h-12 w-12 text-[#808080] mx-auto mb-4" />
-                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">No penetration test results yet</p>
-                    <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Run a penetration test to identify security vulnerabilities</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="compliance" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* GDPR */}
-              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader>
-                  <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">GDPR Compliance</CardTitle>
-                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">General Data Protection Regulation readiness</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Data Subject Rights</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Lawful Basis Processing</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Data Retention Policy</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Breach Notification</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* SOC 2 */}
-              <Card className="bg-[#fcfcfc] rounded-[20px] border border-[#e4e4e4]">
-                <CardHeader>
-                  <CardTitle className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">SOC 2 Type I</CardTitle>
-                  <CardDescription className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Service Organization Control readiness</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Security Controls</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Availability Controls</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Processing Integrity</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Confidentiality</span>
-                    <CheckCircle className="h-4 w-4 text-[#27ae60]" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
+
+        {/* Compliance Info */}
+        <Card className="mt-8 bg-[#e8f5e9] border border-[#27ae60] rounded-[20px]">
+          <CardContent className="p-6">
+            <div className="grid md:grid-cols-4 gap-6">
+              <div className="flex items-start gap-3">
+                <Shield className="h-6 w-6 text-[#27ae60]" />
+                <div>
+                  <h4 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">FATF Compliant</h4>
+                  <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Meets international AML standards</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Globe className="h-6 w-6 text-[#436cc8]" />
+                <div>
+                  <h4 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">240+ Countries</h4>
+                  <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Global sanctions coverage</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Clock className="h-6 w-6 text-[#27ae60]" />
+                <div>
+                  <h4 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">Real-Time</h4>
+                  <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Updates every 15 minutes</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <FileText className="h-6 w-6 text-amber-600" />
+                <div>
+                  <h4 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b]">Audit Trail</h4>
+                  <p className="text-sm [font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#003d2b]">Complete screening history</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
       <Footer />
     </main>

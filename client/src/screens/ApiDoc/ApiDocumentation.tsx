@@ -28,7 +28,7 @@ import {
   Search,
   PlayCircle
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
@@ -133,7 +133,7 @@ export default function ApiDocumentationPage() {
             </div>
 
             <div className="flex gap-3 mb-6">
-              <Link href="/api-playground">
+              <Link to="/api-playground">
                 <Button 
                   variant="outline"
                   className="relative h-[45px] rounded-lg border-none before:content-[''] before:absolute before:inset-0 before:p-px before:rounded-lg before:[background:linear-gradient(118deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] before:[-webkit-mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] before:[-webkit-mask-composite:xor] before:[mask-composite:exclude] hover:bg-gray-50"
@@ -145,7 +145,7 @@ export default function ApiDocumentationPage() {
                   </span>
                 </Button>
               </Link>
-              <Link href="/developer-portal">
+              <Link to="/developer-portal">
                 <Button 
                   className="h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
                   data-testid="button-get-api-key"
@@ -274,7 +274,7 @@ export default function ApiDocumentationPage() {
                       <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080] text-base">
                         Sign up for a TrustVerify developer account to access the API dashboard and generate credentials.
                       </p>
-                      <Link href="/developer-portal">
+                      <Link to="/developer-portal">
                         <Button 
                           className="h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
                           data-testid="button-create-account"
@@ -1780,7 +1780,7 @@ app.post('/webhooks', (req, res) => {
                         <div className="bg-[#121728] rounded-[10px] p-3 mb-3">
                           <code className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-sm text-[#27ae60]">npm install @trustverify/sdk</code>
                         </div>
-                        <Link href="/sdk-documentation">
+                        <Link to="/sdk-documentation">
                           <Button variant="outline" size="sm" className="w-full" data-testid="button-sdk-nodejs">
                             View Documentation
                           </Button>
@@ -1795,7 +1795,7 @@ app.post('/webhooks', (req, res) => {
                         <div className="bg-slate-900 rounded-lg p-3 mb-3">
                           <code className="text-sm text-green-400">pip install trustverify</code>
                         </div>
-                        <Link href="/sdk-documentation">
+                        <Link to="/sdk-documentation">
                           <Button variant="outline" size="sm" className="w-full" data-testid="button-sdk-python">
                             View Documentation
                           </Button>
@@ -1810,7 +1810,7 @@ app.post('/webhooks', (req, res) => {
                         <div className="bg-slate-900 rounded-lg p-3 mb-3">
                           <code className="text-sm text-green-400">composer require trustverify/sdk</code>
                         </div>
-                        <Link href="/sdk-documentation">
+                        <Link to="/sdk-documentation">
                           <Button variant="outline" size="sm" className="w-full" data-testid="button-sdk-php">
                             View Documentation
                           </Button>
@@ -1825,7 +1825,7 @@ app.post('/webhooks', (req, res) => {
                         <div className="bg-slate-900 rounded-lg p-3 mb-3">
                           <code className="text-sm text-green-400">gem install trustverify</code>
                         </div>
-                        <Link href="/sdk-documentation">
+                        <Link to="/sdk-documentation">
                           <Button variant="outline" size="sm" className="w-full" data-testid="button-sdk-ruby">
                             View Documentation
                           </Button>
@@ -1840,7 +1840,7 @@ app.post('/webhooks', (req, res) => {
                         <div className="bg-slate-900 rounded-lg p-3 mb-3">
                           <code className="text-sm text-green-400">go get trustverify.io/go</code>
                         </div>
-                        <Link href="/sdk-documentation">
+                        <Link to="/sdk-documentation">
                           <Button variant="outline" size="sm" className="w-full" data-testid="button-sdk-go">
                             View Documentation
                           </Button>
@@ -1855,7 +1855,7 @@ app.post('/webhooks', (req, res) => {
                         <div className="bg-slate-900 rounded-lg p-3 mb-3">
                           <code className="text-xs text-green-400">implementation 'io.trustverify:sdk'</code>
                         </div>
-                        <Link href="/sdk-documentation">
+                        <Link to="/sdk-documentation">
                           <Button variant="outline" size="sm" className="w-full" data-testid="button-sdk-java">
                             View Documentation
                           </Button>
@@ -2250,7 +2250,7 @@ X-RateLimit-Reset: 1703001600`}
                       <p className="text-gray-700">
                         Use our webhook simulator to test your webhook endpoint:
                       </p>
-                      <Link href="/webhooks">
+                      <Link to="/developers/webhooks">
                         <Button data-testid="button-webhook-tester">
                           <Bell className="h-4 w-4 mr-2" />
                           Open Webhook Tester
@@ -2339,7 +2339,7 @@ X-RateLimit-Reset: 1703001600`}
                     <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] text-[#808080]">Get your API keys and start building in minutes</p>
                   </div>
                   <div className="flex gap-3">
-                    <Link href="/api-playground">
+                    <Link to="/api-playground">
                       <Button 
                         variant="outline"
                         className="relative h-[45px] rounded-lg border-none before:content-[''] before:absolute before:inset-0 before:p-px before:rounded-lg before:[background:linear-gradient(118deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] before:[-webkit-mask:linear-gradient(#fff_0_0)_content-box,linear-gradient(#fff_0_0)] before:[-webkit-mask-composite:xor] before:[mask-composite:exclude] hover:bg-gray-50"
@@ -2351,7 +2351,7 @@ X-RateLimit-Reset: 1703001600`}
                         </span>
                       </Button>
                     </Link>
-                    <Link href="/developer-portal">
+                    <Link to="/developer-portal">
                       <Button 
                         className="h-[45px] rounded-lg bg-[linear-gradient(128deg,rgba(39,174,96,1)_0%,rgba(0,82,204,1)_100%)] hover:opacity-90"
                         data-testid="button-get-started"
