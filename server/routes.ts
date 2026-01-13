@@ -10,7 +10,7 @@ import {
   insertDeveloperAccountSchema
 } from "./shared/schema.ts";
 import crypto from 'crypto';
-import { validateQuery, paginationSchema } from "./middleware/validation";
+import { validateQuery, validateBody, paginationSchema } from "./middleware/validation";
 import developerRoutes from "./routes/developer";
 import supportRoutes from "./routes/support";
 import subscriptionRoutes from "./routes/subscriptions";
@@ -143,8 +143,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Middleware to check authentication
+  // Middleware to check authentication - supports both session and API key auth for testing
   const requireAuth = async (req: any, res: any, next: any) => {
+    // First, check if API key is provided (for API testing)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Validate API key using the middleware
+      // We'll wrap it to load the user after validation
+      return validateApiKey(req, res, async () => {
+        // If API key is valid, req.developer is set
+        if (req.developer && req.developer.userId) {
+          try {
+            // Load user from developer account for API testing
+            const user = await storage.getUser(req.developer.userId);
+            if (user) {
+              req.user = user;
+              return next();
+            } else {
+              return res.status(401).json({ error: "User not found for API key" });
+            }
+          } catch (error) {
+            console.error('[Auth] Error loading user from API key:', error);
+            return res.status(401).json({ error: "Authentication required" });
+          }
+        } else {
+          return res.status(401).json({ error: "Invalid API key" });
+        }
+      });
+    }
+
+    // Fall back to session-based authentication
     // Check both isAuthenticated() and req.user for robustness
     if (!req.isAuthenticated() && !req.user) {
       console.log('[Auth] Unauthenticated request:', {
@@ -1594,80 +1622,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const { name, permissions = [] } = req.body;
 
-      console.log('[API Key Creation] Request received:', { userId, name, permissions });
-
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: "API key name is required" });
       }
 
       const account = await storage.getDeveloperAccountByUserId(userId);
       if (!account) {
-        console.error('[API Key Creation] Developer account not found for user:', userId);
         return res.status(404).json({ error: "Developer account not found" });
       }
-
-      console.log('[API Key Creation] Developer account found:', { id: account.id, status: account.status });
 
       if (account.status !== 'approved') {
         return res.status(403).json({ error: "Developer account must be approved to create API keys" });
       }
 
-      // Generate API key
-      const keyPrefix = "tv_";
-      // Use Node.js crypto.randomBytes instead of browser crypto.getRandomValues
-      const randomBytes = crypto.randomBytes(32);
-      const keyBody = randomBytes.toString('hex');
-      const fullKey = keyPrefix + keyBody;
-      
-      // Hash the key for storage
-      const keyHash = crypto.createHash('sha256').update(fullKey).digest('hex');
-
-      // Ensure permissions is an array
-      const permissionsArray = Array.isArray(permissions) ? permissions : [];
-
-      console.log('[API Key Creation] Creating API key with data:', {
-        developerId: account.id,
-        name: name.trim(),
-        keyHash: keyHash.substring(0, 20) + '...',
-        keyPrefix,
-        permissionsCount: permissionsArray.length
-      });
+      // Generate DUAL KEYS (publishable + secret) like Stripe
+      const publishableKey = `pk_test_${crypto.randomBytes(24).toString('hex')}`;
+      const secretKey = `sk_test_${crypto.randomBytes(24).toString('hex')}`;
+      const secretKeyHash = crypto.createHash('sha256').update(secretKey).digest('hex');
+      const secretKeyPrefix = `sk_****...${secretKey.slice(-4)}`;
 
       const apiKey = await storage.createApiKey({
         developerId: account.id,
         name: name.trim(),
-        keyHash,
-        keyPrefix,
-        permissions: permissionsArray,
+        publishableKey,
+        secretKeyHash,
+        secretKeyPrefix,
+        permissions: Array.isArray(permissions) ? permissions : [],
         expiresAt: undefined
       });
 
-      console.log('[API Key Creation] API key created successfully:', { id: apiKey.id, name: apiKey.name });
-
       res.status(201).json({
         ...apiKey,
-        key: fullKey
+        publishableKey, // Safe to show anytime
+        secretKey, // ONLY shown ONCE on creation
+        secretKeyWarning: 'Save this secret key securely. It will not be shown again.'
       });
     } catch (error: any) {
-      console.error('[API Key Creation] Error:', error);
-      console.error('[API Key Creation] Error message:', error.message);
-      console.error('[API Key Creation] Error stack:', error.stack);
-      console.error('[API Key Creation] Request body:', req.body);
-      res.status(500).json({ 
-        error: "Failed to create API key",
-        message: error.message || "Unknown error",
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+      res.status(500).json({ error: "Failed to create API key" });
     }
   });
 
   app.delete("/api/developer/api-keys/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const userId = req.user.id;
+      const userId = req.user!.id;
       const keyId = parseInt(req.params.id);
 
       if (isNaN(keyId)) {
@@ -1687,6 +1684,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "API key revoked successfully" });
     } catch (error: any) {
       res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // API Key Management Routes (for developer dashboard)
+  // Reference: b-route.ts implementation
+  app.get("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      // Get or create developer account
+      let devAccount = await storage.getDeveloperAccountByUserId(req.user.id);
+      if (!devAccount) {
+        devAccount = await storage.createDeveloperAccount({
+          userId: req.user.id,
+          companyName: req.user.firstName + " " + req.user.lastName,
+          description: "Personal developer account"
+        });
+      }
+
+      const apiKeys = await storage.getApiKeysByDeveloperId(devAccount.id);
+      
+      // Format the response for the frontend
+      const formattedKeys = apiKeys.map((key: any) => ({
+        ...key,
+        publishableKey: key.publishableKey || `pk_${key.keyPrefix}...`, // Always shown (safe for frontend)
+        secretKey: key.secretKeyPrefix || `sk_****...${key.keyPrefix?.slice(-4) || 'xxxx'}`, // Only show prefix (never full secret)
+        created: key.createdAt ? new Date(key.createdAt).toISOString().split('T')[0] : 'Unknown',
+        lastUsed: key.lastUsed ? new Date(key.lastUsed).toISOString().split('T')[0] : 'Never',
+        status: key.isActive ? 'active' : 'revoked',
+        rateLimits: {
+          apiCalls: key.rateLimit || 100,
+          fraudChecks: key.monthlyQuota ? Math.floor(key.monthlyQuota / 2) : 500,
+          kycVerifications: key.monthlyQuota ? Math.floor(key.monthlyQuota / 10) : 100
+        }
+      }));
+      
+      res.json(formattedKeys);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/api-keys", requireAuth, validateBody(z.object({
+    name: z.string().min(1),
+    industry: z.string().min(1),
+    useCase: z.string().min(1),
+    environment: z.string().default('test'),
+    notes: z.string().optional(),
+    permissions: z.array(z.string()).optional()
+  })), async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { name, industry, useCase, environment = 'test', notes, permissions } = req.body;
+
+      // Get or create developer account
+      let devAccount = await storage.getDeveloperAccountByUserId(req.user.id);
+      if (!devAccount) {
+        devAccount = await storage.createDeveloperAccount({
+          userId: req.user.id,
+          companyName: req.user.firstName + " " + req.user.lastName,
+          description: "Personal developer account"
+        });
+      }
+
+      // Generate DUAL KEYS like Stripe
+      const envPrefix = environment === 'production' ? 'live' : 'test';
+      
+      // Publishable Key (safe for frontend)
+      const publishableKey = `pk_${envPrefix}_${crypto.randomBytes(24).toString('hex')}`;
+      
+      // Secret Key (shown ONCE, only hash stored)
+      const secretKey = `sk_${envPrefix}_${crypto.randomBytes(24).toString('hex')}`;
+      const secretKeyHash = crypto.createHash('sha256').update(secretKey).digest('hex');
+      const secretKeyPrefix = `sk_****...${secretKey.slice(-4)}`; // For display
+
+      const apiKey = await storage.createApiKey({
+        developerId: devAccount.id,
+        name,
+        publishableKey,
+        secretKeyHash,
+        secretKeyPrefix,
+        permissions: Array.isArray(permissions) ? permissions : [],
+        expiresAt: undefined
+      });
+
+      // Store additional fields if storage supports them
+      const apiKeyData: any = {
+        ...apiKey,
+        publishableKey, // Safe to show anytime
+        secretKey, // ONLY shown ONCE on creation
+        secretKeyPrefix, // For display purposes
+        secretKeyWarning: environment === 'production' 
+          ? 'This secret key will only be shown once. Save it securely now!'
+          : 'Save this secret key securely. It will not be shown again.',
+        industry: industry || null,
+        useCase: useCase || null,
+        environment: environment || 'test',
+        notes: notes || null,
+        created: apiKey.createdAt ? new Date(apiKey.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        lastUsed: (apiKey as any).lastUsed ? new Date((apiKey as any).lastUsed).toISOString().split('T')[0] : 'Never',
+        status: apiKey.isActive ? 'active' : 'revoked',
+        rateLimits: {
+          apiCalls: (apiKey as any).rateLimit || 100,
+          fraudChecks: apiKey.monthlyQuota ? Math.floor(apiKey.monthlyQuota / 2) : 500,
+          kycVerifications: apiKey.monthlyQuota ? Math.floor(apiKey.monthlyQuota / 10) : 100
+        }
+      };
+
+      res.json(apiKeyData);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/api-keys/:id", requireAuth, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const keyId = parseInt(req.params.id);
+      const revokedKey = await storage.revokeApiKey(keyId);
+      
+      if (!revokedKey) {
+        return res.status(404).json({ message: "API key not found" });
+      }
+
+      res.json({ message: "API key revoked successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
@@ -2730,6 +2862,365 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Failed to process contact form:", error);
       res.status(500).json({ error: "Failed to send message. Please try again later." });
+    }
+  });
+
+  // ===== TR1 VERIFICATION API ENDPOINTS =====
+  // These endpoints implement the TrustVerify Verification API as per TR1 requirements
+  // Used by API Playground and Developer Portal API Sandbox
+  
+  // Mock verification service implementation for API testing
+  // In production, this would use the actual verification-service
+  const verificationService = {
+    verifyIdentity: async (_data: any) => ({
+      success: true,
+      verificationId: `ver_${Date.now()}`,
+      status: 'verified',
+      confidence: 0.95,
+      checks: {
+        identity: { status: 'pass', score: 98 },
+        document: { status: 'pass', score: 95 },
+        address: { status: 'pass', score: 92 }
+      },
+      riskIndicators: [],
+      timestamp: new Date().toISOString()
+    }),
+    verifyDocument: async (data: any) => ({
+      success: true,
+      verificationId: `doc_${Date.now()}`,
+      status: 'verified',
+      documentType: data.documentType,
+      confidence: 0.92,
+      checks: {
+        authenticity: { status: 'pass', score: 95 },
+        liveness: { status: 'pass', score: 90 }
+      },
+      timestamp: new Date().toISOString()
+    }),
+    checkFraudPrevention: async (_data: any) => ({
+      success: true,
+      riskScore: 15,
+      riskLevel: 'low',
+      fraudProbability: 0.08,
+      recommendations: ['Allow transaction', 'No additional verification required'],
+      timestamp: new Date().toISOString()
+    }),
+    getUserTrustScore: async (userId: number, _environment: string) => ({
+      userId,
+      trustScore: 85.5,
+      level: 'high',
+      factors: {
+        verification: 90,
+        transactionHistory: 85,
+        accountAge: 80
+      },
+      timestamp: new Date().toISOString()
+    }),
+    performFullVerification: async (_identity: any, _document: any, _fraud: any, _environment: string) => ({
+      success: true,
+      verificationId: `full_${Date.now()}`,
+      identity: { status: 'verified', confidence: 0.95 },
+      document: { status: 'verified', confidence: 0.92 },
+      fraud: { riskScore: 15, riskLevel: 'low' },
+      overallStatus: 'approved',
+      timestamp: new Date().toISOString()
+    })
+  };
+  
+  // Zod schemas for TR1 verification endpoints
+  const identityVerificationSchema = z.object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
+    nationalId: z.string().optional(),
+    passport: z.string().optional(),
+    address: z.object({
+      street: z.string().optional(),
+      city: z.string().optional(),
+      state: z.string().optional(),
+      postalCode: z.string().optional(),
+      country: z.string().optional()
+    }).optional(),
+    environment: z.enum(['sandbox', 'production']).default('sandbox')
+  });
+
+  const documentVerificationSchema = z.object({
+    documentType: z.enum(['passport', 'drivers_license', 'national_id', 'utility_bill']),
+    documentImage: z.string().min(1, "Document image is required").refine(
+      (val) => val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://'),
+      "Document image must be a base64 data URI or valid URL"
+    ),
+    selfieImage: z.string().refine(
+      (val) => !val || val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://'),
+      "Selfie image must be a base64 data URI or valid URL"
+    ).optional(),
+    environment: z.enum(['sandbox', 'production']).default('sandbox')
+  });
+
+  const fraudPreventionSchema = z.object({
+    userId: z.number().int().positive().optional(),
+    email: z.string().email().optional(),
+    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Phone must be in E.164 format").optional(),
+    ipAddress: z.string().ip().optional(),
+    deviceFingerprint: z.string().min(1).max(500).optional(),
+    transactionAmount: z.number().nonnegative().max(1000000000, "Transaction amount too large").optional(),
+    environment: z.enum(['sandbox', 'production']).default('sandbox')
+  }).refine(data => data.userId || data.email || data.phone, {
+    message: "At least one identifier required: userId, email, or phone"
+  });
+
+  const fullVerificationSchema = z.object({
+    identity: z.object({
+      firstName: z.string().min(1, "First name is required"),
+      lastName: z.string().min(1, "Last name is required"),
+      dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
+      nationalId: z.string().optional(),
+      passport: z.string().optional(),
+      address: z.object({
+        street: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        postalCode: z.string().optional(),
+        country: z.string().optional()
+      }).optional()
+    }),
+    document: z.object({
+      documentType: z.enum(['passport', 'drivers_license', 'national_id', 'utility_bill']),
+      documentImage: z.string().min(1, "Document image is required"),
+      selfieImage: z.string().optional()
+    }),
+    fraud: z.object({
+      userId: z.number().int().positive().optional(),
+      email: z.string().email().optional(),
+      phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Phone must be in E.164 format").optional(),
+      ipAddress: z.string().ip().optional(),
+      deviceFingerprint: z.string().min(1).max(500).optional(),
+      transactionAmount: z.number().nonnegative().max(1000000000).optional()
+    }),
+    environment: z.enum(['sandbox', 'production']).default('sandbox')
+  });
+  
+  // POST /api/verify/identity - Identity verification endpoint
+  app.post("/api/verify/identity", validateBody(identityVerificationSchema), async (req, res) => {
+    try {
+      const { firstName, lastName, dateOfBirth, nationalId, passport, address, environment } = req.body;
+
+      const result = await verificationService.verifyIdentity({
+        firstName,
+        lastName,
+        dateOfBirth,
+        nationalId,
+        passport,
+        address,
+        environment
+      });
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Identity verification failed:", error);
+      res.status(500).json({
+        success: false,
+        status: 'failed',
+        message: error.message || "Identity verification failed"
+      });
+    }
+  });
+
+  // POST /api/verify/document - Document validation endpoint
+  app.post("/api/verify/document", validateBody(documentVerificationSchema), async (req, res) => {
+    try {
+      const { documentType, documentImage, selfieImage, environment } = req.body;
+
+      const result = await verificationService.verifyDocument({
+        documentType,
+        documentImage,
+        selfieImage,
+        environment
+      });
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Document verification failed:", error);
+      res.status(500).json({
+        success: false,
+        status: 'failed',
+        message: error.message || "Document verification failed"
+      });
+    }
+  });
+
+  // POST /api/fraud/prevention - Fraud detection endpoint
+  app.post("/api/fraud/prevention", validateBody(fraudPreventionSchema), async (req, res) => {
+    try {
+      const { userId, email, phone, ipAddress, deviceFingerprint, transactionAmount, environment } = req.body;
+
+      const result = await verificationService.checkFraudPrevention({
+        userId,
+        email,
+        phone,
+        ipAddress,
+        deviceFingerprint,
+        transactionAmount,
+        environment
+      });
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Fraud prevention check failed:", error);
+      res.status(500).json({
+        success: false,
+        status: 'failed',
+        message: error.message || "Fraud prevention check failed"
+      });
+    }
+  });
+
+  // GET /api/user/trustscore/:userId - TrustScore generation endpoint
+  app.get("/api/user/trustscore/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const environment = req.query.environment as 'sandbox' | 'production' || 'sandbox';
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({
+          error: "Invalid userId parameter"
+        });
+      }
+
+      const result = await verificationService.getUserTrustScore(userId, environment);
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error("TrustScore retrieval failed:", error);
+      res.status(500).json({
+        error: error.message || "TrustScore retrieval failed"
+      });
+    }
+  });
+
+  // POST /api/verify/full - Comprehensive verification (identity + document + fraud)
+  app.post("/api/verify/full", validateBody(fullVerificationSchema), async (req, res) => {
+    try {
+      const { identity, document, fraud, environment } = req.body;
+
+      const result = await verificationService.performFullVerification(
+        identity,
+        document,
+        fraud,
+        environment
+      );
+
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Full verification failed:", error);
+      res.status(500).json({
+        error: error.message || "Full verification failed"
+      });
+    }
+  });
+
+  // POST /api/fraud/analyze - Real-time website security analysis (for Developer Portal)
+  app.post("/api/fraud/analyze", async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: "Valid URL required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      console.log(`Starting real-time analysis for: ${url}`);
+      
+      // Initialize real-time website analyzer
+      const { WebsiteSecurityAnalyzer } = await import('./services/websiteAnalyzer');
+      const analyzer = new WebsiteSecurityAnalyzer();
+      
+      // Perform comprehensive real-time analysis
+      const analysisResult = await analyzer.analyzeWebsite(url);
+      
+      // Store the analysis results in database for future reference
+      try {
+        if (typeof (storage as any).createWebsiteAnalysis === 'function') {
+          await (storage as any).createWebsiteAnalysis({
+            url: analysisResult.url,
+            domain: analysisResult.domain,
+            riskScore: (100 - analysisResult.trustScore).toString(),
+            riskFactors: (analysisResult as any).fraudFlags || [],
+            hasValidSSL: analysisResult.sslCertificate?.valid || false,
+            certificateIssuer: analysisResult.sslCertificate?.issuer || null,
+            domainAge: (analysisResult.domainInfo as any)?.age || null,
+            pageLoadTime: analysisResult.performanceMetrics?.loadTime || null,
+            suspiciousKeywords: (analysisResult as any).suspiciousElements || [],
+            hasPasswordFields: false, // Default for now
+            hasPaymentForms: false, // Default for now
+            category: "security_analysis",
+            confidence: Math.round(analysisResult.trustScore).toString(),
+            isLegitimate: analysisResult.trustScore > 70
+          });
+          
+          console.log(`Analysis completed and stored for: ${url}`);
+        }
+      } catch (storageError) {
+        console.warn("Failed to store analysis results:", storageError);
+        // Continue with response even if storage fails
+      }
+      
+      // Return comprehensive real-time analysis
+      res.json({
+        success: true,
+        analysis: analysisResult,
+        timestamp: new Date().toISOString(),
+        analysisType: "real-time-security-scan"
+      });
+      
+    } catch (error: any) {
+      console.error("Real-time website analysis failed:", error);
+      res.status(500).json({ 
+        error: "Website analysis failed", 
+        details: error.message,
+        fallback: "Using demo data for demonstration purposes"
+      });
+    }
+  });
+
+  // POST /api/webhooks/test - Test webhook endpoint (for API Playground)
+  app.post("/api/webhooks/test", validateApiKeyOrAuth, async (req, res) => {
+    try {
+      const { endpointId, eventType, payload } = req.body;
+      
+      if (!endpointId || !eventType) {
+        return res.status(400).json({ 
+          error: "endpointId and eventType are required" 
+        });
+      }
+
+      // In a real implementation, this would:
+      // 1. Look up the webhook endpoint configuration
+      // 2. Send the webhook event to the configured URL
+      // 3. Track delivery status
+      // For now, return a mock response
+      
+      res.json({
+        success: true,
+        deliveryId: `del_wh_${Date.now()}`,
+        endpoint: `https://example.com/webhooks/${endpointId}`,
+        responseCode: 200,
+        responseTime: Math.floor(Math.random() * 100) + 50,
+        delivered: true,
+        eventType,
+        payload: payload || {}
+      });
+    } catch (error: any) {
+      console.error("Webhook test failed:", error);
+      res.status(500).json({ 
+        error: "Webhook test failed", 
+        details: error.message 
+      });
     }
   });
 

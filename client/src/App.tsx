@@ -83,6 +83,11 @@ import {TrustGraphDashboard, RegulatoryPulseDashboard, TransactionIntegrityDashb
 import { CaseManagementDashboard, DecisionEngineDashboard, MonitoringDashboard, SignalProviders } from "./screens/Compliance";
 import BankOnboardingDemo from "./screens/DemoPage/BackOnboardingDemo";
 import InstitutionalCheckout from "./screens/Industry/InstitutionalCheckout";
+import TrustBadgeDemo from "./screens/DemoPage/TrustBadgeDemo";
+import BankScoringDashboard from "./screens/BankScoringDashboard/BankScoringDashboard";
+import TrustScoreDemo from "./screens/DemoPage/TrustScoreDemo";
+import UnifiedFraudDemo from "./screens/DemoPage/UnifiedFraudDemo";
+import { ApiPlayground } from "./screens/APIPlayground";
 
 function App() {
   return (
@@ -103,6 +108,8 @@ function App() {
 
               <Route path="/security-dashboard" element={<SecurityDashboard />} />
               <Route path="/fraud-prevention" element={<FraudPrevention />} />
+              <Route path="/bank-scoring-dashboard" element={<BankScoringDashboard />} />
+
 
               <Route path="/trustgraph" element={<TrustGraphDashboard />} />
               <Route path="/regulatory-pulse" element={<RegulatoryPulseDashboard />} />
@@ -185,6 +192,9 @@ function App() {
               <Route path="/live-demo" element={<LiveDemo />} />
               <Route path="/bank-onboarding-demo" element={<BankOnboardingDemo />} />
               <Route path="/fraud-demo" element={<FraudDemo />} />
+              <Route path="/trustscore-demo" element={<TrustScoreDemo />} />
+              <Route path="/trust-badge" element={<TrustBadgeDemo />} />
+              <Route path="/complete-demo" element={<UnifiedFraudDemo />} />
 
               {/* Routes for Updated Pages */}
               <Route path="/identity-verification" element={<IdentityVerification />} />
@@ -194,6 +204,7 @@ function App() {
               <Route path="/kyb-verification" element={<KYBVerificationPage />} />
               <Route path="/aml-screening" element={<AMLScreeningPage />} />
               <Route path="/api-keys" element={<ApiKeysPage />} />
+              <Route path="/api-playground" element={<ApiPlayground />} />
 
               {/* Protected Routes */}
               <Route  

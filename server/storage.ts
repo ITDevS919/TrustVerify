@@ -138,12 +138,12 @@ import {
     updateDeveloperUsage(id: number, usage: number): Promise<DeveloperAccount | undefined>;
   
     // API Key methods
-    createApiKey(apiKey: { developerId: number; name: string; keyHash: string; keyPrefix: string; permissions?: string[]; expiresAt?: Date }): Promise<ApiKey>;
+    createApiKey(apiKey: { developerId: number; name: string; publishableKey: string; secretKeyHash: string; secretKeyPrefix: string; permissions?: string[]; environment?: string; industry?: string; useCase?: string; notes?: string; expiresAt?: Date }): Promise<ApiKey>;
     getApiKeysByDeveloperId(developerId: number): Promise<ApiKey[]>;
-    getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
+    getApiKeyBySecretHash(secretHash: string): Promise<ApiKey | undefined>;
     revokeApiKey(id: number): Promise<ApiKey | undefined>;
     updateApiKeyLastUsed(id: number): Promise<ApiKey | undefined>;
-  
+    
     // API Usage Log methods
     createApiUsageLog(log: InsertApiUsageLog & { apiKeyId: number; developerId: number }): Promise<ApiUsageLog>;
     getApiUsageByDeveloper(developerId: number, startDate?: Date, endDate?: Date): Promise<ApiUsageLog[]>;
@@ -531,7 +531,7 @@ import {
     }
   
     // API Key methods
-    async createApiKey(_apiKey: { developerId: number; name: string; keyHash: string; keyPrefix: string; permissions?: string[]; expiresAt?: Date }): Promise<ApiKey> {
+    async createApiKey(_apiKey: { developerId: number; name: string; publishableKey: string; secretKeyHash: string; secretKeyPrefix: string; permissions?: string[]; environment?: string; industry?: string; useCase?: string; notes?: string; expiresAt?: Date }): Promise<ApiKey> {
       throw new Error("API keys not supported in MemStorage");
     }
   
@@ -539,7 +539,7 @@ import {
       return [];
     }
   
-    async getApiKeyByHash(_keyHash: string): Promise<ApiKey | undefined> {
+    async getApiKeyBySecretHash(secretHash: string): Promise<ApiKey | undefined> {
       return undefined;
     }
   
@@ -1695,63 +1695,32 @@ import {
     }
   
     // API Key methods
-    async createApiKey(apiKey: { developerId: number; name: string; keyHash: string; keyPrefix: string; permissions?: string[]; expiresAt?: Date }): Promise<ApiKey> {
-      try {
-        // Ensure permissions is properly formatted as an array
-        const permissionsArray = Array.isArray(apiKey.permissions) ? apiKey.permissions : [];
-
-        console.log('[DatabaseStorage] Creating API key:', {
-          developerId: apiKey.developerId,
-          name: apiKey.name,
-          keyHash: apiKey.keyHash.substring(0, 20) + '...',
-          keyPrefix: apiKey.keyPrefix,
-          permissions: permissionsArray
-        });
-
-      const [key] = await db
-        .insert(apiKeys)
-        .values({
-            developerId: apiKey.developerId,
-            name: apiKey.name,
-            keyHash: apiKey.keyHash,
-            keyPrefix: apiKey.keyPrefix,
-            permissions: permissionsArray, // Drizzle will handle JSONB serialization
-            expiresAt: apiKey.expiresAt || null,
-            // All other fields have defaults in the schema
-        })
-        .returning();
-        
-        if (!key) {
-          throw new Error('Failed to create API key - no key returned from database');
-        }
-
-        console.log('[DatabaseStorage] API key created successfully:', { id: key.id, name: key.name });
-      return key;
-      } catch (error: any) {
-        console.error('[DatabaseStorage] Error creating API key:', error);
-        console.error('[DatabaseStorage] Error message:', error.message);
-        console.error('[DatabaseStorage] Error code:', error.code);
-        console.error('[DatabaseStorage] API key data:', {
-          developerId: apiKey.developerId,
-          name: apiKey.name,
-          keyHash: apiKey.keyHash.substring(0, 20) + '...',
-          keyPrefix: apiKey.keyPrefix,
-          permissions: apiKey.permissions
-        });
-        if (error.stack) {
-          console.error('[DatabaseStorage] Stack trace:', error.stack);
-        }
-        throw error;
-      }
+    async createApiKey(apiKey: { developerId: number; name: string; publishableKey: string; secretKeyHash: string; secretKeyPrefix: string; permissions?: string[]; environment?: string; industry?: string; useCase?: string; notes?: string; expiresAt?: Date }): Promise<ApiKey> {
+      const insertData = {
+        developerId: apiKey.developerId,
+        name: apiKey.name,
+        publishableKey: apiKey.publishableKey,
+        secretKeyHash: apiKey.secretKeyHash,
+        secretKeyPrefix: apiKey.secretKeyPrefix,
+        permissions: apiKey.permissions || [],
+        environment: apiKey.environment || 'test',
+        industry: apiKey.industry,
+        useCase: apiKey.useCase,
+        notes: apiKey.notes,
+        expiresAt: apiKey.expiresAt || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days default
+        rotationDue: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 90 days for rotation
+      };
+      const [newKey] = await db.insert(apiKeys).values(insertData).returning();
+      return newKey;
     }
   
     async getApiKeysByDeveloperId(developerId: number): Promise<ApiKey[]> {
       return await db.select().from(apiKeys).where(eq(apiKeys.developerId, developerId));
     }
   
-    async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
-      const [key] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, keyHash));
-      return key || undefined;
+    async getApiKeyBySecretHash(secretHash: string): Promise<ApiKey | undefined> {
+      const [key] = await db.select().from(apiKeys).where(eq(apiKeys.secretKeyHash, secretHash));
+      return key;
     }
   
     async revokeApiKey(id: number): Promise<ApiKey | undefined> {
@@ -1767,12 +1736,11 @@ import {
     }
   
     async updateApiKeyLastUsed(id: number): Promise<ApiKey | undefined> {
-      const [key] = await db
-        .update(apiKeys)
-        .set({ lastUsed: new Date() })
+      const [updatedKey] = await db.update(apiKeys)
+        .set({ lastUsedAt: new Date() })
         .where(eq(apiKeys.id, id))
         .returning();
-      return key || undefined;
+      return updatedKey;
     }
   
     // API Usage Log methods

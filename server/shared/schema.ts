@@ -241,30 +241,38 @@ export const developerAccounts = pgTable("developer_accounts", {
   approvedBy: integer("approved_by").references(() => users.id),
 });
 
-// API Keys table
+// API Keys table with dual-key system (publishable + secret) like Stripe
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   developerId: integer("developer_id").references(() => developerAccounts.id).notNull(),
   name: text("name").notNull(),
-  keyHash: text("key_hash").notNull(),
-  keyPrefix: text("key_prefix").notNull(), // First 8 chars for display
+  // Publishable Key (safe for frontend, can be viewed anytime)
+  publishableKey: text("publishable_key").notNull().unique(), // pk_test_... or pk_live_...
+  // Secret Key (shown ONCE, only hash stored for validation)
+  secretKeyHash: text("secret_key_hash").notNull(), // Hash of sk_test_... or sk_live_...
+  secretKeyPrefix: text("secret_key_prefix").notNull(), // sk_****...last4 for display
   permissions: jsonb("permissions").default('[]'), // Array of endpoint permissions
+  environment: text("environment").notNull().default("test"), // test, production
+  industry: text("industry"), // banking, fintech, crypto, ecommerce, etc.
+  useCase: text("use_case"), // primary use case for the API key
+  notes: text("notes"), // Optional developer notes
   isActive: boolean("is_active").default(true),
-  lastUsed: timestamp("last_used"),
-  expiresAt: timestamp("expires_at"),
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at").notNull(), // Required 90-day expiry (Rule 1.2)
+  rotationDue: timestamp("rotation_due").notNull(), // 90-day rotation reminder
+  lastRotated: timestamp("last_rotated").defaultNow(),
+  // Rate limiting and quotas (Rule 3.1, 3.3)
+  rateLimit: integer("rate_limit").default(100), // requests per second
+  monthlyQuota: integer("monthly_quota").default(10000),
+  currentMonthUsage: integer("current_month_usage").default(0),
+  quotaResetDate: timestamp("quota_reset_date").defaultNow(),
+  // Enhanced tracking
+  ipWhitelist: jsonb("ip_whitelist"), // Array of allowed IPs
+  userAgent: text("user_agent"), // Expected user agent pattern
   createdAt: timestamp("created_at").defaultNow(),
   revokedAt: timestamp("revoked_at"),
-  // API Key Rotation and Quota Management
-  environment: text("environment").default("sandbox"), // sandbox, production
-  rotationDue: timestamp("rotation_due"), // When key should be rotated
-  lastRotated: timestamp("last_rotated"), // Last rotation timestamp
-  rateLimit: integer("rate_limit").default(100), // Requests per minute
-  monthlyQuota: integer("monthly_quota"), // Monthly request quota
-  currentMonthUsage: integer("current_month_usage").default(0), // Current month's usage
-  quotaResetDate: timestamp("quota_reset_date"), // When quota resets
-  ipWhitelist: jsonb("ip_whitelist").default('[]'), // Allowed IP addresses
-  userAgent: text("user_agent"), // Expected user agent
 });
+
 
 // API Usage Logs table
 export const apiUsageLogs = pgTable("api_usage_logs", {

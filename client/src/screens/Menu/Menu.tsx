@@ -32,7 +32,9 @@ import {
   TestTube,
   BookOpen,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Gamepad2,
+  Truck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -129,10 +131,12 @@ export default function MenuPage() {
       items: [
         { href: "/industries/institutional", label: "Investment Firms & Hedge Funds", icon: Building2, description: "Institutional compliance for VCs, hedge funds & SMEs" },
         { href: "/industries/fintech", label: "Fintech & Banking", icon: Landmark, description: "Solutions for financial services" },
-        { href: "/industries/ecommerce", label: "Marketplaces & Sharing Economy", icon: ShoppingCart, description: "Trust and safety for platforms" },
-        { href: "/industries/ecommerce", label: "eCommerce & Retail", icon: CreditCard, description: "Retail fraud prevention" },
-        { href: "/industries/travel", label: "Travel & Hospitality", icon: Plane, description: "Identity verification for travel" },
-        { href: "/industries/crypto", label: "Crypto / Digital Assets", icon: Bitcoin, description: "Compliance for digital assets" },
+        { href: "/industries/crypto", label: "Crypto & Digital Assets", icon: Bitcoin, description: "Web3 & blockchain protection" },
+        { href: "/industries/ecommerce", label: "E-commerce & Marketplaces", icon: ShoppingCart, description: "Platform protection" },
+        { href: "/industries/gaming", label: "iGaming & Online Gambling", icon: Gamepad2, description: "Player verification & compliance" },
+        { href: "/industries/travel", label: "Travel & Hospitality", icon: Plane, description: "Booking fraud prevention" },
+        { href: "/industries/insurance", label: "Insurance", icon: Shield, description: "Claims fraud prevention" },
+        { href: "/industries/logistics", label: "Logistics & Supply Chain", icon: Truck, description: "Shipment verification" },
       ]
     },
     {
@@ -140,21 +144,21 @@ export default function MenuPage() {
       icon: Code,
       items: [
         { href: "/developers", label: "Quick Start", icon: Zap, description: "Get started in minutes" },
-        { href: "/api-reference", label: "API Reference / SDKs", icon: Code, description: "Complete API documentation" },
-        { href: "/webhooks", label: "Webhooks & Events", icon: Webhook, description: "Real-time event notifications" },
-        { href: "/sdk-documentation", label: "Workflow / Orchestration", icon: Workflow, description: "Build custom verification workflows" },
-        { href: "/api-playground", label: "Sandbox / Demo", icon: TestTube, description: "Test in our sandbox environment" },
+        { href: "/developers/api", label: "API Reference / SDKs", icon: Code, description: "Complete API documentation" },
+        { href: "/developers/webhooks", label: "Webhooks & Events", icon: Webhook, description: "Real-time event notifications" },
+        { href: "/developers/workflow", label: "Workflow / Orchestration", icon: Workflow, description: "Build custom verification workflows" },
+        { href: "/developers/demo", label: "Sandbox / Demo", icon: TestTube, description: "Test in our sandbox environment" },
       ]
     },
     {
       title: "Enterprise",
       icon: Building2,
       items: [
-        { href: "/business", label: "Enterprise Features & Benefits", icon: Building2, description: "Powerful features for large organizations" },
+        { href: "/enterprise/features", label: "Enterprise Features & Benefits", icon: Building2, description: "Powerful features for large organizations" },
         { href: "enterprise/compliance", label: "Compliance & Data Security", icon: Lock, description: "Enterprise-grade security and compliance" },
-        { href: "/developers", label: "Integration & Onboarding Support", icon: Workflow, description: "Dedicated support for seamless integration" },
-        { href: "/about-us", label: "Case Studies / Testimonials", icon: BookOpen, description: "Success stories from our customers" },
-        { href: "/enterprise-contact", label: "Contact / Sales / Support", icon: Phone, description: "Get in touch with our team" },
+        { href: "/enterprise/integration", label: "Integration & Onboarding Support", icon: Workflow, description: "Dedicated support for seamless integration" },
+        { href: "/enterprise/case-studies", label: "Case Studies / Testimonials", icon: BookOpen, description: "Success stories from our customers" },
+        { href: "/contact", label: "Contact / Sales / Support", icon: Phone, description: "Get in touch with our team" },
       ]
     },
     {
