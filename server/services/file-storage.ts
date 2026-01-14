@@ -53,23 +53,74 @@ export class FileStorageService {
 
     // Initialize S3 if configured
     if (this.provider === 's3') {
-      const awsRegion = process.env.AWS_REGION || 'us-east-1';
-      const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
-      const awsSecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+      // Check for S3-specific env vars first, then fall back to generic AWS vars
+      const awsRegion = process.env.AWS_S3_REGION || process.env.AWS_REGION || 'us-east-1';
+      const awsAccessKeyId = process.env.AWS_S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+      const awsSecretAccessKey = process.env.AWS_S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
       this.s3Bucket = process.env.AWS_S3_BUCKET;
 
+      // Log configuration status for debugging
+      logger.info({
+        provider: 's3',
+        hasBucket: !!this.s3Bucket,
+        hasAccessKey: !!awsAccessKeyId,
+        hasSecretKey: !!awsSecretAccessKey,
+        region: awsRegion,
+        bucket: this.s3Bucket || 'NOT SET',
+        usingS3SpecificVars: !!(process.env.AWS_S3_ACCESS_KEY_ID && process.env.AWS_S3_SECRET_ACCESS_KEY),
+      }, 'S3 configuration check');
+
       if (!awsAccessKeyId || !awsSecretAccessKey || !this.s3Bucket) {
-        logger.warn('AWS S3 credentials not fully configured, falling back to local storage');
+        const missingVars = [];
+        if (!this.s3Bucket) missingVars.push('AWS_S3_BUCKET');
+        if (!awsAccessKeyId) missingVars.push('AWS_S3_ACCESS_KEY_ID or AWS_ACCESS_KEY_ID');
+        if (!awsSecretAccessKey) missingVars.push('AWS_S3_SECRET_ACCESS_KEY or AWS_SECRET_ACCESS_KEY');
+        
+        logger.error({
+          missing: missingVars,
+          bucket: this.s3Bucket || 'NOT SET',
+          hasAccessKey: !!awsAccessKeyId,
+          hasSecretKey: !!awsSecretAccessKey,
+        }, 'AWS S3 credentials not fully configured, falling back to local storage');
         this.provider = 'local';
       } else {
-        this.s3Client = new S3Client({
-          region: awsRegion,
-          credentials: {
-            accessKeyId: awsAccessKeyId,
-            secretAccessKey: awsSecretAccessKey,
-          },
-        });
-        logger.info({ bucket: this.s3Bucket, region: awsRegion }, 'S3 storage initialized');
+        try {
+          this.s3Client = new S3Client({
+            region: awsRegion,
+            credentials: {
+              accessKeyId: awsAccessKeyId,
+              secretAccessKey: awsSecretAccessKey,
+            },
+            // Add endpoint for custom S3-compatible services if needed
+            ...(process.env.AWS_S3_ENDPOINT && { endpoint: process.env.AWS_S3_ENDPOINT }),
+            // Force path style if needed (for some S3-compatible services)
+            ...(process.env.AWS_S3_FORCE_PATH_STYLE === 'true' && { forcePathStyle: true }),
+          });
+          
+          // Test S3 connection by checking if bucket exists
+          this.testS3Connection().catch((error) => {
+            logger.error({ 
+              error: error.message,
+              bucket: this.s3Bucket,
+              region: awsRegion,
+            }, 'S3 connection test failed - S3 may not be accessible, but will attempt to use it');
+          });
+          
+          logger.info({ 
+            bucket: this.s3Bucket, 
+            region: awsRegion,
+            endpoint: process.env.AWS_S3_ENDPOINT || 'default',
+            forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
+          }, 'S3 storage initialized successfully');
+        } catch (error: any) {
+          logger.error({ 
+            error: error.message,
+            stack: error.stack,
+            region: awsRegion,
+            bucket: this.s3Bucket,
+          }, 'Failed to initialize S3 client, falling back to local storage');
+          this.provider = 'local';
+        }
       }
     }
 
@@ -189,69 +240,128 @@ export class FileStorageService {
       }
 
       if (this.provider === 's3' && this.s3Client && this.s3Bucket) {
-        // Upload to S3
-        const command = new PutObjectCommand({
-          Bucket: this.s3Bucket,
-          Key: storageKey,
-          Body: finalBuffer,
-          ContentType: mimeType,
-          Metadata: {
-            fileId,
-            userId: userId.toString(),
-            originalName,
-            checksum,
-            encrypted: encrypted.toString(),
-          },
-          ServerSideEncryption: 'AES256',
-        });
-
-        await this.s3Client.send(command);
-
-        logger.info({ fileId, storageKey, provider: 's3' }, 'File uploaded to S3');
-
-        return {
-          success: true,
-          fileId,
-          storageKey,
-        };
-      } else {
-        // Local storage
-        const filePath = path.join(this.localStorageDir, storageKey);
-        const dir = path.dirname(filePath);
-        
+        // Upload to S3 with fallback to local storage on error
         try {
-          // Ensure directory exists
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-            logger.debug({ dir }, 'Created directory for file upload');
-          }
+          const command = new PutObjectCommand({
+            Bucket: this.s3Bucket,
+            Key: storageKey,
+            Body: finalBuffer,
+            ContentType: mimeType,
+            Metadata: {
+              fileId,
+              userId: userId.toString(),
+              originalName,
+              checksum,
+              encrypted: encrypted.toString(),
+            },
+            ServerSideEncryption: 'AES256',
+          });
 
-          // Write file
-          fs.writeFileSync(filePath, finalBuffer);
-          
-          // Verify file was written
-          if (!fs.existsSync(filePath)) {
-            throw new Error('File was not written successfully');
-          }
+          await this.s3Client.send(command);
 
-          logger.info({ fileId, storageKey, provider: 'local', size: finalBuffer.length }, 'File uploaded to local storage');
+          logger.info({ 
+            fileId, 
+            storageKey, 
+            provider: 's3',
+            bucket: this.s3Bucket,
+            size: finalBuffer.length,
+            originalName 
+          }, 'File uploaded to S3 successfully');
 
           return {
             success: true,
             fileId,
             storageKey,
-            url: `/api/files/${fileId}`, // Local access URL
           };
-        } catch (writeError: any) {
-          logger.error({ 
-            error: writeError, 
-            filePath, 
-            dir, 
+        } catch (s3Error: any) {
+          // Log detailed error information
+          const errorDetails: any = {
+            error: s3Error.message,
+            code: s3Error.code,
+            name: s3Error.name,
+            bucket: this.s3Bucket,
+            region: this.s3Client?.config?.region,
+            storageKey,
             originalName,
-            storageKey 
-          }, 'Failed to write file to local storage');
-          throw writeError; // Re-throw to be caught by outer try-catch
+            fileId,
+            fileSize: finalBuffer.length,
+          };
+
+          // Add request ID if available
+          if (s3Error.$metadata?.requestId) {
+            errorDetails.requestId = s3Error.$metadata.requestId;
+          }
+
+          // Add more specific error information
+          if (s3Error.$metadata) {
+            errorDetails.metadata = s3Error.$metadata;
+          }
+
+          // Check for common S3 errors
+          if (s3Error.code === 'NoSuchBucket') {
+            errorDetails.diagnosis = 'S3 bucket does not exist or is not accessible';
+          } else if (s3Error.code === 'InvalidAccessKeyId') {
+            errorDetails.diagnosis = 'AWS Access Key ID is invalid';
+          } else if (s3Error.code === 'SignatureDoesNotMatch') {
+            errorDetails.diagnosis = 'AWS Secret Access Key is incorrect';
+          } else if (s3Error.code === 'AccessDenied') {
+            errorDetails.diagnosis = 'AWS credentials do not have permission to upload to this bucket';
+          } else if (s3Error.code === 'ENOTFOUND' || s3Error.code === 'ECONNREFUSED') {
+            errorDetails.diagnosis = 'Cannot connect to S3 service - check network, endpoint, or region';
+          }
+
+          logger.error(errorDetails, 'S3 upload failed, falling back to local storage');
+          
+          // Fall back to local storage if S3 fails
+          // Don't throw, continue to local storage logic below
         }
+      }
+      
+      // Local storage (either as primary or fallback from S3)
+      // Local storage
+      const filePath = path.join(this.localStorageDir, storageKey);
+      const dir = path.dirname(filePath);
+      
+      try {
+        // Ensure directory exists
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+          logger.debug({ dir }, 'Created directory for file upload');
+        }
+
+        // Write file
+        fs.writeFileSync(filePath, finalBuffer);
+        
+        // Verify file was written
+        if (!fs.existsSync(filePath)) {
+          throw new Error('File was not written successfully');
+        }
+
+        logger.info({ 
+          fileId, 
+          storageKey, 
+          provider: 'local', 
+          size: finalBuffer.length,
+          path: filePath 
+        }, 'File uploaded to local storage');
+
+        return {
+          success: true,
+          fileId,
+          storageKey,
+          url: `/api/files/${fileId}`, // Local access URL
+        };
+      } catch (writeError: any) {
+        logger.error({ 
+          error: writeError.message,
+          stack: writeError.stack,
+          filePath, 
+          dir, 
+          originalName,
+          storageKey,
+          localStorageDir: this.localStorageDir
+        }, 'Failed to write file to local storage');
+        throw writeError; // Re-throw to be caught by outer try-catch
       }
     } catch (error: any) {
       logger.error({ error, originalName }, 'Failed to upload file');
@@ -383,10 +493,70 @@ export class FileStorageService {
   }
 
   /**
+   * Test S3 connection by checking if bucket exists
+   */
+  private async testS3Connection(): Promise<void> {
+    if (this.provider !== 's3' || !this.s3Client || !this.s3Bucket) {
+      return;
+    }
+
+    try {
+      const command = new HeadObjectCommand({
+        Bucket: this.s3Bucket,
+        Key: '.test-connection-check', // Non-existent key, but will test bucket access
+      });
+
+      try {
+        await this.s3Client.send(command);
+      } catch (error: any) {
+        // If error is 404, bucket exists but key doesn't (which is fine)
+        // If error is 403, we have access but bucket might be private (also fine)
+        // If error is other, log it
+        if (error.code !== 'NotFound' && error.code !== '403') {
+          throw error;
+        }
+      }
+
+      logger.info({ bucket: this.s3Bucket }, 'S3 connection test successful - bucket is accessible');
+    } catch (error: any) {
+      logger.warn({ 
+        error: error.message,
+        code: error.code,
+        bucket: this.s3Bucket,
+      }, 'S3 connection test failed - bucket may not be accessible or credentials may be invalid');
+      // Don't throw - allow the service to continue, but log the warning
+    }
+  }
+
+  /**
    * Get storage provider
    */
   getProvider(): StorageProvider {
     return this.provider;
+  }
+
+  /**
+   * Get S3 configuration status (for diagnostics)
+   */
+  getS3ConfigStatus(): {
+    provider: StorageProvider;
+    configured: boolean;
+    bucket?: string;
+    region?: string;
+    hasCredentials: boolean;
+    hasClient: boolean;
+  } {
+    const region = this.s3Client?.config?.region;
+    const regionStr = typeof region === 'string' ? region : undefined;
+    
+    return {
+      provider: this.provider,
+      configured: this.provider === 's3' && !!this.s3Client && !!this.s3Bucket,
+      bucket: this.s3Bucket,
+      region: regionStr,
+      hasCredentials: !!(process.env.AWS_S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID),
+      hasClient: !!this.s3Client,
+    };
   }
 }
 

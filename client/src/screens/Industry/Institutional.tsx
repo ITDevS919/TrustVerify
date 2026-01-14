@@ -30,18 +30,18 @@ export default function InstitutionalCompliance() {
           <div className="flex justify-center w-full mb-6">
             <Badge className="w-fit bg-[#003d2b1a] text-[#003d2b] hover:bg-[#003d2b1a] rounded-full px-4 py-1.5 h-auto">
               <span className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-sm tracking-[0] leading-[14px]">
-                Institutional Grade
+              Institutional Grade
               </span>
             </Badge>
           </div>
           <h1 className="[font-family:'Suisse_Intl-SemiBold',Helvetica] font-semibold text-[#003d2b] text-3xl sm:text-4xl lg:text-5xl mb-4">
-            Compliance Infrastructure for<br />
+              Compliance Infrastructure for<br />
             <span className="text-[#27ae60]">Investment Firms & Hedge Funds</span>
-          </h1>
+            </h1>
           <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base sm:text-lg lg:text-xl max-w-3xl mx-auto mb-8">
-            Complete decision engine, case management, ongoing monitoring, and audit trail 
-            designed to meet the requirements of LPs, fund administrators, and regulators.
-          </p>
+              Complete decision engine, case management, ongoing monitoring, and audit trail 
+              designed to meet the requirements of LPs, fund administrators, and regulators.
+            </p>
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
             <Link to="/institutional-checkout">
               <Button 

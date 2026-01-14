@@ -36,6 +36,7 @@ import { FraudPrevention } from "./screens/FraudPrevention";
 import { DeveloperPortal } from "./screens/DeveloperPortal";
 import { LiveDemo } from "./screens/LiveDemo";
 import { NewTransaction } from "./screens/Transactions/NewTransaction";
+import { TransactionDetail } from "./screens/Transactions/TransactionDetail";
 import { AdminReview } from "./screens/AdminReview/AdminReview";
 import { AdminDashboard } from "./screens/AdminDashboard";
 import { ApiPricing } from "./screens/ApiPricing";
@@ -268,6 +269,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <NewTransaction />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/transactions/:id"
+                element={
+                  <ProtectedRoute>
+                    <TransactionDetail />
                   </ProtectedRoute>
                 }
               />
