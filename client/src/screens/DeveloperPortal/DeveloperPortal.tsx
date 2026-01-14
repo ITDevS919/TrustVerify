@@ -401,8 +401,10 @@ export const DeveloperPortal = (): JSX.Element => {
   const { toast } = useToast();
   const [activeNavItem, setActiveNavItem] = useState<string>("dashboard");
   const [apiKeyName, setApiKeyName] = useState<string>("");
+  const [apiKeyNotes, setApiKeyNotes] = useState<string>("");
   const [selectedIndustry, setSelectedIndustry] = useState<string>("");
   const [selectedUseCase, setSelectedUseCase] = useState<string>("");
+  const [selectedEnvironment, setSelectedEnvironment] = useState<string>("test");
   const [showApiKey, setShowApiKey] = useState<Record<string, boolean>>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [trustScoreInputs, setTrustScoreInputs] = useState({
@@ -497,26 +499,38 @@ export const DeveloperPortal = (): JSX.Element => {
 
   const selectedIndustryConfig = industryConfigs.find(config => config.id === selectedIndustry);
 
+  // Reset use case when industry changes to prevent stale selections
+  useEffect(() => {
+    if (selectedIndustry) {
+      setSelectedUseCase("");
+    }
+  }, [selectedIndustry]);
+
   // Create API key mutation
   const createApiKeyMutation = useMutation({
     mutationFn: async (keyData: any) => {
       const response = await apiRequest("POST", "/api/developer/api-keys", keyData);
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newApiKey: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/developer/api-keys"] });
       setApiKeyName("");
+      setApiKeyNotes("");
       setSelectedIndustry("");
       setSelectedUseCase("");
+      setSelectedEnvironment("test");
       toast({
-        title: "API Key Generated",
-        description: `Successfully created ${selectedIndustryConfig?.name} API key: ${apiKeyName.trim()}`,
+        title: "API Key Generated Successfully",
+        description: selectedEnvironment === 'production' 
+          ? "⚠️ This production key will only be shown once. Save it securely now!"
+          : `Test key "${newApiKey.name || apiKeyName}" created. You can view it anytime in your dashboard.`,
+        duration: 10000,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate API key. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to create API key",
         variant: "destructive",
       });
     },
@@ -554,10 +568,37 @@ export const DeveloperPortal = (): JSX.Element => {
       return;
     }
 
-    if (!apiKeyName.trim() || !selectedIndustry || !selectedUseCase) {
+    if (!apiKeyName.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields before generating an API key.",
+        title: "Key Name Required",
+        description: "Please enter a name for your API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedIndustry) {
+      toast({
+        title: "Industry Required",
+        description: "Please select an industry for your API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedUseCase) {
+      toast({
+        title: "Use Case Required",
+        description: "Please select a use case for your API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedIndustryConfig) {
+      toast({
+        title: "Invalid Industry",
+        description: "Selected industry configuration not found.",
         variant: "destructive",
       });
       return;
@@ -567,12 +608,9 @@ export const DeveloperPortal = (): JSX.Element => {
       name: apiKeyName.trim(),
       industry: selectedIndustry,
       useCase: selectedUseCase,
-      permissions: selectedIndustryConfig?.permissions || [],
-      rateLimits: selectedIndustryConfig?.rateLimits || {
-        apiCalls: 1000,
-        fraudChecks: 500,
-        kycVerifications: 100
-      }
+      environment: selectedEnvironment,
+      notes: apiKeyNotes,
+      permissions: selectedIndustryConfig.permissions
     };
 
     createApiKeyMutation.mutate(keyData);
@@ -1239,7 +1277,7 @@ export const DeveloperPortal = (): JSX.Element => {
                 {/* API Key Name Input */}
                 <div className="space-y-3">
                   <Label htmlFor="keyName" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base leading-6">
-                    API Key Name
+                    API Key Name *
                   </Label>
                   <Input
                     id="keyName"
@@ -1253,10 +1291,27 @@ export const DeveloperPortal = (): JSX.Element => {
                   </p>
                 </div>
 
+                {/* Notes Input */}
+                <div className="space-y-3">
+                  <Label htmlFor="keyNotes" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base leading-6">
+                    Notes (Optional)
+                  </Label>
+                  <textarea
+                    id="keyNotes"
+                    value={apiKeyNotes}
+                    onChange={(e) => setApiKeyNotes(e.target.value)}
+                    placeholder="Add notes about where this key will be used, deployment environment, or any other context..."
+                    className="w-full min-h-[80px] px-4 md:px-5 py-[15px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base placeholder:text-[#808080] resize-y"
+                  />
+                  <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                    Optional: Add context to help you remember this key's purpose later
+                  </p>
+                </div>
+
                 {/* Industry Selection */}
                 <div className="space-y-3">
                   <Label htmlFor="industry" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base leading-6">
-                    Select Industry
+                    Select Industry *
                   </Label>
                   <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
                     <SelectTrigger 
@@ -1305,7 +1360,7 @@ export const DeveloperPortal = (): JSX.Element => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       {/* Use Cases */}
                       <div className="space-y-3">
-                        <h5 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base leading-6">Primary Use Case</h5>
+                        <h5 className="[font-family:'DM_Sans_18pt-SemiBold',Helvetica] font-semibold text-[#003d2b] text-base leading-6">Primary Use Case *</h5>
                         <Select value={selectedUseCase} onValueChange={setSelectedUseCase}>
                           <SelectTrigger 
                             className="h-12 bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm hover:border-[#003d2b] focus:border-[#003d2b]"
@@ -1370,6 +1425,60 @@ export const DeveloperPortal = (): JSX.Element => {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Environment Selection */}
+                {selectedIndustry && selectedUseCase && (
+                  <div className="space-y-3">
+                    <Label htmlFor="environment" className="[font-family:'DM_Sans_18pt-Medium',Helvetica] font-medium text-[#003d2b] text-base leading-6">
+                      Environment *
+                    </Label>
+                    <Select value={selectedEnvironment} onValueChange={setSelectedEnvironment}>
+                      <SelectTrigger 
+                        id="environment"
+                        className="h-[50px] bg-[#fcfcfc] rounded-[10px] border border-solid border-[#e4e4e4] [font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-base hover:border-[#003d2b] focus:border-[#003d2b]"
+                      >
+                        <SelectValue placeholder="Select environment" />
+                      </SelectTrigger>
+                      <SelectContent 
+                        className="z-[999999] max-h-[200px] bg-white border border-[#e4e4e4] shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[10px] overflow-hidden"
+                      >
+                        <SelectItem value="test" className="cursor-pointer hover:bg-[#f7f7f7] focus:bg-[#f7f7f7] px-4 py-3">
+                          <div>
+                            <div className="font-medium">Test / Development</div>
+                            <div className="text-xs text-gray-500">For testing and development purposes</div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="production" className="cursor-pointer hover:bg-amber-50 focus:bg-amber-50 px-4 py-3">
+                          <div>
+                            <div className="font-medium text-amber-700">Production</div>
+                            <div className="text-xs text-amber-600">⚠️ Live environment - key shown only once!</div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="[font-family:'DM_Sans_18pt-Regular',Helvetica] font-normal text-[#808080] text-sm">
+                      Production keys are shown only once for security
+                    </p>
+                    {selectedEnvironment === 'production' && (
+                      <div className="bg-amber-50 border-2 border-amber-400 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <Shield className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h4 className="font-semibold text-amber-900 mb-1">Production Key Security</h4>
+                            <p className="text-sm text-amber-800 mb-2">
+                              For security reasons, production keys are displayed only once after generation. Make sure to save it securely before closing this page.
+                            </p>
+                            <ul className="text-xs text-amber-700 space-y-1">
+                              <li>• Store in a secure password manager or secret vault</li>
+                              <li>• Never commit to version control or share publicly</li>
+                              <li>• Use environment variables in your applications</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

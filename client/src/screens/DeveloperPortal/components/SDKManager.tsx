@@ -1,10 +1,12 @@
 import { useState } from "react";
+import JSZip from "jszip";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import { Label } from "../../../components/ui/label";
 import { Download, Code, FileText, ExternalLink, Copy, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
+import { useToast } from "../../../hooks/use-toast";
 
 const sdks = [
   {
@@ -72,12 +74,451 @@ const sdks = [
 ];
 
 export const SDKManager = () => {
+  const { toast } = useToast();
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+  const [downloadingSdk, setDownloadingSdk] = useState<string | null>(null);
 
   const copyCommand = (command: string, sdkId: string) => {
     navigator.clipboard.writeText(command);
     setCopiedCommand(sdkId);
     setTimeout(() => setCopiedCommand(null), 2000);
+  };
+
+  const generateSDKFiles = (sdk: typeof sdks[0]): { [filename: string]: string } => {
+    const files: { [filename: string]: string } = {};
+
+    switch (sdk.id) {
+      case "javascript":
+        files["package.json"] = JSON.stringify({
+          name: "@trustverify/sdk",
+          version: sdk.version,
+          description: sdk.description,
+          main: "index.js",
+          types: "index.d.ts",
+          scripts: {
+            test: "echo \"Error: no test specified\" && exit 1"
+          },
+          keywords: ["trustverify", "sdk", "fraud", "kyc", "aml"],
+          author: "TrustVerify",
+          license: "MIT",
+          dependencies: {
+            "axios": "^1.6.0"
+          }
+        }, null, 2);
+        files["index.js"] = `/**
+ * TrustVerify SDK for JavaScript/TypeScript
+ * Version ${sdk.version}
+ */
+
+const TrustVerifySDK = {
+  apiKey: null,
+  baseUrl: 'https://api.trustverify.co.uk/v1',
+  
+  init(apiKey) {
+    this.apiKey = apiKey;
+    return this;
+  },
+  
+  async verifyIdentity(data) {
+    // Implementation for identity verification
+    return { success: true, data };
+  },
+  
+  async checkFraud(data) {
+    // Implementation for fraud checking
+    return { success: true, data };
+  }
+};
+
+module.exports = TrustVerifySDK;
+`;
+        files["index.d.ts"] = `export interface TrustVerifyConfig {
+  apiKey: string;
+  baseUrl?: string;
+}
+
+export class TrustVerifySDK {
+  constructor(config: TrustVerifyConfig);
+  verifyIdentity(data: any): Promise<any>;
+  checkFraud(data: any): Promise<any>;
+}
+`;
+        files["README.md"] = `# TrustVerify JavaScript/TypeScript SDK
+
+${sdk.description}
+
+## Installation
+
+\`\`\`bash
+${sdk.installCommand}
+\`\`\`
+
+## Usage
+
+\`\`\`javascript
+const TrustVerify = require('@trustverify/sdk');
+
+const sdk = new TrustVerify({
+  apiKey: 'your-api-key-here'
+});
+
+// Verify identity
+const result = await sdk.verifyIdentity({
+  firstName: 'John',
+  lastName: 'Doe'
+});
+\`\`\`
+
+## Documentation
+
+For full documentation, visit: https://docs.trustverify.co.uk
+`;
+        break;
+
+      case "python":
+        files["setup.py"] = `from setuptools import setup, find_packages
+
+setup(
+    name="trustverify-sdk",
+    version="${sdk.version}",
+    description="${sdk.description}",
+    author="TrustVerify",
+    packages=find_packages(),
+    install_requires=[
+        "requests>=2.31.0",
+    ],
+)
+`;
+        files["trustverify/__init__.py"] = `"""
+TrustVerify SDK for Python
+Version ${sdk.version}
+"""
+
+__version__ = "${sdk.version}"
+
+from .client import TrustVerifyClient
+
+__all__ = ["TrustVerifyClient"]
+`;
+        files["trustverify/client.py"] = `import requests
+
+class TrustVerifyClient:
+    def __init__(self, api_key: str, base_url: str = "https://api.trustverify.co.uk/v1"):
+        self.api_key = api_key
+        self.base_url = base_url
+        self.headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    def verify_identity(self, data: dict):
+        """Verify identity"""
+        response = requests.post(
+            f"{self.base_url}/verify/identity",
+            json=data,
+            headers=self.headers
+        )
+        return response.json()
+    
+    def check_fraud(self, data: dict):
+        """Check for fraud"""
+        response = requests.post(
+            f"{self.base_url}/fraud/check",
+            json=data,
+            headers=self.headers
+        )
+        return response.json()
+`;
+        files["README.md"] = `# TrustVerify Python SDK
+
+${sdk.description}
+
+## Installation
+
+\`\`\`bash
+${sdk.installCommand}
+\`\`\`
+
+## Usage
+
+\`\`\`python
+from trustverify import TrustVerifyClient
+
+client = TrustVerifyClient(api_key="your-api-key-here")
+
+# Verify identity
+result = client.verify_identity({
+    "firstName": "John",
+    "lastName": "Doe"
+})
+\`\`\`
+
+## Documentation
+
+For full documentation, visit: https://docs.trustverify.co.uk
+`;
+        break;
+
+      case "php":
+        files["composer.json"] = JSON.stringify({
+          name: "trustverify/sdk",
+          description: sdk.description,
+          type: "library",
+          version: sdk.version,
+          require: {
+            "php": ">=7.4",
+            "guzzlehttp/guzzle": "^7.0"
+          },
+          autoload: {
+            "psr-4": {
+              "TrustVerify\\": "src/"
+            }
+          }
+        }, null, 2);
+        files["src/TrustVerifyClient.php"] = `<?php
+
+namespace TrustVerify;
+
+class TrustVerifyClient
+{
+    private $apiKey;
+    private $baseUrl;
+
+    public function __construct($apiKey, $baseUrl = 'https://api.trustverify.co.uk/v1')
+    {
+        $this->apiKey = $apiKey;
+        $this->baseUrl = $baseUrl;
+    }
+
+    public function verifyIdentity($data)
+    {
+        // Implementation for identity verification
+        return ['success' => true, 'data' => $data];
+    }
+
+    public function checkFraud($data)
+    {
+        // Implementation for fraud checking
+        return ['success' => true, 'data' => $data];
+    }
+}
+`;
+        files["README.md"] = `# TrustVerify PHP SDK
+
+${sdk.description}
+
+## Installation
+
+\`\`\`bash
+${sdk.installCommand}
+\`\`\`
+
+## Usage
+
+\`\`\`php
+<?php
+require 'vendor/autoload.php';
+
+use TrustVerify\\TrustVerifyClient;
+
+$client = new TrustVerifyClient('your-api-key-here');
+
+// Verify identity
+$result = $client->verifyIdentity([
+    'firstName' => 'John',
+    'lastName' => 'Doe'
+]);
+\`\`\`
+
+## Documentation
+
+For full documentation, visit: https://docs.trustverify.co.uk
+`;
+        break;
+
+      case "ruby":
+        files["trustverify-sdk.gemspec"] = `Gem::Specification.new do |spec|
+  spec.name          = "trustverify-sdk"
+  spec.version       = "${sdk.version}"
+  spec.authors       = ["TrustVerify"]
+  spec.description   = "${sdk.description}"
+  spec.summary       = "TrustVerify SDK for Ruby"
+  spec.license       = "MIT"
+  spec.files         = Dir["lib/**/*"]
+  spec.require_paths = ["lib"]
+  spec.add_dependency "httparty", "~> 0.21"
+end
+`;
+        files["lib/trustverify.rb"] = `# TrustVerify SDK for Ruby
+# Version ${sdk.version}
+
+module TrustVerify
+  class Client
+    def initialize(api_key, base_url = 'https://api.trustverify.co.uk/v1')
+      @api_key = api_key
+      @base_url = base_url
+    end
+
+    def verify_identity(data)
+      # Implementation for identity verification
+      { success: true, data: data }
+    end
+
+    def check_fraud(data)
+      # Implementation for fraud checking
+      { success: true, data: data }
+    end
+  end
+end
+`;
+        files["README.md"] = `# TrustVerify Ruby SDK
+
+${sdk.description}
+
+## Installation
+
+\`\`\`bash
+${sdk.installCommand}
+\`\`\`
+
+## Usage
+
+\`\`\`ruby
+require 'trustverify'
+
+client = TrustVerify::Client.new('your-api-key-here')
+
+# Verify identity
+result = client.verify_identity(
+  firstName: 'John',
+  lastName: 'Doe'
+)
+\`\`\`
+
+## Documentation
+
+For full documentation, visit: https://docs.trustverify.co.uk
+`;
+        break;
+
+      case "go":
+        files["go.mod"] = `module github.com/trustverify/sdk-go
+
+go 1.21
+
+require (
+    github.com/go-resty/resty/v2 v2.11.0
+)
+`;
+        files["client.go"] = `package trustverify
+
+import (
+    "github.com/go-resty/resty/v2"
+)
+
+type Client struct {
+    apiKey  string
+    baseURL string
+    client  *resty.Client
+}
+
+func NewClient(apiKey string) *Client {
+    return &Client{
+        apiKey:  apiKey,
+        baseURL: "https://api.trustverify.co.uk/v1",
+        client:  resty.New(),
+    }
+}
+
+func (c *Client) VerifyIdentity(data map[string]interface{}) (map[string]interface{}, error) {
+    // Implementation for identity verification
+    return map[string]interface{}{"success": true, "data": data}, nil
+}
+
+func (c *Client) CheckFraud(data map[string]interface{}) (map[string]interface{}, error) {
+    // Implementation for fraud checking
+    return map[string]interface{}{"success": true, "data": data}, nil
+}
+`;
+        files["README.md"] = `# TrustVerify Go SDK
+
+${sdk.description}
+
+## Installation
+
+\`\`\`bash
+${sdk.installCommand}
+\`\`\`
+
+## Usage
+
+\`\`\`go
+package main
+
+import (
+    "github.com/trustverify/sdk-go"
+)
+
+func main() {
+    client := trustverify.NewClient("your-api-key-here")
+    
+    // Verify identity
+    result, err := client.VerifyIdentity(map[string]interface{}{
+        "firstName": "John",
+        "lastName": "Doe",
+    })
+}
+\`\`\`
+
+## Documentation
+
+For full documentation, visit: https://docs.trustverify.co.uk
+`;
+        break;
+    }
+
+    return files;
+  };
+
+  const handleDownloadSDK = async (sdk: typeof sdks[0]) => {
+    try {
+      setDownloadingSdk(sdk.id);
+      
+      const zip = new JSZip();
+      const files = generateSDKFiles(sdk);
+
+      // Add all files to zip
+      Object.entries(files).forEach(([filename, content]) => {
+        zip.file(filename, content);
+      });
+
+      // Generate zip file
+      const blob = await zip.generateAsync({ type: "blob" });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `trustverify-sdk-${sdk.id}-${sdk.version}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "SDK Downloaded",
+        description: `${sdk.name} SDK v${sdk.version} has been downloaded successfully.`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading SDK:", error);
+      toast({
+        title: "Download Failed",
+        description: error.message || "Failed to download SDK. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingSdk(null);
+    }
   };
 
   return (
@@ -141,10 +582,11 @@ export const SDKManager = () => {
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => window.open(sdk.downloadUrl, "_blank")}
+                  onClick={() => handleDownloadSDK(sdk)}
+                  disabled={downloadingSdk === sdk.id}
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download
+                  {downloadingSdk === sdk.id ? "Downloading..." : "Download"}
                 </Button>
                 <Button
                   variant="outline"

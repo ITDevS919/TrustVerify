@@ -38,6 +38,8 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "2.1.1",
     "framer-motion": "^12.23.24",
+    "jspdf": "^4.0.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.453.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -50,6 +52,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/jszip": "^3.4.0",
     "@types/react": "18.2.0",
     "@types/react-dom": "18.2.0",
     "@vitejs/plugin-react": "4.3.4",

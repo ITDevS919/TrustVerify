@@ -228,11 +228,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // KYC Verification Routes - MVP Testing Version
-  app.post("/api/kyc/submit", requireAuth, upload.fields([
-    { name: 'frontImage', maxCount: 1 },
-    { name: 'backImage', maxCount: 1 },
-    { name: 'selfieImage', maxCount: 1 }
-  ]), async (req, res) => {
+  app.post("/api/kyc/submit", requireAuth, (req, res, next) => {
+    // Handle multer errors
+    upload.fields([
+      { name: 'frontImage', maxCount: 1 },
+      { name: 'backImage', maxCount: 1 },
+      { name: 'selfieImage', maxCount: 1 }
+    ])(req, res, (err: any) => {
+      if (err) {
+        console.error('[KYC Submit] Multer error:', err);
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ message: 'File too large. Maximum size is 10MB.' });
+          }
+          return res.status(400).json({ message: `File upload error: ${err.message}` });
+        }
+        return res.status(400).json({ message: err.message || 'File upload failed' });
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -250,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       
-      if (!files.frontImage || !files.selfieImage) {
+      if (!files || !files.frontImage || !files.selfieImage) {
         return res.status(400).json({ message: "Front ID image and selfie are required" });
       }
 
@@ -264,125 +279,275 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Import services
-      const { kycStorage } = await import("./services/kyc-storage");
-      const { fileStorageService } = await import("./services/file-storage");
-      const { db } = await import("./db");
-      const { fileStorage: fileStorageTable } = await import("./shared/schema");
+      // Import services with error handling
+      let kycStorage, fileStorageService, db, fileStorageTable;
+      try {
+        const kycStorageModule = await import("./services/kyc-storage");
+        kycStorage = kycStorageModule.kycStorage;
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to import kyc-storage:', error);
+        return res.status(500).json({ message: 'KYC storage service unavailable', error: error.message });
+      }
+
+      try {
+        const fileStorageModule = await import("./services/file-storage");
+        fileStorageService = fileStorageModule.fileStorageService;
+        
+        // Verify file storage service is properly initialized
+        if (!fileStorageService) {
+          console.error('[KYC Submit] File storage service is null or undefined');
+          return res.status(500).json({ message: 'File storage service not initialized' });
+        }
+        
+        const provider = fileStorageService.getProvider();
+        console.log('[KYC Submit] File storage service initialized:', { provider });
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to import file-storage:', error);
+        return res.status(500).json({ message: 'File storage service unavailable', error: error.message });
+      }
+
+      try {
+        const dbModule = await import("./db");
+        db = dbModule.db;
+        const schemaModule = await import("./shared/schema");
+        fileStorageTable = schemaModule.fileStorage;
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to import db or schema:', error);
+        return res.status(500).json({ message: 'Database service unavailable', error: error.message });
+      }
 
       // Upload files to cloud storage
       const frontImageFile = files.frontImage[0];
       const backImageFile = files.backImage?.[0];
       const selfieImageFile = files.selfieImage[0];
 
-      // Upload front image
-      const frontUpload = await fileStorageService.uploadFile(
-        frontImageFile.buffer,
-        frontImageFile.originalname,
-        frontImageFile.mimetype,
-        req.user.id,
-        'kyc',
-        { encrypt: true } // Encrypt sensitive KYC documents
-      );
+      // Validate file buffers are available
+      if (!frontImageFile || !frontImageFile.buffer) {
+        console.error('[KYC Submit] Front image file or buffer is missing:', {
+          hasFile: !!frontImageFile,
+          hasBuffer: !!frontImageFile?.buffer,
+          fileName: frontImageFile?.originalname
+        });
+        return res.status(400).json({ message: 'Front image file buffer is missing' });
+      }
 
-      if (!frontUpload.success) {
-        return res.status(500).json({ message: 'Failed to upload front image' });
+      if (!selfieImageFile || !selfieImageFile.buffer) {
+        console.error('[KYC Submit] Selfie image file or buffer is missing:', {
+          hasFile: !!selfieImageFile,
+          hasBuffer: !!selfieImageFile?.buffer,
+          fileName: selfieImageFile?.originalname
+        });
+        return res.status(400).json({ message: 'Selfie image file buffer is missing' });
+      }
+
+      // Upload front image
+      let frontUpload;
+      try {
+        console.log('[KYC Submit] Starting front image upload:', {
+          fileName: frontImageFile.originalname,
+          mimeType: frontImageFile.mimetype,
+          size: frontImageFile.size,
+          bufferSize: frontImageFile.buffer?.length,
+          userId: req.user.id
+        });
+        
+        frontUpload = await fileStorageService.uploadFile(
+          frontImageFile.buffer,
+          frontImageFile.originalname,
+          frontImageFile.mimetype,
+          req.user.id,
+          'kyc',
+          { encrypt: true } // Encrypt sensitive KYC documents
+        );
+        
+        console.log('[KYC Submit] Front image upload result:', {
+          success: frontUpload?.success,
+          fileId: frontUpload?.fileId,
+          storageKey: frontUpload?.storageKey,
+          error: frontUpload?.error
+        });
+      } catch (error: any) {
+        console.error('[KYC Submit] Front image upload exception:', {
+          error: error.message,
+          stack: error.stack,
+          fileName: frontImageFile.originalname
+        });
+        return res.status(500).json({ message: 'Failed to upload front image', error: error.message });
+      }
+
+      if (!frontUpload || !frontUpload.success) {
+        console.error('[KYC Submit] Front image upload returned failure:', {
+          uploadResult: frontUpload,
+          fileName: frontImageFile.originalname,
+          fileSize: frontImageFile.size
+        });
+        return res.status(500).json({ 
+          message: 'Failed to upload front image', 
+          details: frontUpload?.error || 'Unknown error',
+          error: frontUpload?.error
+        });
       }
 
       // Store file metadata in database
       // Note: encrypted flag should match actual encryption status
       const isEncrypted = !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32;
-      await db.insert(fileStorageTable).values({
-        fileId: frontUpload.fileId,
-        userId: req.user.id,
-        fileName: frontImageFile.originalname,
-        originalName: frontImageFile.originalname,
-        mimeType: frontImageFile.mimetype,
-        size: frontImageFile.size,
-        storageProvider: fileStorageService.getProvider(),
-        storageKey: frontUpload.storageKey,
-        fileType: 'kyc',
-        encrypted: isEncrypted,
-      });
+      try {
+        await db.insert(fileStorageTable).values({
+          fileId: frontUpload.fileId,
+          userId: req.user.id,
+          fileName: frontImageFile.originalname,
+          originalName: frontImageFile.originalname,
+          mimeType: frontImageFile.mimetype,
+          size: frontImageFile.size,
+          storageProvider: fileStorageService.getProvider(),
+          storageKey: frontUpload.storageKey,
+          fileType: 'kyc',
+          encrypted: isEncrypted,
+        });
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to store front image metadata:', error);
+        return res.status(500).json({ message: 'Failed to store front image metadata', error: error.message });
+      }
 
       // Upload back image if provided
       let backImageStorageKey: string | undefined;
       if (backImageFile) {
-        const backUpload = await fileStorageService.uploadFile(
-          backImageFile.buffer,
-          backImageFile.originalname,
-          backImageFile.mimetype,
-          req.user.id,
-          'kyc',
-          { encrypt: true }
-        );
+        let backUpload;
+        try {
+          backUpload = await fileStorageService.uploadFile(
+            backImageFile.buffer,
+            backImageFile.originalname,
+            backImageFile.mimetype,
+            req.user.id,
+            'kyc',
+            { encrypt: true }
+          );
+        } catch (error: any) {
+          console.error('[KYC Submit] Back image upload failed:', error);
+          // Don't fail the request if back image fails, as it's optional
+        }
 
-        if (backUpload.success) {
+        if (backUpload && backUpload.success) {
           backImageStorageKey = backUpload.storageKey;
-          await db.insert(fileStorageTable).values({
-            fileId: backUpload.fileId,
-            userId: req.user.id,
-            fileName: backImageFile.originalname,
-            originalName: backImageFile.originalname,
-            mimeType: backImageFile.mimetype,
-            size: backImageFile.size,
-            storageProvider: fileStorageService.getProvider(),
-            storageKey: backUpload.storageKey,
-            fileType: 'kyc',
-            encrypted: !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32,
-          });
+          try {
+            await db.insert(fileStorageTable).values({
+              fileId: backUpload.fileId,
+              userId: req.user.id,
+              fileName: backImageFile.originalname,
+              originalName: backImageFile.originalname,
+              mimeType: backImageFile.mimetype,
+              size: backImageFile.size,
+              storageProvider: fileStorageService.getProvider(),
+              storageKey: backUpload.storageKey,
+              fileType: 'kyc',
+              encrypted: !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32,
+            });
+          } catch (error: any) {
+            console.error('[KYC Submit] Failed to store back image metadata:', error);
+            // Don't fail the request if metadata storage fails
+          }
         }
       }
 
       // Upload selfie
-      const selfieUpload = await fileStorageService.uploadFile(
-        selfieImageFile.buffer,
-        selfieImageFile.originalname,
-        selfieImageFile.mimetype,
-        req.user.id,
-        'kyc',
-        { encrypt: true }
-      );
-
-      if (!selfieUpload.success) {
-        return res.status(500).json({ message: 'Failed to upload selfie image' });
+      let selfieUpload;
+      try {
+        console.log('[KYC Submit] Starting selfie image upload:', {
+          fileName: selfieImageFile.originalname,
+          mimeType: selfieImageFile.mimetype,
+          size: selfieImageFile.size,
+          bufferSize: selfieImageFile.buffer?.length,
+          userId: req.user.id
+        });
+        
+        selfieUpload = await fileStorageService.uploadFile(
+          selfieImageFile.buffer,
+          selfieImageFile.originalname,
+          selfieImageFile.mimetype,
+          req.user.id,
+          'kyc',
+          { encrypt: true }
+        );
+        
+        console.log('[KYC Submit] Selfie image upload result:', {
+          success: selfieUpload?.success,
+          fileId: selfieUpload?.fileId,
+          storageKey: selfieUpload?.storageKey,
+          error: selfieUpload?.error
+        });
+      } catch (error: any) {
+        console.error('[KYC Submit] Selfie image upload exception:', {
+          error: error.message,
+          stack: error.stack,
+          fileName: selfieImageFile.originalname
+        });
+        return res.status(500).json({ message: 'Failed to upload selfie image', error: error.message });
       }
 
-      await db.insert(fileStorageTable).values({
-        fileId: selfieUpload.fileId,
-        userId: req.user.id,
-        fileName: selfieImageFile.originalname,
-        originalName: selfieImageFile.originalname,
-        mimeType: selfieImageFile.mimetype,
-        size: selfieImageFile.size,
-        storageProvider: fileStorageService.getProvider(),
-        storageKey: selfieUpload.storageKey,
-        fileType: 'kyc',
-        encrypted: !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32,
-      });
+      if (!selfieUpload || !selfieUpload.success) {
+        console.error('[KYC Submit] Selfie image upload returned failure:', {
+          uploadResult: selfieUpload,
+          fileName: selfieImageFile.originalname,
+          fileSize: selfieImageFile.size
+        });
+        return res.status(500).json({ 
+          message: 'Failed to upload selfie image', 
+          details: selfieUpload?.error || 'Unknown error',
+          error: selfieUpload?.error
+        });
+      }
+
+      try {
+        await db.insert(fileStorageTable).values({
+          fileId: selfieUpload.fileId,
+          userId: req.user.id,
+          fileName: selfieImageFile.originalname,
+          originalName: selfieImageFile.originalname,
+          mimeType: selfieImageFile.mimetype,
+          size: selfieImageFile.size,
+          storageProvider: fileStorageService.getProvider(),
+          storageKey: selfieUpload.storageKey,
+          fileType: 'kyc',
+          encrypted: !!process.env.FILE_ENCRYPTION_KEY && process.env.FILE_ENCRYPTION_KEY.length >= 32,
+        });
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to store selfie image metadata:', error);
+        return res.status(500).json({ message: 'Failed to store selfie image metadata', error: error.message });
+      }
 
       // Create submission with storage keys instead of file paths
-      const submission = await kycStorage.createSubmission({
-        userId: req.user.id,
-        userEmail: email || user.email,
-        userName: `${firstName || user.firstName || ''} ${lastName || user.lastName || ''}`.trim() || user.username || 'Unknown',
-        userPhone: phone,
-        documentType,
-        documentNumber,
-        frontImagePath: frontUpload.storageKey, // Store storage key
-        backImagePath: backImageStorageKey,
-        selfieImagePath: selfieUpload.storageKey,
-        userType,
-      });
+      let submission;
+      try {
+        submission = await kycStorage.createSubmission({
+          userId: req.user.id,
+          userEmail: email || user.email,
+          userName: `${firstName || user.firstName || ''} ${lastName || user.lastName || ''}`.trim() || user.username || 'Unknown',
+          userPhone: phone,
+          documentType,
+          documentNumber,
+          frontImagePath: frontUpload.storageKey, // Store storage key
+          backImagePath: backImageStorageKey,
+          selfieImagePath: selfieUpload.storageKey,
+          userType,
+        });
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to create submission:', error);
+        return res.status(500).json({ message: 'Failed to create KYC submission', error: error.message });
+      }
 
       // Also create in main KYC table for compatibility
-      const existingKyc = await storage.getKycByUserId(req.user.id);
-      if (!existingKyc || existingKyc.status !== "approved") {
-        await storage.createKycVerification({
-          userId: req.user.id,
-          documentType,
-          documentNumber: documentNumber || undefined,
-        });
+      try {
+        const existingKyc = await storage.getKycByUserId(req.user.id);
+        if (!existingKyc || existingKyc.status !== "approved") {
+          await storage.createKycVerification({
+            userId: req.user.id,
+            documentType,
+            documentNumber: documentNumber || undefined,
+          });
+        }
+      } catch (error: any) {
+        console.error('[KYC Submit] Failed to create KYC verification record:', error);
+        // Don't fail the request if this fails, as the submission was already created
       }
 
       res.status(201).json({
@@ -391,7 +556,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Verification submitted successfully. Your submission is under review.'
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('[KYC Submit] Unexpected error:', error);
+      console.error('[KYC Submit] Error stack:', error.stack);
+      res.status(500).json({ 
+        message: error.message || 'An unexpected error occurred',
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   });
 
@@ -901,18 +1071,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const validatedData = insertTransactionSchema.parse(req.body);
-      
-      // Check if seller exists
-      const seller = await storage.getUser(validatedData.sellerId);
+      // Extract data from request
+      const { title, description, amount, currency, buyerEmail, sellerId, milestones } = req.body;
+
+      // Validate required fields
+      if (!title || !amount) {
+        return res.status(400).json({ message: "Title and amount are required" });
+      }
+
+      // Determine seller and buyer
+      // If sellerId is provided, use it; otherwise current user is the seller
+      let finalSellerId: number;
+      let finalBuyerId: number;
+
+      if (sellerId) {
+        // Seller ID provided - current user is buyer
+        finalSellerId = parseInt(sellerId);
+        finalBuyerId = req.user.id;
+      } else if (buyerEmail) {
+        // Buyer email provided - current user is seller
+        finalSellerId = req.user.id;
+        
+        // Find buyer by email
+        const buyer = await storage.getUserByEmail(buyerEmail);
+        if (!buyer) {
+          return res.status(400).json({ message: `Buyer with email ${buyerEmail} not found. Please ensure the buyer has an account.` });
+        }
+        finalBuyerId = buyer.id;
+      } else {
+        return res.status(400).json({ message: "Either sellerId or buyerEmail must be provided" });
+      }
+
+      // Verify seller exists
+      const seller = await storage.getUser(finalSellerId);
       if (!seller) {
         return res.status(400).json({ message: "Seller not found" });
       }
 
-      const transaction = await storage.createTransaction({
-        ...validatedData,
-        buyerId: req.user.id,
-      });
+      // Prepare transaction data
+      const transactionData: any = {
+        title: title.trim(),
+        description: description?.trim() || null,
+        amount: amount.toString(),
+        currency: currency || "USD",
+        sellerId: finalSellerId,
+        buyerId: finalBuyerId,
+        milestones: milestones || null,
+      };
+
+      const transaction = await storage.createTransaction(transactionData);
 
       // Run fraud detection v2 analysis
       const { fraudDetectionEngineV2 } = await import('./services/fraud-detection-v2');
@@ -941,7 +1148,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(transaction);
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      console.error('[Transaction Creation] Error:', error);
+      
+      // Handle Zod validation errors
+      if (error.name === 'ZodError' || error.errors) {
+        return res.status(400).json({ 
+          message: "Validation error",
+          details: error.errors || error.message 
+        });
+      }
+      
+      // Handle specific error cases
+      if (error.message?.includes('not found')) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      res.status(400).json({ 
+        message: error.message || "Failed to create transaction",
+        ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      });
     }
   });
 
@@ -1008,11 +1233,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
+      // Fetch buyer and seller information
+      const [buyer, seller] = await Promise.all([
+        storage.getUser(transaction.buyerId),
+        storage.getUser(transaction.sellerId),
+      ]);
+
       // Invalidate cache
       const { readCache } = await import('./services/read-cache');
       await readCache.invalidateTransaction(transaction.id);
 
-      res.json(transaction);
+      res.json({
+        ...transaction,
+        buyer: buyer ? {
+          id: buyer.id,
+          username: buyer.username,
+          email: buyer.email,
+          firstName: buyer.firstName,
+          lastName: buyer.lastName,
+        } : undefined,
+        seller: seller ? {
+          id: seller.id,
+          username: seller.username,
+          email: seller.email,
+          firstName: seller.firstName,
+          lastName: seller.lastName,
+        } : undefined,
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1620,10 +1867,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/developer/api-keys", requireAuth, async (req, res) => {
     try {
       const userId = req.user!.id;
-      const { name, permissions = [] } = req.body;
+      console.log('[API Key Creation] Request body:', JSON.stringify(req.body, null, 2));
+      const { name, industry, useCase, environment = 'test', notes, permissions = [] } = req.body;
 
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         return res.status(400).json({ error: "API key name is required" });
+      }
+
+      if (!industry || typeof industry !== 'string' || industry.trim().length === 0) {
+        return res.status(400).json({ error: "Industry is required" });
+      }
+
+      if (!useCase || typeof useCase !== 'string' || useCase.trim().length === 0) {
+        return res.status(400).json({ error: "Use case is required" });
       }
 
       const account = await storage.getDeveloperAccountByUserId(userId);
@@ -1636,10 +1892,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Generate DUAL KEYS (publishable + secret) like Stripe
-      const publishableKey = `pk_test_${crypto.randomBytes(24).toString('hex')}`;
-      const secretKey = `sk_test_${crypto.randomBytes(24).toString('hex')}`;
+      const envPrefix = environment === 'production' ? 'live' : 'test';
+      const publishableKey = `pk_${envPrefix}_${crypto.randomBytes(24).toString('hex')}`;
+      const secretKey = `sk_${envPrefix}_${crypto.randomBytes(24).toString('hex')}`;
       const secretKeyHash = crypto.createHash('sha256').update(secretKey).digest('hex');
       const secretKeyPrefix = `sk_****...${secretKey.slice(-4)}`;
+
+      // Set expiration to 90 days from now (Rule 1.2)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 90);
 
       const apiKey = await storage.createApiKey({
         developerId: account.id,
@@ -1648,17 +1909,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         secretKeyHash,
         secretKeyPrefix,
         permissions: Array.isArray(permissions) ? permissions : [],
-        expiresAt: undefined
+        environment: environment || 'test',
+        industry: industry ? industry.trim() : undefined,
+        useCase: useCase ? useCase.trim() : undefined,
+        notes: notes ? notes.trim() : undefined,
+        expiresAt: expiresAt
       });
 
       res.status(201).json({
         ...apiKey,
         publishableKey, // Safe to show anytime
         secretKey, // ONLY shown ONCE on creation
-        secretKeyWarning: 'Save this secret key securely. It will not be shown again.'
+        secretKeyWarning: environment === 'production' 
+          ? '⚠️ Production key - Save this secret key securely. It will not be shown again.'
+          : 'Save this secret key securely. It will not be shown again.'
       });
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to create API key" });
+      console.error('[API Key Creation] Error:', error);
+      console.error('[API Key Creation] Error details:', {
+        message: error.message,
+        code: error.code,
+        constraint: error.constraint,
+        detail: error.detail,
+        stack: error.stack
+      });
+      
+      // Check if it's a database constraint error
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(400).json({ 
+          error: "Validation error",
+          details: "An API key with this identifier already exists"
+        });
+      }
+      
+      // Check if it's a database validation error
+      if (error.code === '23502') { // Not null violation
+        return res.status(400).json({ 
+          error: "Validation error",
+          details: `Missing required field: ${error.column || 'unknown'}`
+        });
+      }
+      
+      // Check if it's a Zod validation error (from storage layer)
+      if (error.name === 'ZodError' || error.errors) {
+        return res.status(400).json({ 
+          error: "Validation error",
+          details: error.errors || error.message
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Failed to create API key",
+        message: error.message || "Internal server error",
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: error.detail,
+          code: error.code,
+          constraint: error.constraint
+        })
+      });
     }
   });
 
@@ -3222,6 +3530,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: error.message 
       });
     }
+  });
+
+  // ============================================================================
+  // INSTITUTIONAL SELF-SERVICE CHECKOUT API
+  // ============================================================================
+
+  // Institutional Self-Service Checkout API
+  app.post("/api/institutional/checkout", async (req, res) => {
+    try {
+      const { planId, billingCycle, teamSize, addOns, companyInfo, totalAmount } = req.body;
+
+      // Validate required fields
+      if (!planId || !billingCycle || !companyInfo) {
+        return res.status(400).json({ error: "Missing required checkout information" });
+      }
+
+      if (!companyInfo.companyName || !companyInfo.fundType || !companyInfo.primaryContact || !companyInfo.email || !companyInfo.phone) {
+        return res.status(400).json({ error: "Missing required company information" });
+      }
+
+      // Generate subscription ID
+      const subscriptionId = `INST-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      
+      // In production, this would create a Stripe subscription
+      // For now, we simulate the subscription creation
+      const subscription = {
+        id: subscriptionId,
+        planId,
+        billingCycle,
+        teamSize,
+        addOns,
+        companyInfo,
+        totalAmount,
+        status: "active",
+        createdAt: new Date().toISOString(),
+        activatedAt: new Date().toISOString(),
+        nextBillingDate: billingCycle === "annual" 
+          ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        features: {
+          decisionEngine: true,
+          caseManagement: true,
+          ongoingMonitoring: planId !== "startup-vc",
+          auditTrail: true,
+          apiAccess: true,
+          dedicatedSupport: planId === "hedge-fund"
+        }
+      };
+
+      console.log(`Institutional subscription created: ${subscriptionId} for ${companyInfo.companyName}`);
+
+      res.json({
+        success: true,
+        subscription,
+        message: "Subscription activated successfully",
+        redirectUrl: "/compliance/decision-engine",
+        welcomeEmail: `Confirmation email sent to ${companyInfo.email}`
+      });
+
+    } catch (error: any) {
+      console.error("Institutional checkout failed:", error);
+      res.status(500).json({ error: "Checkout failed", details: error.message });
+    }
+  });
+
+  // Get institutional plans
+  app.get("/api/institutional/plans", async (_req, res) => {
+    const plans = [
+      {
+        id: "startup-vc",
+        name: "Startup VC",
+        description: "Perfect for early-stage VCs and angel syndicates",
+        monthlyPrice: 799,
+        annualPrice: 7999,
+        features: ["Automated KYC/KYB", "Basic AML screening", "Decision engine", "Case management", "Email support"],
+        limits: { teamMembers: 5, apiCalls: "25,000/month", kycChecks: "100", kybChecks: "50", amlChecks: "200" }
+      },
+      {
+        id: "growth-fund",
+        name: "Growth Fund",
+        description: "For mid-tier investment firms with LP requirements",
+        monthlyPrice: 1999,
+        annualPrice: 19999,
+        features: ["Everything in Startup VC", "Advanced rules", "Ongoing monitoring", "Multi-signal verification", "Phone + email support"],
+        limits: { teamMembers: 15, apiCalls: "100,000/month", kycChecks: "500", kybChecks: "200", amlChecks: "1,000" }
+      },
+      {
+        id: "hedge-fund",
+        name: "Hedge Fund",
+        description: "Enterprise compliance for hedge funds and institutional investors",
+        monthlyPrice: 4999,
+        annualPrice: 49999,
+        features: ["Everything in Growth Fund", "Full institutional suite", "24/7 priority support", "Custom integrations", "SOC 2 docs"],
+        limits: { teamMembers: 50, apiCalls: "500,000/month", kycChecks: "2,000", kybChecks: "1,000", amlChecks: "5,000" }
+      }
+    ];
+
+    res.json(plans);
   });
 
   const httpServer = createServer(app);

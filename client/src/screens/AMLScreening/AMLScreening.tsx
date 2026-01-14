@@ -95,81 +95,9 @@ export default function AMLScreeningPage() {
   const [registrationCountry, setRegistrationCountry] = useState("");
 
   // Results
-  const [screeningResults, setScreeningResults] = useState<ScreeningResult[]>([
-    {
-      id: 'SCR-001',
-      name: 'John Smith',
-      type: 'individual',
-      dateOfBirth: '1985-03-15',
-      nationality: 'United Kingdom',
-      screeningDate: '2025-12-20',
-      status: 'clear',
-      pepStatus: false,
-      sanctionsMatch: false,
-      adverseMedia: false,
-      riskScore: 12
-    },
-    {
-      id: 'SCR-002',
-      name: 'Acme Holdings Ltd',
-      type: 'business',
-      registrationNumber: '12345678',
-      screeningDate: '2025-12-19',
-      status: 'potential_match',
-      pepStatus: false,
-      sanctionsMatch: false,
-      adverseMedia: true,
-      riskScore: 45,
-      matchDetails: ['Media mention: Regulatory investigation 2024']
-    },
-    {
-      id: 'SCR-003',
-      name: 'Viktor Petrov',
-      type: 'individual',
-      dateOfBirth: '1970-08-22',
-      nationality: 'Russia',
-      screeningDate: '2025-12-18',
-      status: 'match',
-      pepStatus: true,
-      sanctionsMatch: true,
-      adverseMedia: true,
-      riskScore: 95,
-      matchDetails: ['OFAC SDN List Match', 'EU Sanctions List Match', 'PEP: Former Government Official']
-    }
-  ]);
+  const [screeningResults, setScreeningResults] = useState<ScreeningResult[]>([]);
 
-  const [monitoringAlerts, _setMonitoringAlerts] = useState<MonitoringAlert[]>([
-    {
-      id: 'ALT-001',
-      entityName: 'Global Trade Corp',
-      entityType: 'business',
-      alertType: 'new_sanction',
-      severity: 'critical',
-      dateDetected: '2025-12-20T10:30:00Z',
-      status: 'new',
-      description: 'Entity added to EU consolidated sanctions list'
-    },
-    {
-      id: 'ALT-002',
-      entityName: 'Maria Santos',
-      entityType: 'individual',
-      alertType: 'pep_update',
-      severity: 'medium',
-      dateDetected: '2025-12-19T14:15:00Z',
-      status: 'reviewing',
-      description: 'PEP status changed: Appointed as government minister'
-    },
-    {
-      id: 'ALT-003',
-      entityName: 'Nexus Financial Services',
-      entityType: 'business',
-      alertType: 'adverse_media',
-      severity: 'high',
-      dateDetected: '2025-12-18T09:00:00Z',
-      status: 'escalated',
-      description: 'Multiple media reports of money laundering allegations'
-    }
-  ]);
+  const [monitoringAlerts, _setMonitoringAlerts] = useState<MonitoringAlert[]>([]);
 
   const runScreening = async () => {
     setIsScreening(true);
@@ -277,7 +205,7 @@ export default function AMLScreeningPage() {
     matchesFound: screeningResults.filter(r => r.status === 'match').length,
     pendingReview: screeningResults.filter(r => r.status === 'potential_match').length,
     activeAlerts: monitoringAlerts.filter(a => a.status !== 'resolved').length,
-    entitiesMonitored: 1247
+    entitiesMonitored: 0
   };
 
   return (
@@ -683,8 +611,8 @@ export default function AMLScreeningPage() {
                           <Users className="h-5 w-5 text-blue-600" />
                           <h4 className="font-medium">Individuals Monitored</h4>
                         </div>
-                        <p className="text-3xl font-bold">892</p>
-                        <p className="text-sm text-gray-500">+23 added this month</p>
+                        <p className="text-3xl font-bold">0</p>
+                        <p className="text-sm text-gray-500">No individuals currently monitored</p>
                       </CardContent>
                     </Card>
                     <Card>
@@ -693,8 +621,8 @@ export default function AMLScreeningPage() {
                           <Building2 className="h-5 w-5 text-purple-600" />
                           <h4 className="font-medium">Businesses Monitored</h4>
                         </div>
-                        <p className="text-3xl font-bold">355</p>
-                        <p className="text-sm text-gray-500">+8 added this month</p>
+                        <p className="text-3xl font-bold">0</p>
+                        <p className="text-sm text-gray-500">No businesses currently monitored</p>
                       </CardContent>
                     </Card>
                   </div>

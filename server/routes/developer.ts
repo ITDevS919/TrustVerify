@@ -91,38 +91,87 @@ router.post('/api-keys', async (req, res) => {
       return res.status(403).json({ error: 'Developer account must be approved to create API keys' });
     }
 
-    const validatedData = insertApiKeySchema.parse(req.body);
-    
-    // Generate secure API key
-    const apiKeyValue = `tvk_${randomBytes(32).toString('hex')}`;
-    const keyHash = createHash('sha256').update(apiKeyValue).digest('hex');
-    const keyPrefix = apiKeyValue.substring(0, 12);
+    // Extract and validate required fields
+    const { name, industry, useCase, environment = 'test', notes, permissions = [] } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: "API key name is required" });
+    }
+
+    if (!industry || typeof industry !== 'string' || industry.trim().length === 0) {
+      return res.status(400).json({ error: "Industry is required" });
+    }
+
+    if (!useCase || typeof useCase !== 'string' || useCase.trim().length === 0) {
+      return res.status(400).json({ error: "Use case is required" });
+    }
+
+    // Generate DUAL KEYS (publishable + secret) like Stripe
+    const envPrefix = environment === 'production' ? 'live' : 'test';
+    const publishableKey = `pk_${envPrefix}_${randomBytes(24).toString('hex')}`;
+    const secretKey = `sk_${envPrefix}_${randomBytes(24).toString('hex')}`;
+    const secretKeyHash = createHash('sha256').update(secretKey).digest('hex');
+    const secretKeyPrefix = `sk_****...${secretKey.slice(-4)}`;
+
+    // Set expiration to 90 days from now (Rule 1.2)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 90);
 
     const apiKey = await storage.createApiKey({
       developerId: account.id,
-      name: validatedData.name,
-      keyHash,
-      keyPrefix,
-      permissions: Array.isArray(validatedData.permissions) ? validatedData.permissions : [],
-      expiresAt: validatedData.expiresAt || undefined
+      name: name.trim(),
+      publishableKey,
+      secretKeyHash,
+      secretKeyPrefix,
+      permissions: Array.isArray(permissions) ? permissions : [],
+      environment: environment || 'test',
+      industry: industry ? industry.trim() : undefined,
+      useCase: useCase ? useCase.trim() : undefined,
+      notes: notes ? notes.trim() : undefined,
+      expiresAt: expiresAt
     });
 
     // Return the full key value only once
     res.status(201).json({
-      id: apiKey.id,
-      name: apiKey.name,
-      key: apiKeyValue, // This is shown only once
-      keyPrefix: apiKey.keyPrefix,
-      permissions: apiKey.permissions,
-      expiresAt: apiKey.expiresAt,
-      createdAt: apiKey.createdAt
+      ...apiKey,
+      publishableKey, // Safe to show anytime
+      secretKey, // ONLY shown ONCE on creation
+      secretKeyWarning: environment === 'production' 
+        ? '⚠️ Production key - Save this secret key securely. It will not be shown again.'
+        : 'Save this secret key securely. It will not be shown again.'
     });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Validation error', details: error.errors });
     }
-    console.error('Error creating API key:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('[Developer Router] Error creating API key:', error);
+    console.error('[Developer Router] Error details:', {
+      message: error.message,
+      code: error.code,
+      constraint: error.constraint,
+      detail: error.detail
+    });
+    
+    // Check if it's a database constraint error
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(400).json({ 
+        error: "Validation error",
+        details: "An API key with this identifier already exists"
+      });
+    }
+    
+    // Check if it's a database validation error
+    if (error.code === '23502') { // Not null violation
+      return res.status(400).json({ 
+        error: "Validation error",
+        details: `Missing required field: ${error.column || 'unknown'}`
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message || "Failed to create API key"
+    });
   }
 });
 
